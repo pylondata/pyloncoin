@@ -2574,6 +2574,8 @@ bool ActivateBestChain(CValidationState &state, const CChainParams& chainparams,
 
     do {
         boost::this_thread::interruption_point();
+        if (ShutdownRequested())
+            break;
 
         CBlockIndex *pindexNewTip = NULL;
         const CBlockIndex *pindexFork;
