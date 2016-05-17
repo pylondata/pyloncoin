@@ -19,6 +19,14 @@ $(LIBLEVELDB) $(LIBMEMENV):
           OPT="$(AM_CXXFLAGS) $(PIE_FLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS) -D__STDC_LIMIT_MACROS"
 endif
 
+if USE_OPENSC
+OPENSC_LIBS=$(USE_OPENSC)/src/common/libpkcs11.la $(USE_OPENSC)/src/common/libscdl.la
+OPENSC_CFLAGS=-I$(USE_OPENSC)/src
+else
+OPENSC_LIBS=
+OPENSC_CFLAGS=
+endif
+
 BITCOIN_CONFIG_INCLUDES=-I$(builddir)/config
 BITCOIN_INCLUDES=-I$(builddir) -I$(builddir)/obj $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS) $(CRYPTO_CFLAGS) $(SSL_CFLAGS)
 
@@ -28,6 +36,7 @@ BITCOIN_INCLUDES += -I$(srcdir)/univalue/include
 LIBBITCOIN_SERVER=libbitcoin_server.a
 LIBBITCOIN_WALLET=libbitcoin_wallet.a
 LIBBITCOIN_COMMON=libbitcoin_common.a
+LIBBITCOIN_SMARTCARD=libbitcoin_smartcard.a
 LIBBITCOIN_CLI=libbitcoin_cli.a
 LIBBITCOIN_UTIL=libbitcoin_util.a
 LIBBITCOIN_CRYPTO=crypto/libbitcoin_crypto.a
@@ -55,6 +64,9 @@ EXTRA_LIBRARIES += libbitcoin_wallet.a
 endif
 if ENABLE_ZMQ
 EXTRA_LIBRARIES += libbitcoin_zmq.a
+endif
+if USE_OPENSC
+EXTRA_LIBRARIES += libbitcoin_smartcard.a
 endif
 
 if BUILD_BITCOIN_LIBS
@@ -105,6 +117,7 @@ BITCOIN_CORE_H = \
   consensus/validation.h \
   core_io.h \
   core_memusage.h \
+  cvn.h \
   hash.h \
   httprpc.h \
   httpserver.h \
@@ -123,10 +136,11 @@ BITCOIN_CORE_H = \
   policy/fees.h \
   policy/policy.h \
   policy/rbf.h \
-  pow.h \
+  poc.h \
   prevector.h \
   primitives/block.h \
   primitives/transaction.h \
+  primitives/cvn.h \
   protocol.h \
   pubkey.h \
   random.h \
@@ -171,7 +185,8 @@ BITCOIN_CORE_H = \
   zmq/zmqabstractnotifier.h \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
-  zmq/zmqpublishnotifier.h
+  zmq/zmqpublishnotifier.h \
+  smartcard.h
 
 
 obj/build.h: FORCE
@@ -189,6 +204,7 @@ libbitcoin_server_a_SOURCES = \
   bloom.cpp \
   chain.cpp \
   checkpoints.cpp \
+  cvn.cpp \
   httprpc.cpp \
   httpserver.cpp \
   init.cpp \
@@ -200,10 +216,9 @@ libbitcoin_server_a_SOURCES = \
   noui.cpp \
   policy/fees.cpp \
   policy/policy.cpp \
-  pow.cpp \
+  poc.cpp \
   rest.cpp \
   rpcblockchain.cpp \
-  rpcmining.cpp \
   rpcmisc.cpp \
   rpcnet.cpp \
   rpcrawtransaction.cpp \
@@ -243,6 +258,12 @@ libbitcoin_wallet_a_SOURCES = \
   policy/rbf.cpp \
   $(BITCOIN_CORE_H)
 
+if USE_OPENSC
+libbitcoin_smartcard_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(OPENSC_CFLAGS)
+libbitcoin_smartcard_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libbitcoin_smartcard_a_SOURCES = smartcard.cpp
+endif
+
 # crypto primitives library
 crypto_libbitcoin_crypto_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_CONFIG_INCLUDES)
 crypto_libbitcoin_crypto_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
@@ -280,6 +301,7 @@ libbitcoin_common_a_SOURCES = \
   netbase.cpp \
   primitives/block.cpp \
   primitives/transaction.cpp \
+  primitives/cvn.cpp \
   protocol.cpp \
   pubkey.cpp \
   scheduler.cpp \
@@ -353,6 +375,10 @@ endif
 
 if ENABLE_WALLET
 bitcoind_LDADD += libbitcoin_wallet.a
+endif
+
+if USE_OPENSC
+bitcoind_LDADD += libbitcoin_smartcard.a $(OPENSC_LIBS)
 endif
 
 bitcoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS)

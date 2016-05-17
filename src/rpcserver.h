@@ -158,7 +158,6 @@ extern std::vector<unsigned char> ParseHexO(const UniValue& o, std::string strKe
 extern int64_t nWalletUnlockTime;
 extern CAmount AmountFromValue(const UniValue& value);
 extern UniValue ValueFromAmount(const CAmount& amount);
-extern double GetDifficulty(const CBlockIndex* blockindex = NULL);
 extern std::string HelpRequiringPassphrase();
 extern std::string HelpExampleCli(const std::string& methodname, const std::string& args);
 extern std::string HelpExampleRpc(const std::string& methodname, const std::string& args);
@@ -183,19 +182,6 @@ extern UniValue importpubkey(const UniValue& params, bool fHelp);
 extern UniValue dumpwallet(const UniValue& params, bool fHelp);
 extern UniValue importwallet(const UniValue& params, bool fHelp);
 
-extern UniValue getgenerate(const UniValue& params, bool fHelp); // in rpcmining.cpp
-extern UniValue setgenerate(const UniValue& params, bool fHelp);
-extern UniValue generate(const UniValue& params, bool fHelp);
-extern UniValue getnetworkhashps(const UniValue& params, bool fHelp);
-extern UniValue getmininginfo(const UniValue& params, bool fHelp);
-extern UniValue prioritisetransaction(const UniValue& params, bool fHelp);
-extern UniValue getblocktemplate(const UniValue& params, bool fHelp);
-extern UniValue submitblock(const UniValue& params, bool fHelp);
-extern UniValue estimatefee(const UniValue& params, bool fHelp);
-extern UniValue estimatepriority(const UniValue& params, bool fHelp);
-extern UniValue estimatesmartfee(const UniValue& params, bool fHelp);
-extern UniValue estimatesmartpriority(const UniValue& params, bool fHelp);
-
 extern UniValue getnewaddress(const UniValue& params, bool fHelp); // in rpcwallet.cpp
 extern UniValue getaccountaddress(const UniValue& params, bool fHelp);
 extern UniValue getrawchangeaddress(const UniValue& params, bool fHelp);
@@ -205,6 +191,9 @@ extern UniValue getaddressesbyaccount(const UniValue& params, bool fHelp);
 extern UniValue sendtoaddress(const UniValue& params, bool fHelp);
 extern UniValue signmessage(const UniValue& params, bool fHelp);
 extern UniValue verifymessage(const UniValue& params, bool fHelp);
+extern UniValue addcvn(const UniValue& params, bool fHelp);
+extern UniValue removecvn(const UniValue& params, bool fHelp);
+extern UniValue signchaindata(const UniValue& params, bool fHelp);
 extern UniValue getreceivedbyaddress(const UniValue& params, bool fHelp);
 extern UniValue getreceivedbyaccount(const UniValue& params, bool fHelp);
 extern UniValue getbalance(const UniValue& params, bool fHelp);
@@ -251,7 +240,6 @@ extern UniValue verifytxoutproof(const UniValue& params, bool fHelp);
 
 extern UniValue getblockcount(const UniValue& params, bool fHelp); // in rpcblockchain.cpp
 extern UniValue getbestblockhash(const UniValue& params, bool fHelp);
-extern UniValue getdifficulty(const UniValue& params, bool fHelp);
 extern UniValue settxfee(const UniValue& params, bool fHelp);
 extern UniValue getmempoolinfo(const UniValue& params, bool fHelp);
 extern UniValue getrawmempool(const UniValue& params, bool fHelp);
@@ -261,9 +249,6 @@ extern UniValue getblock(const UniValue& params, bool fHelp);
 extern UniValue gettxoutsetinfo(const UniValue& params, bool fHelp);
 extern UniValue gettxout(const UniValue& params, bool fHelp);
 extern UniValue verifychain(const UniValue& params, bool fHelp);
-extern UniValue getchaintips(const UniValue& params, bool fHelp);
-extern UniValue invalidateblock(const UniValue& params, bool fHelp);
-extern UniValue reconsiderblock(const UniValue& params, bool fHelp);
 
 bool StartRPC();
 void InterruptRPC();

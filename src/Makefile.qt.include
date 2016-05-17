@@ -372,6 +372,9 @@ qt_bitcoin_qt_LDADD = qt/libbitcoinqt.a $(LIBBITCOIN_SERVER)
 if ENABLE_WALLET
 qt_bitcoin_qt_LDADD += $(LIBBITCOIN_WALLET)
 endif
+if USE_OPENSC
+qt_bitcoin_qt_LDADD += $(LIBBITCOIN_SMARTCARD) $(OPENSC_LIBS)
+endif
 if ENABLE_ZMQ
 qt_bitcoin_qt_LDADD += $(LIBBITCOIN_ZMQ) $(ZMQ_LIBS)
 endif

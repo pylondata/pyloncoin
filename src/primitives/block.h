@@ -7,6 +7,7 @@
 #define BITCOIN_PRIMITIVES_BLOCK_H
 
 #include "primitives/transaction.h"
+#include "primitives/cvn.h"
 #include "serialize.h"
 #include "uint256.h"
 
@@ -21,13 +22,20 @@ class CBlockHeader
 {
 public:
     // header
-    static const int32_t CURRENT_VERSION=4;
+    static const int32_t          CURRENT_VERSION = 1;
+    static const int32_t               TX_PAYLOAD = 1 << 8;
+    static const int32_t              CVN_PAYLOAD = 1 << 9;
+    static const int32_t CHAIN_PARAMETERS_PAYLOAD = 1 << 10;
+    static const int32_t     CHAIN_ADMINS_PAYLOAD = 1 << 11;
+    static const int32_t       ADMIN_PAYLOAD_MASK = CVN_PAYLOAD | CHAIN_PARAMETERS_PAYLOAD | CHAIN_ADMINS_PAYLOAD;
+    static const int32_t             PAYLOAD_MASK = TX_PAYLOAD | CVN_PAYLOAD | CHAIN_PARAMETERS_PAYLOAD | CHAIN_ADMINS_PAYLOAD;
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
     uint32_t nTime;
-    uint32_t nBits;
-    uint32_t nNonce;
+    uint32_t nCreatorId;
+    std::vector<CCvnSignature> vSignatures;
+    std::vector<CCvnSignature> vAdminSignatures;
 
     CBlockHeader()
     {
@@ -43,8 +51,9 @@ public:
         READWRITE(hashPrevBlock);
         READWRITE(hashMerkleRoot);
         READWRITE(nTime);
-        READWRITE(nBits);
-        READWRITE(nNonce);
+        READWRITE(nCreatorId);
+        READWRITE(vSignatures);
+        READWRITE(vAdminSignatures);
     }
 
     void SetNull()
@@ -53,13 +62,14 @@ public:
         hashPrevBlock.SetNull();
         hashMerkleRoot.SetNull();
         nTime = 0;
-        nBits = 0;
-        nNonce = 0;
+        nCreatorId = 0;
+        vSignatures.clear();
+        vAdminSignatures.clear();
     }
 
     bool IsNull() const
     {
-        return (nBits == 0);
+        return (nCreatorId == 0);
     }
 
     uint256 GetHash() const;
@@ -68,14 +78,42 @@ public:
     {
         return (int64_t)nTime;
     }
-};
 
+    bool HasCvnInfo() const
+    {
+        return (nVersion & CVN_PAYLOAD);
+    }
+
+    bool HasChainParameters() const
+    {
+        return (nVersion & CHAIN_PARAMETERS_PAYLOAD);
+    }
+
+    bool HasTx() const
+    {
+        return (nVersion & TX_PAYLOAD);
+    }
+
+    bool HasChainAdmins() const
+    {
+        return (nVersion & CHAIN_ADMINS_PAYLOAD);
+    }
+
+    bool HasAdminPayload() const
+    {
+        return (nVersion & ADMIN_PAYLOAD_MASK);
+    }
+};
 
 class CBlock : public CBlockHeader
 {
 public:
     // network and disk
+    std::vector<unsigned char> vCreatorSignature;
     std::vector<CTransaction> vtx;
+    std::vector<CCvnInfo> vCvns;
+    std::vector<CChainAdmin> vChainAdmins;
+    CDynamicChainParams dynamicChainParams;
 
     // memory only
     mutable bool fChecked;
@@ -96,29 +134,49 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(*(CBlockHeader*)this);
-        READWRITE(vtx);
+        READWRITE(vCreatorSignature);
+
+        if (HasTx())
+            READWRITE(vtx);
+        if (HasCvnInfo())
+            READWRITE(vCvns);
+        if (HasChainAdmins())
+            READWRITE(vChainAdmins);
+        if (HasChainParameters())
+            READWRITE(dynamicChainParams);
     }
 
     void SetNull()
     {
         CBlockHeader::SetNull();
         vtx.clear();
+        vCvns.clear();
+        vCreatorSignature.clear();
+        vChainAdmins.clear();
+        dynamicChainParams = CDynamicChainParams();
         fChecked = false;
     }
 
     CBlockHeader GetBlockHeader() const
     {
         CBlockHeader block;
-        block.nVersion       = nVersion;
-        block.hashPrevBlock  = hashPrevBlock;
-        block.hashMerkleRoot = hashMerkleRoot;
-        block.nTime          = nTime;
-        block.nBits          = nBits;
-        block.nNonce         = nNonce;
+        block.nVersion         = nVersion;
+        block.hashPrevBlock    = hashPrevBlock;
+        block.hashMerkleRoot   = hashMerkleRoot;
+        block.nTime            = nTime;
+        block.nCreatorId       = nCreatorId;
+        block.vSignatures      = vSignatures;
+        block.vAdminSignatures = vAdminSignatures;
         return block;
     }
 
     std::string ToString() const;
+
+    uint256 HashCVNs() const;
+
+    uint256 HashChainAdmins() const;
+
+    uint256 GetChainAdminDataHash() const;
 };
 
 

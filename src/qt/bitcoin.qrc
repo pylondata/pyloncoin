@@ -85,4 +85,8 @@
         <file alias="spinner-034">res/movies/spinner-034.png</file>
         <file alias="spinner-035">res/movies/spinner-035.png</file>
     </qresource>
+    <qresource prefix="/images">
+        <file alias="wallet_logo">res/images/wallet_logo.png</file>
+        <file alias="wallet_logo_testnet">res/images/wallet_logo_testnet.png</file>
+    </qresource>
 </RCC>

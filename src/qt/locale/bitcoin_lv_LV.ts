@@ -382,8 +382,8 @@
         <translation>Ciļņu rīkjosla</translation>
     </message>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Bitcoin Core</translation>
+        <source>Faircoin Core</source>
+        <translation>Faircoin Core</translation>
     </message>
     <message>
         <source>Request payments (generates QR codes and bitcoin: URIs)</source>
@@ -705,8 +705,8 @@
 <context>
     <name>HelpMessageDialog</name>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Bitcoin Core</translation>
+        <source>Faircoin Core</source>
+        <translation>Faircoin Core</translation>
     </message>
     <message>
         <source>version</source>
@@ -752,8 +752,8 @@
         <translation>Izmantot pielāgotu datu mapi:</translation>
     </message>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Bitcoin Core</translation>
+        <source>Faircoin Core</source>
+        <translation>Faircoin Core</translation>
     </message>
     <message>
         <source>Error</source>
@@ -1672,8 +1672,8 @@
 <context>
     <name>SplashScreen</name>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Bitcoin Core</translation>
+        <source>Faircoin Core</source>
+        <translation>Faircoin Core</translation>
     </message>
     <message>
         <source>The Bitcoin Core developers</source>

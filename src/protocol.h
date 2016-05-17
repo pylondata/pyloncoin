@@ -218,6 +218,26 @@ extern const char *REJECT;
  * @see https://bitcoin.org/en/developer-reference#sendheaders
  */
 extern const char *SENDHEADERS;
+/**
+ * The CVN signature message transmits a single serialized CVN signature,
+ * hashPrev and nCreatorId.
+ */
+extern const char *SIG;
+
+/**
+ * The getsiglist requests the complete cvn signature list for the given Tip()
+ */
+extern const char *GETSIGLIST;
+
+/**
+ * The siglist sends the complete cvn signature list for the given Tip()
+ */
+extern const char *SIGLIST;
+
+/**
+ * The chaindata sends chain data that a chain admin compiled
+ */
+extern const char *CHAINDATA;
 
 };
 
@@ -316,6 +336,8 @@ enum {
     // Nodes may always request a MSG_FILTERED_BLOCK in a getdata, however,
     // MSG_FILTERED_BLOCK should not appear in any invs except as a part of getdata.
     MSG_FILTERED_BLOCK,
+    MSG_CVN_SIGNATURE,
+    MSG_POC_CHAIN_DATA,
 };
 
 #endif // BITCOIN_PROTOCOL_H

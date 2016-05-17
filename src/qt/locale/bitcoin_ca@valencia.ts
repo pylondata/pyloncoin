@@ -2274,8 +2274,8 @@
 <context>
     <name>SplashScreen</name>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Bitcoin Core</translation>
+        <source>Faircoin Core</source>
+        <translation>Faircoin Core</translation>
     </message>
     <message>
         <source>The Bitcoin Core developers</source>

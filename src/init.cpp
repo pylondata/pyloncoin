@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include "config/bitcoin-config.h"
+#include "config/faircoin-config.h"
 #endif
 
 #include "init.h"
@@ -35,6 +35,9 @@
 #include "utilmoneystr.h"
 #include "utilstrencodings.h"
 #include "validationinterface.h"
+#include "poc.h"
+#include "cvn.h"
+#include "base58.h"
 #ifdef ENABLE_WALLET
 #include "wallet/db.h"
 #include "wallet/wallet.h"
@@ -60,6 +63,10 @@
 
 #if ENABLE_ZMQ
 #include "zmq/zmqnotificationinterface.h"
+#endif
+
+#ifdef USE_OPENSC
+#include "smartcard.h"
 #endif
 
 using namespace std;
@@ -195,7 +202,7 @@ void Shutdown()
     if (pwalletMain)
         pwalletMain->Flush(false);
 #endif
-    GenerateBitcoins(false, 0, Params());
+    RunCertifiedValidationNode(false, Params(), nCvnNodeId);
     StopNode();
     StopTorControl();
     UnregisterNodeSignals(GetNodeSignals());
@@ -777,7 +784,7 @@ void InitLogging()
     fLogIPs = GetBoolArg("-logips", DEFAULT_LOGIPS);
 
     LogPrintf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-    LogPrintf("Bitcoin version %s (%s)\n", FormatFullVersion(), CLIENT_DATE);
+    LogPrintf("FairCoin version %s (%s)\n", FormatFullVersion(), CLIENT_DATE);
 }
 
 /** Initialize bitcoin.
@@ -1037,7 +1044,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         fEnableReplacement = (std::find(vstrReplacementModes.begin(), vstrReplacementModes.end(), "fee") != vstrReplacementModes.end());
     }
 
-    // ********************************************************* Step 4: application initialization: dir lock, daemonize, pidfile, debug log
+    // ********************************************************* Step 4: application initialization: dir lock, daemonize, pidfile, debug log, CVN
 
     // Initialize elliptic curve code
     ECC_Start();
@@ -1114,9 +1121,49 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             return InitError(_("Unable to start HTTP server. See debug log for details."));
     }
 
+    if (mapArgs.count("-cvn")) {
+        X509 *x509CVNCertificate = NULL;
+        if (GetArg("-cvn", "") == "card") {
+#ifdef USE_OPENSC
+            LogPrintf("Initializing smartcard\n");
+            uiInterface.InitMessage(_("Initializing smartcard..."));
+            x509CVNCertificate = InitCVNWithSmartCard();
+#else
+            LogPrintf("ERROR: invalid parameter -cvn=card. This wallet version was not compiled with smart card support\n");
+#endif
+        } else if (GetArg("-cvn", "") == "file") {
+            x509CVNCertificate = InitCVNWithCertificate();
+        } else
+            return InitError("-cvn configuration invalid. Parameter must be 'card' or 'file'\n");
+
+        if (!x509CVNCertificate)
+            return InitError("could not find a vaild CVN node certificate\n");
+
+        nCvnNodeId = SetupCVN(x509CVNCertificate);
+
+        if (!nCvnNodeId)
+            return InitError("could not find a vaild CVN node ID\n");
+
+        LogPrintf("Starting CVN node with ID 0x%08x\n", nCvnNodeId);
+        uiInterface.InitMessage(_("Starting CVN node..."));
+
+#if 0
+        CBlock genesis = chainparams.GenesisBlock();
+        UpdateCvnInfo(&genesis);
+        UpdateChainAdmins(&genesis);
+
+        CCvnSignature blockSig;
+        CvnSign(genesis.hashPrevBlock, blockSig, GENESIS_NODE_ID, GENESIS_NODE_ID);
+        LogPrintf("Genesis PoC signature: %s\n", HexStr(blockSig.vSignature));
+
+        CvnSignBlock(genesis);
+        LogPrintf("Genesis block signature: %s\n", HexStr(genesis.vCreatorSignature));
+#endif
+    }
+
     int64_t nStart;
 
-    // ********************************************************* Step 5: verify wallet database integrity
+    // ********************************************************* Step 5: verify wallet database integrity and set up CVN
 #ifdef ENABLE_WALLET
     if (!fDisableWallet) {
         LogPrintf("Using wallet %s\n", strWalletFile);
@@ -1135,6 +1182,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     } // (!fDisableWallet)
 #endif // ENABLE_WALLET
+
     // ********************************************************* Step 6: network initialization
 
     RegisterNodeSignals(GetNodeSignals());
@@ -1266,6 +1314,13 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     }
 
     // ********************************************************* Step 7: load block chain
+
+    // initialize CVN and chain parameters
+    LogPrintf("Initialize CVN and chain parameters\n");
+    CBlock genesis = chainparams.GenesisBlock();
+    UpdateCvnInfo(&genesis);
+    UpdateChainParameters(&genesis);
+    UpdateChainAdmins(&genesis);
 
     fReindex = GetBoolArg("-reindex", false);
 
@@ -1607,12 +1662,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     if (mapArgs.count("-blocknotify"))
         uiInterface.NotifyBlockTip.connect(BlockNotifyCallback);
 
-    uiInterface.InitMessage(_("Activating best chain..."));
-    // scan for better chains in the block chain database, that are not yet connected in the active best chain
-    CValidationState state;
-    if (!ActivateBestChain(state, chainparams))
-        strErrors << "Failed to connect best block";
-
     std::vector<boost::filesystem::path> vImportFiles;
     if (mapArgs.count("-loadblock"))
     {
@@ -1656,8 +1705,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
                                          boost::ref(cs_main), boost::cref(pindexBestHeader), nPowTargetSpacing);
     scheduler.scheduleEvery(f, nPowTargetSpacing);
 
-    // Generate coins in the background
-    GenerateBitcoins(GetBoolArg("-gen", DEFAULT_GENERATE), GetArg("-genproclimit", DEFAULT_GENERATE_THREADS), chainparams);
+    // Start up a CVN (generate blocks)
+    RunCertifiedValidationNode(GetBoolArg("-gen", DEFAULT_GENERATE), chainparams, nCvnNodeId);
 
     // ********************************************************* Step 12: finished
 

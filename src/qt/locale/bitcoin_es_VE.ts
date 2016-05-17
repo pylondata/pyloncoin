@@ -318,8 +318,8 @@
         <translation>&amp;Configuración</translation>
     </message>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Bitcoin Core</translation>
+        <source>Faircoin Core</source>
+        <translation>Faircoin Core</translation>
     </message>
     <message>
         <source>&amp;About Bitcoin Core</source>
@@ -673,8 +673,8 @@
 <context>
     <name>HelpMessageDialog</name>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Bitcoin Core</translation>
+        <source>Faircoin Core</source>
+        <translation>Faircoin Core</translation>
     </message>
     <message>
         <source>version</source>
@@ -716,8 +716,8 @@
         <translation>Usa un directorio de datos personalizado:</translation>
     </message>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Bitcoin Core</translation>
+        <source>Faircoin Core</source>
+        <translation>Faircoin Core</translation>
     </message>
     <message>
         <source>Error: Specified data directory "%1" cannot be created.</source>
@@ -936,8 +936,8 @@
 <context>
     <name>SplashScreen</name>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Bitcoin Core</translation>
+        <source>Faircoin Core</source>
+        <translation>Faircoin Core</translation>
     </message>
     </context>
 <context>
