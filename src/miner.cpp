@@ -67,9 +67,9 @@ public:
     }
 };
 
-static void PopulateBlock(const CChainParams& chainparams, CBlockTemplate& pblocktemplate)
+static void PopulateBlock(const CChainParams& chainparams, CBlockTemplate& blocktemplate)
 {
-    CBlock *pblock = &pblocktemplate.block; // pointer for convenience
+    CBlock *pblock = &blocktemplate.block; // pointer for convenience
 
     // -regtest only: allow overriding block.nVersion with
     // -blockversion=N to test forking scenarios
@@ -84,12 +84,12 @@ static void PopulateBlock(const CChainParams& chainparams, CBlockTemplate& pbloc
     txNew.vin.resize(1);
     txNew.vin[0].prevout.SetNull();
     txNew.vout.resize(1);
-    txNew.vout[0].scriptPubKey = pblocktemplate.coinbaseScript->reserveScript;
+    txNew.vout[0].scriptPubKey = blocktemplate.coinbaseScript->reserveScript;
 
     // Add dummy coinbase tx as first transaction
     pblock->vtx.push_back(CTransaction());
-    pblocktemplate.vTxFees.push_back(-1); // updated at end
-    pblocktemplate.vTxSigOps.push_back(-1); // updated at end
+    blocktemplate.vTxFees.push_back(-1); // updated at end
+    blocktemplate.vTxSigOps.push_back(-1); // updated at end
 
     // Largest block you're willing to create:
     unsigned int nBlockMaxSize = GetArg("-blockmaxsize", DEFAULT_BLOCK_MAX_SIZE);
@@ -229,8 +229,8 @@ static void PopulateBlock(const CChainParams& chainparams, CBlockTemplate& pbloc
             CAmount nTxFees = iter->GetFee();
             // Added
             pblock->vtx.push_back(tx);
-            pblocktemplate.vTxFees.push_back(nTxFees);
-            pblocktemplate.vTxSigOps.push_back(nTxSigOps);
+            blocktemplate.vTxFees.push_back(nTxFees);
+            blocktemplate.vTxSigOps.push_back(nTxSigOps);
             nBlockSize += nTxSize;
             ++nBlockTx;
             nBlockSigOps += nTxSigOps;
@@ -274,12 +274,12 @@ static void PopulateBlock(const CChainParams& chainparams, CBlockTemplate& pbloc
         txNew.vout[0].nValue = nFees + (pindexPrev->GetBlockHash() == chainparams.GetConsensus().hashGenesisBlock ? MAX_MONEY : 0);
         txNew.vin[0].scriptSig = CScript() << nHeight << OP_0;
         pblock->vtx[0] = txNew;
-        pblocktemplate.vTxFees[0] = -nFees;
+        blocktemplate.vTxFees[0] = -nFees;
 
         // Fill in header
         pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
         pblock->nCreatorId     = nCvnNodeId;
-        pblocktemplate.vTxSigOps[0] = GetLegacySigOpCount(pblock->vtx[0]);
+        blocktemplate.vTxSigOps[0] = GetLegacySigOpCount(pblock->vtx[0]);
 
         CValidationState state;
         if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {

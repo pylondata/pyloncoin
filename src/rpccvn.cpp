@@ -3,33 +3,16 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "base58.h"
-#include "clientversion.h"
-#include "init.h"
-#include "main.h"
-#include "net.h"
-#include "netbase.h"
 #include "rpcserver.h"
-#include "timedata.h"
 #include "util.h"
+#include "main.h"
 #include "utilstrencodings.h"
-#include "tinyformat.h"
 #include "poc.h"
-#include "consensus/validation.h"
-#include "consensus/merkle.h"
-#ifdef ENABLE_WALLET
-#include "wallet/wallet.h"
-#include "wallet/walletdb.h"
-#endif
 
-#include <stdint.h>
-#include <boost/assign/list_of.hpp>
 #include <boost/algorithm/string.hpp>
 #include <univalue.h>
-#include <iostream>
-#include <string>
 
 using namespace std;
-
 
 static bool AddAdminSignatures(CChainDataMsg &msg, const UniValue& sigs)
 {
