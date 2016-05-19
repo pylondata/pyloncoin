@@ -432,10 +432,6 @@ void static CertifiedValidationNode(const CChainParams& chainparams, const uint3
 
     LogPrintf("Certified validation node started for node ID 0x%08x\n", nNodeId);
 
-    if (coinbaseScript)
-        LogPrintf("Test: %u\n", coinbaseScript->reserveScript.size());
-    else
-        LogPrintf("coinbaseScript is NULL\n");
     uint32_t nExtraNonce = 0;
 
     try {

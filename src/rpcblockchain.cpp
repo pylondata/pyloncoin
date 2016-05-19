@@ -40,10 +40,11 @@ UniValue blockheaderToJSON(const CBlockIndex* blockindex)
     result.push_back(Pair("confirmations", confirmations));
     result.push_back(Pair("height", blockindex->nHeight));
     result.push_back(Pair("version", blockindex->nVersion));
+    result.push_back(Pair("payload", blockindex->GetPayloadString()));
     result.push_back(Pair("merkleroot", blockindex->hashMerkleRoot.GetHex()));
     result.push_back(Pair("time", (int64_t)blockindex->nTime));
     result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
-    result.push_back(Pair("creator", (uint64_t)blockindex->nCreatorId));
+    result.push_back(Pair("creator", strprintf("0x%08x", blockindex->nCreatorId)));
     result.push_back(Pair("signatures", (uint64_t)blockindex->vSignatures.size()));
 
     if (blockindex->pprev)
@@ -82,7 +83,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     result.push_back(Pair("tx", txs));
     result.push_back(Pair("time", block.GetBlockTime()));
     result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
-    result.push_back(Pair("creator", (uint64_t)blockindex->nCreatorId));
+    result.push_back(Pair("creator", strprintf("0x%08x", blockindex->nCreatorId)));
     result.push_back(Pair("signatures", (uint64_t)blockindex->vSignatures.size()));
 
     if (blockindex->pprev)

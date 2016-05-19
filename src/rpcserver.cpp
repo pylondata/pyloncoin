@@ -242,11 +242,11 @@ UniValue stop(const UniValue& params, bool fHelp)
     if (fHelp || params.size() > 1)
         throw runtime_error(
             "stop\n"
-            "\nStop Bitcoin server.");
+            "\nStop FairCoin server.");
     // Event loop will exit after current HTTP requests have been handled, so
     // this reply will get back to the client.
     StartShutdown();
-    return "Bitcoin server stopping";
+    return "FairCoin server stopping";
 }
 
 /**
@@ -303,9 +303,12 @@ static const CRPCCommand vRPCCommands[] =
     { "util",               "createmultisig",         &createmultisig,         true  },
     { "util",               "validateaddress",        &validateaddress,        true  }, /* uses wallet if enabled */
     { "util",               "verifymessage",          &verifymessage,          true  },
-    { "util",               "addcvn",                 &addcvn,                 true  },
-    { "util",               "removecvn",              &removecvn,              true  },
-    { "util",               "signchaindata",          &signchaindata,          true  },
+
+    /* CVN function s */
+    { "cvn",                "addcvn",                 &addcvn,                 false },
+    { "cvn",                "removecvn",              &removecvn,              false },
+    { "cvn",                "signchaindata",          &signchaindata,          true  },
+    { "cvn",                "getcvninfo",             &getcvninfo,             true  },
 
     /* Not shown in help */
     { "hidden",             "setmocktime",            &setmocktime,            true  },
