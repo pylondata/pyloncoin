@@ -25,8 +25,6 @@
 #include <utility>
 #include <vector>
 
-#include <boost/shared_ptr.hpp>
-
 /**
  * Settings
  */
@@ -733,7 +731,7 @@ public:
         }
     }
 
-    void GetScriptForMining(boost::shared_ptr<CReserveScript> &script);
+    void GetScriptForMining(CReserveScript **script);
     void ResetRequestCount(const uint256 &hash)
     {
         LOCK(cs_wallet);

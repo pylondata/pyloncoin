@@ -67,13 +67,9 @@ public:
     }
 };
 
-static CBlockTemplate* CreateNewBlock(const CChainParams& chainparams, const CScript& scriptPubKeyIn)
+static void PopulateBlock(const CChainParams& chainparams, CBlockTemplate& pblocktemplate)
 {
-    // Create new block
-    auto_ptr<CBlockTemplate> pblocktemplate(new CBlockTemplate());
-    if(!pblocktemplate.get())
-        return NULL;
-    CBlock *pblock = &pblocktemplate->block; // pointer for convenience
+    CBlock *pblock = &pblocktemplate.block; // pointer for convenience
 
     // -regtest only: allow overriding block.nVersion with
     // -blockversion=N to test forking scenarios
@@ -88,12 +84,12 @@ static CBlockTemplate* CreateNewBlock(const CChainParams& chainparams, const CSc
     txNew.vin.resize(1);
     txNew.vin[0].prevout.SetNull();
     txNew.vout.resize(1);
-    txNew.vout[0].scriptPubKey = scriptPubKeyIn;
+    txNew.vout[0].scriptPubKey = pblocktemplate.coinbaseScript->reserveScript;
 
     // Add dummy coinbase tx as first transaction
     pblock->vtx.push_back(CTransaction());
-    pblocktemplate->vTxFees.push_back(-1); // updated at end
-    pblocktemplate->vTxSigOps.push_back(-1); // updated at end
+    pblocktemplate.vTxFees.push_back(-1); // updated at end
+    pblocktemplate.vTxSigOps.push_back(-1); // updated at end
 
     // Largest block you're willing to create:
     unsigned int nBlockMaxSize = GetArg("-blockmaxsize", DEFAULT_BLOCK_MAX_SIZE);
@@ -233,8 +229,8 @@ static CBlockTemplate* CreateNewBlock(const CChainParams& chainparams, const CSc
             CAmount nTxFees = iter->GetFee();
             // Added
             pblock->vtx.push_back(tx);
-            pblocktemplate->vTxFees.push_back(nTxFees);
-            pblocktemplate->vTxSigOps.push_back(nTxSigOps);
+            pblocktemplate.vTxFees.push_back(nTxFees);
+            pblocktemplate.vTxSigOps.push_back(nTxSigOps);
             nBlockSize += nTxSize;
             ++nBlockTx;
             nBlockSigOps += nTxSigOps;
@@ -278,20 +274,18 @@ static CBlockTemplate* CreateNewBlock(const CChainParams& chainparams, const CSc
         txNew.vout[0].nValue = nFees + (pindexPrev->GetBlockHash() == chainparams.GetConsensus().hashGenesisBlock ? MAX_MONEY : 0);
         txNew.vin[0].scriptSig = CScript() << nHeight << OP_0;
         pblock->vtx[0] = txNew;
-        pblocktemplate->vTxFees[0] = -nFees;
+        pblocktemplate.vTxFees[0] = -nFees;
 
         // Fill in header
         pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
         pblock->nCreatorId     = nCvnNodeId;
-        pblocktemplate->vTxSigOps[0] = GetLegacySigOpCount(pblock->vtx[0]);
+        pblocktemplate.vTxSigOps[0] = GetLegacySigOpCount(pblock->vtx[0]);
 
         CValidationState state;
         if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {
             throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state)));
         }
     }
-
-    return pblocktemplate.release();
 }
 
 static void UpdateCoinbase(CBlock* pblock, const CBlockIndex* pindexPrev, const uint32_t nExtraNonce)
@@ -356,6 +350,67 @@ static bool AddChainDataToBlock(CBlock *pblock, const CChainDataMsg& msg)
     return true;
 }
 
+static bool CreateNewBlock(const CChainParams& chainparams, CBlockTemplate& blockTemplate)
+{
+    PopulateBlock(chainparams, blockTemplate);
+    CBlock *pblock = &blockTemplate.block;
+    UpdateCoinbase(pblock, blockTemplate.pindexPrev, blockTemplate.nExtraNonce);
+
+    pblock->nCreatorId = blockTemplate.nNodeId;
+    pblock->nTime = blockTemplate.nCurrentTime;
+
+    uint256 hashBlock = pblock->hashPrevBlock;
+    {
+        LOCK(cs_mapCvnSigs);
+
+        if (!mapCvnSigs.count(hashBlock)) {
+            LogPrintf("ERROR: no signatures found for hash %s. Can not create block\n", hashBlock.ToString());
+            return false;
+        }
+
+        CvnSigCreatorType& mapSigsByCreators = mapCvnSigs[hashBlock];
+        if (!mapSigsByCreators.count(blockTemplate.nNodeId)) {
+            LogPrintf("ERROR: no signatures found. Can not create block\n");
+            return false;
+        }
+
+        CvnSigSignerType mapSigsBySigners = mapSigsByCreators[blockTemplate.nNodeId];
+        LogPrintf("# of sig available for block %s: %u (c: %u, h: %u)\n",
+                hashBlock.ToString(), mapSigsBySigners.size(), mapSigsByCreators.size(), mapCvnSigs.size());
+
+        if (!mapSigsBySigners.count(nCvnNodeId)) {
+            LogPrintf("WARN: signature for local CVN (0x%08x) not found...\n", nCvnNodeId);
+            return false;
+        }
+
+        BOOST_FOREACH(CvnSigSignerType::value_type& cvn, mapSigsBySigners)
+        {
+            if (!CvnValidateSignature(cvn.second, pblock->hashPrevBlock, blockTemplate.nNodeId))
+                LogPrintf("ERROR: could not add signature to block: %s\n", cvn.second.ToString());
+            else
+                pblock->vSignatures.push_back(cvn.second);
+        }
+
+        if (blockTemplate.pindexPrev->vSignatures.size() > 1 && ((float)blockTemplate.pindexPrev->vSignatures.size() / (float)2 >= (float)pblock->vSignatures.size())) {
+            LogPrintf("ERROR: can not create block. Not enough signatures available. Prev: %u, This: %u\n",
+                    blockTemplate.pindexPrev->vSignatures.size(), pblock->vSignatures.size());
+            return false;
+        }
+    }
+
+    {
+        LOCK(cs_mapChainData);
+        if (mapChainData.count(hashBlock)) {
+            CChainDataMsg& msg = mapChainData[hashBlock];
+            if (!AddChainDataToBlock(pblock, msg)) {
+                LogPrintf("ERROR: could not add chain data to block\n");
+            }
+        }
+    }
+
+    return true;
+}
+
 void static CertifiedValidationNode(const CChainParams& chainparams, const uint32_t& nNodeId)
 {
     SetThreadPriority(THREAD_PRIORITY_NORMAL);
@@ -372,12 +427,16 @@ void static CertifiedValidationNode(const CChainParams& chainparams, const uint3
     while (IsInitialBlockDownload() && !ShutdownRequested())
         MilliSleep(1000);
 
+    CReserveScript *coinbaseScript = NULL;
+    GetMainSignals().ScriptForMining(&coinbaseScript);
+
     LogPrintf("Certified validation node started for node ID 0x%08x\n", nNodeId);
 
+    if (coinbaseScript)
+        LogPrintf("Test: %u\n", coinbaseScript->reserveScript.size());
+    else
+        LogPrintf("coinbaseScript is NULL\n");
     uint32_t nExtraNonce = 0;
-
-    boost::shared_ptr<CReserveScript> coinbaseScript;
-    GetMainSignals().ScriptForMining(coinbaseScript);
 
     try {
         // Throw an error if no script was provided.  This can happen
@@ -421,74 +480,20 @@ void static CertifiedValidationNode(const CChainParams& chainparams, const uint3
             //
             // This node is potentially the next to advance the chain
             //
-            CBlockIndex* pindexPrev = chainActive.Tip();
 
-            auto_ptr<CBlockTemplate> pblocktemplate(CreateNewBlock(chainparams, coinbaseScript->reserveScript));
-            if (!pblocktemplate.get())
-            {
-                LogPrintf("Error in CertifiedValidationNode: Keypool ran out, please call keypoolrefill before restarting the CVN thread\n");
-                return;
-            }
-            CBlock *pblock = &pblocktemplate->block;
-            UpdateCoinbase(pblock, pindexPrev, nExtraNonce);
+            CBlockTemplate blockTemplate;
+            blockTemplate.coinbaseScript = coinbaseScript;
+            blockTemplate.nCurrentTime   = nCurrentTime;
+            blockTemplate.nExtraNonce    = nExtraNonce;
+            blockTemplate.nNodeId        = nNodeId;
+            blockTemplate.pindexPrev     = chainActive.Tip();
 
-            pblock->nCreatorId = nNodeId;
-            pblock->nTime = nCurrentTime;
-
-            uint256 hashBlock = pblock->hashPrevBlock;
-            {
-                LOCK(cs_mapCvnSigs);
-
-                if (!mapCvnSigs.count(hashBlock)) {
-                    LogPrintf("ERROR: no signatures found for hash %s. Can not create block\n", hashBlock.ToString());
-                    // try later
-                    MilliSleep(2000);
-                    continue;
-                }
-
-                CvnSigCreatorType& mapSigsByCreators = mapCvnSigs[hashBlock];
-                if (!mapSigsByCreators.count(nNodeId)) {
-                    LogPrintf("ERROR: no signatures found. Can not create block\n");
-                    // try later
-                    MilliSleep(2000);
-                    continue;
-                }
-
-                CvnSigSignerType mapSigsBySigners = mapSigsByCreators[nNodeId];
-                LogPrintf("# of sig available for block %s: %u (c: %u, h: %u)\n",
-                        hashBlock.ToString(), mapSigsBySigners.size(), mapSigsByCreators.size(), mapCvnSigs.size());
-
-                if (!mapSigsBySigners.count(nCvnNodeId)) {
-                    LogPrintf("WARN: signature for local CVN (0x%08x) not found...\n", nCvnNodeId);
-                    // try later
-                    MilliSleep(5000);
-                    continue;
-                }
-
-                BOOST_FOREACH(CvnSigSignerType::value_type& cvn, mapSigsBySigners)
-                {
-                    if (!CvnValidateSignature(cvn.second, pblock->hashPrevBlock, nNodeId))
-                        LogPrintf("ERROR: could not add signature to block: %s\n", cvn.second.ToString());
-                    else
-                        pblock->vSignatures.push_back(cvn.second);
-                }
-
-                if (pindexPrev->vSignatures.size() > 1 && ((float)pindexPrev->vSignatures.size() / (float)2 >= (float)pblock->vSignatures.size())) {
-                    LogPrintf("ERROR: can not create block. Not enough signatures available. Prev: %u, This: %u\n",
-                            pindexPrev->vSignatures.size(), pblock->vSignatures.size());
-                    continue;
-                }
+            if (!CreateNewBlock(chainparams, blockTemplate)) {
+                LogPrintf("ERROR, could not create block\n");
+                continue;
             }
 
-            {
-                LOCK(cs_mapChainData);
-                if (mapChainData.count(hashBlock)) {
-                    CChainDataMsg& msg = mapChainData[hashBlock];
-                    if (!AddChainDataToBlock(pblock, msg)) {
-                        LogPrintf("ERROR: could not add chain data to block\n");
-                    }
-                }
-            }
+            CBlock *pblock = &blockTemplate.block;
 
             LogPrintf("creating and signing block with %u transactions, %u CvnInfo (%u bytes)\n", pblock->vtx.size(), pblock->vCvns.size(),
                 ::GetSerializeSize(*pblock, SER_NETWORK, PROTOCOL_VERSION));
@@ -499,7 +504,7 @@ void static CertifiedValidationNode(const CChainParams& chainparams, const uint3
                 if (ProcessCVNBlock(pblock, chainparams))
                 {
                     LOCK(cs_mapCvnSigs);
-                    mapCvnSigs.erase(hashBlock);
+                    mapCvnSigs.erase(pblock->hashPrevBlock);
                 } else
                     LogPrintf("ERROR: block not accepted %s\n", pblock->GetHash().ToString());
             }

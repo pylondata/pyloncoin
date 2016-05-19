@@ -8,6 +8,7 @@
 
 #include "primitives/block.h"
 #include "key.h"
+#include "chainparams.h"
 
 #include <stdint.h>
 
@@ -28,6 +29,11 @@ struct CBlockTemplate
     CBlock block;
     std::vector<CAmount> vTxFees;
     std::vector<int64_t> vTxSigOps;
+	CReserveScript* coinbaseScript;
+	CBlockIndex* pindexPrev;
+	uint32_t nNodeId;
+	uint32_t nCurrentTime;
+	uint32_t nExtraNonce;
 };
 
 /** Run the CVN thread */
