@@ -2269,7 +2269,8 @@ void PruneAndFlush() {
 }
 
 /** Update chainActive and related internal data structures. */
-void static UpdateTip(CBlockIndex *pindexNew) {
+void static UpdateTip(CBlockIndex *pindexNew)
+{
     const CChainParams& chainParams = Params();
     chainActive.SetTip(pindexNew);
 
@@ -2435,7 +2436,8 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
  * Return the tip of the chain with the most work in it, that isn't
  * known to be invalid (it's however far from certain to be valid).
  */
-static CBlockIndex* FindMostWorkChain() {
+static CBlockIndex* FindMostWorkChain()
+{
     do {
         CBlockIndex *pindexNew = NULL;
 
@@ -2582,7 +2584,8 @@ static bool ActivateBestChainStep(CValidationState& state, const CChainParams& c
  * or an activated best chain. pblock is either NULL or a pointer to a block
  * that is already loaded (to avoid loading it again from disk).
  */
-bool ActivateBestChain(CValidationState &state, const CChainParams& chainparams, const CBlock *pblock) {
+bool ActivateBestChain(CValidationState &state, const CChainParams& chainparams, const CBlock *pblock)
+{
     CBlockIndex *pindexMostWork = NULL;
 
     do {
@@ -2924,7 +2927,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
     if (block.fChecked)
         return true;
 
-    // Check that the header is valid (particularly PoW).  This is mostly
+    // Check that the header is valid. This is mostly
     // redundant with the call in AcceptBlockHeader.
     if (!CheckBlockHeader(block, state, fCheckPOW))
         return false;
@@ -3129,6 +3132,9 @@ static bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state
             return true;
         }
 
+        // when we receive headers only from a peer (in NetMsgType::HEADERS) during
+        // chain download we do not have all important information to do reliable PoC
+        // validation, therefore the fCheckPoC is disabled here
         if (!CheckBlockHeader(block, state, false))
             return false;
 

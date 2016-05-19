@@ -432,7 +432,14 @@ bool CheckProofOfCooperation(const CBlockHeader& block, const Consensus::Params&
         return error("block %s has no signatures", hashBlock.ToString());
 
     int64_t nTimeStart = GetTimeMicros();
+
+    boost::unordered_set<uint32_t> setSignerIds;
+    setSignerIds.reserve(block.vSignatures.size());
+
     BOOST_FOREACH(CCvnSignature signature, block.vSignatures) {
+        if (!setSignerIds.insert(signature.nSignerId).second)
+            return error("duplicate signature detected: %s", signature.ToString());
+
         if (!CvnValidateSignature(signature, block.hashPrevBlock, block.nCreatorId))
             return error("signature is invalid: %s", signature.ToString());
     }
@@ -444,7 +451,7 @@ bool CheckProofOfCooperation(const CBlockHeader& block, const Consensus::Params&
         if (hashBlock != params.hashGenesisBlock)
             LogPrint("cvn", "CheckProofOfCooperation : can not check orphan block %s created by 0x%08x, delaying check.\n",
                         hashBlock.ToString(), block.nCreatorId);
-            return true;
+            return true; //TODO: not sure if this is good
     }
 
     // check if creator ID matches consensus rules
@@ -469,7 +476,7 @@ bool CheckProofOfCooperation(const CBlockHeader& block, const Consensus::Params&
 
 bool CheckForDuplicateCvns(const CBlock& block)
 {
-    std::set<uint32_t> sNodeIds;
+    boost::unordered_set<uint32_t> sNodeIds;
 
     BOOST_FOREACH(const CCvnInfo &cvn, block.vCvns)
     {
@@ -482,7 +489,7 @@ bool CheckForDuplicateCvns(const CBlock& block)
 
 bool CheckForDuplicateChainAdmins(const CBlock& block)
 {
-    std::set<uint32_t> sNodeIds;
+    boost::unordered_set<uint32_t> sNodeIds;
 
     BOOST_FOREACH(const CChainAdmin &adm, block.vChainAdmins)
     {
