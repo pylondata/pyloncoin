@@ -1918,8 +1918,7 @@ void ThreadScriptCheck() {
 // we're being fed a bad chain (blocks being generated much
 // too slowly or too quickly).
 //
-void PartitionCheck(bool (*initialDownloadCheck)(), CCriticalSection& cs, const CBlockIndex *const &bestHeader,
-                    int64_t nPowTargetSpacing)
+void PartitionCheck(bool (*initialDownloadCheck)(), CCriticalSection& cs, const CBlockIndex *const &bestHeader)
 {
     if (bestHeader == NULL || initialDownloadCheck()) return;
 
@@ -1929,7 +1928,7 @@ void PartitionCheck(bool (*initialDownloadCheck)(), CCriticalSection& cs, const 
 
     const int SPAN_HOURS=4;
     const int SPAN_SECONDS=SPAN_HOURS*60*60;
-    int BLOCKS_EXPECTED = SPAN_SECONDS / nPowTargetSpacing;
+    int BLOCKS_EXPECTED = SPAN_SECONDS / dynParams.nBlockSpacing;
 
     boost::math::poisson_distribution<double> poisson(BLOCKS_EXPECTED);
 
