@@ -12,6 +12,7 @@
 #include "sync.h"
 
 #include <stdint.h>
+#include <boost/unordered_set.hpp>
 
 #define GENESIS_NODE_ID 0xc001d00d
 
@@ -23,6 +24,11 @@ typedef std::map<uint32_t, CvnSigSignerType> CvnSigCreatorType;
 typedef std::map<uint256, CvnSigCreatorType> CvnSigMapType;
 
 typedef std::map<uint256, CChainDataMsg> ChainDataMapType;
+
+typedef boost::unordered_set<uint32_t> TimeWeightSetType;
+typedef std::vector<uint32_t>::reverse_iterator CandidateIterator;
+typedef map<uint256, const CBlockIndex *> BlockIndexByPrevHashType;
+typedef map<uint32_t, uint32_t> BannedCVNMapType; // nCreatorID/nHeight at which it has been banned
 
 #define MAX_BLOCK_SPACING 3600
 #define MIN_BLOCK_SPACING 30
@@ -39,6 +45,9 @@ extern CCriticalSection cs_mapCvnSigs;
 extern CvnSigMapType mapCvnSigs;
 extern CCriticalSection cs_mapChainData;
 extern ChainDataMapType mapChainData;
+extern BlockIndexByPrevHashType mapBlockIndexByPrevHash;
+extern BannedCVNMapType mapBannedCVNs;
+extern CCriticalSection cs_mapBlockIndexByPrevHash;
 
 bool CvnSign(const uint256& hashUnsignedBlock, CCvnSignature& signature, const uint32_t& nNextCreator, const uint32_t& nNodeId);
 bool CvnSignBlock(CBlock& block);

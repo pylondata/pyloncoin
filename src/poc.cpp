@@ -37,8 +37,9 @@ CvnSigMapType mapCvnSigs;
 CCriticalSection cs_mapChainData;
 ChainDataMapType mapChainData;
 
-typedef boost::unordered_set<uint32_t> TimeWeightSetType;
-typedef std::vector<uint32_t>::reverse_iterator CandidateIterator;
+BlockIndexByPrevHashType mapBlockIndexByPrevHash;
+BannedCVNMapType mapBannedCVNs;
+CCriticalSection cs_mapBlockIndexByPrevHash;
 
 bool static CvnSignWithKey(const uint256& hashUnsignedBlock, const CKey cvnPrivKey, CCvnSignature& signature, const CCvnInfo& cvnInfo)
 {
@@ -479,10 +480,8 @@ bool CheckForDuplicateCvns(const CBlock& block)
     boost::unordered_set<uint32_t> sNodeIds;
 
     BOOST_FOREACH(const CCvnInfo &cvn, block.vCvns)
-    {
         if (!sNodeIds.insert(cvn.nNodeId).second)
             return error("detected duplicate CVN Id: 0x%08x", cvn.nNodeId);
-    };
 
     return true;
 }
@@ -492,10 +491,8 @@ bool CheckForDuplicateChainAdmins(const CBlock& block)
     boost::unordered_set<uint32_t> sNodeIds;
 
     BOOST_FOREACH(const CChainAdmin &adm, block.vChainAdmins)
-    {
         if (!sNodeIds.insert(adm.nAdminId).second)
             return error("detected duplicate chain admin Id: 0x%08x", adm.nAdminId);
-    };
 
     return true;
 }
@@ -538,7 +535,7 @@ static uint32_t FindNewlyAddedCVN(const CBlockIndex* pindexStart)
 #endif
                     break;
                 }
-            };
+            }
 
             if (nLastAddedNode)
                 break;
@@ -636,8 +633,8 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
     int nBlocksToScan = POC_BLOCKS_TO_SCAN;
     size_t nRegisteredCVNs = mapCVNs.size();
     for (const CBlockIndex* pindex = pindexStart; pindex && nBlocksToScan; pindex = pindex->pprev, nBlocksToScan--) {
-        if (!mapCVNs.count(pindex->nCreatorId))
-            continue; // ignore CVNs that were deactivated
+        if (!mapCVNs.count(pindex->nCreatorId) || mapBannedCVNs.count(pindex->nCreatorId))
+            continue; // ignore CVNs that were deactivated or banned
 
         // if the creator has not been considered yet add it to the list of candidates
         if (setCreatorCandidates.insert(pindex->nCreatorId).second)

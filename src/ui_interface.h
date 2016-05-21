@@ -99,6 +99,9 @@ public:
 
     /** Banlist did change. */
     boost::signals2::signal<void (void)> BannedListChanged;
+
+    /** A CVN got banned. */
+    boost::signals2::signal<void (const uint32_t)> NotifyCVNBanned;
 };
 
 extern CClientUIInterface uiInterface;

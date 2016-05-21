@@ -325,6 +325,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-version", _("Print version and exit"));
     strUsage += HelpMessageOpt("-alerts", strprintf(_("Receive and display P2P network alerts (default: %u)"), DEFAULT_ALERTS));
     strUsage += HelpMessageOpt("-alertnotify=<cmd>", _("Execute command when a relevant alert is received or we see a really long fork (%s in cmd is replaced by message)"));
+    strUsage += HelpMessageOpt("-bannedcvnnotify=<cmd>", _("Execute command when a malicious CVN is banned from the network (%s in cmd is replaced by CVN ID)"));
     strUsage += HelpMessageOpt("-blocknotify=<cmd>", _("Execute command when the best block changes (%s in cmd is replaced by block hash)"));
     if (showDebug)
         strUsage += HelpMessageOpt("-blocksonly", strprintf(_("Whether to operate in a blocks only mode (default: %u)"), DEFAULT_BLOCKSONLY));
@@ -545,6 +546,17 @@ static void BlockNotifyCallback(bool initialSync, const CBlockIndex *pBlockIndex
     std::string strCmd = GetArg("-blocknotify", "");
 
     boost::replace_all(strCmd, "%s", pBlockIndex->GetBlockHash().GetHex());
+    boost::thread t(runCommand, strCmd); // thread runs free
+}
+
+static void BannedCVNCallback(uint32_t nBannedCVNId)
+{
+    std::string strCmd = GetArg("-bannedcvnnotify", "");
+    std::ostringstream strBannedCVNId;
+
+    strBannedCVNId << nBannedCVNId;
+
+    boost::replace_all(strCmd, "%s", strBannedCVNId.str());
     boost::thread t(runCommand, strCmd); // thread runs free
 }
 
@@ -1676,6 +1688,9 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     }
 
     // ********************************************************* Step 11: start node
+
+    if (mapArgs.count("-bannedcvnnotify"))
+        uiInterface.NotifyCVNBanned.connect(BannedCVNCallback);
 
     if (!CheckDiskSpace())
         return false;

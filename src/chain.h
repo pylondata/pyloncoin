@@ -265,11 +265,11 @@ public:
 
     std::string ToString() const
     {
-        return strprintf("CBlockIndex(pprev=%p, nHeight=%d, pl=%s, nCreatorId=%u, merkle=%s, hashBlock=%s, signatures=%u, adminSignatures=%u)",
-            pprev, nHeight, nCreatorId,
-            GetPayloadString(),
+        return strprintf("CBlockIndex(pprev=%p, nHeight=%d, pl=%s, nCreatorId=%08x, merkle=%s, hashBlock=%s, nTime=%u, nStatus=%08x, signatures=%u, adminSignatures=%u)",
+            pprev, nHeight, GetPayloadString(), nCreatorId,
             hashMerkleRoot.ToString(),
             GetBlockHash().ToString(),
+            nTime, nStatus,
             vSignatures.size(),
 			vAdminSignatures.size());
     }

@@ -2309,9 +2309,6 @@ void static UpdateTip(CBlockIndex *pindexNew)
                 fWarned = true;
             }
         }
-
-        if (pindexNew->pprev)
-            RemoveCvnSignatures(pindexNew->pprev->GetBlockHash());
     }
 }
 
@@ -2428,6 +2425,19 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
     int64_t nTime6 = GetTimeMicros(); nTimePostConnect += nTime6 - nTime5; nTimeTotal += nTime6 - nTime1;
     LogPrint("bench", "  - Connect postprocess: %.2fms [%.2fs]\n", (nTime6 - nTime5) * 0.001, nTimePostConnect * 0.000001);
     LogPrint("bench", "- Connect block: %.2fms [%.2fs]\n", (nTime6 - nTime1) * 0.001, nTimeTotal * 0.000001);
+
+    if (pblock->HasCvnInfo())
+        UpdateCvnInfo(pblock);
+
+    if (pblock->HasChainParameters())
+        UpdateChainParameters(pblock);
+
+    if (pblock->HasChainAdmins())
+        UpdateChainAdmins(pblock);
+
+    if (pindexNew->pprev)
+        RemoveCvnSignatures(pindexNew->pprev->GetBlockHash());
+
     return true;
 }
 
@@ -2907,6 +2917,12 @@ bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, bool f
         return state.DoS(50, error("CheckBlockHeader(): invalid block version. No block type defined"),
                          REJECT_INVALID, "no-blk-type", true);
 
+    if (mapBannedCVNs.count(block.nCreatorId)) {
+        if (mapBannedCVNs[block.nCreatorId] > (uint32_t)chainActive.Tip()->nHeight)
+            return state.DoS(50, error("CheckBlockHeader(): received block created by a banned CVN"),
+                                     REJECT_INVALID, "banned-cvn", true);
+    }
+
     if (fCheckPOC && !CheckProofOfCooperation(block, Params().GetConsensus()))
         return state.DoS(50, error("CheckBlockHeader(): proof of cooperation failed"),
                          REJECT_INVALID, "poc-failed");
@@ -3226,11 +3242,42 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, const CCha
     return true;
 }
 
+bool CheckDuplicateBlock(CValidationState &state, const CChainParams& chainparams, const CBlock *pblock, const CBlockIndex *pindex)
+{
+    BlockIndexByPrevHashType::iterator it = mapBlockIndexByPrevHash.find(pblock->hashPrevBlock);
+    if (it != mapBlockIndexByPrevHash.end()) {
+        if (it->second->nCreatorId == pblock->nCreatorId) {
+            CBlock olderBlock;
+            if (!ReadBlockFromDisk(olderBlock, it->second, chainparams.GetConsensus())) {
+                return AbortNode(state, "Failed to read block");
+            }
+
+            LogPrintf("CheckDuplicateBlock : ======>>>>> FATAL! Possibly malicious CVN detected <<<<<======\n");
+            LogPrintf("CheckDuplicateBlock : CVN 0x%08x created more than one block at the same height\nFIRST:\n%s\n\nSECOND:\n%s\n",
+                pblock->nCreatorId, pblock->ToString(), olderBlock.ToString());
+            LogPrintf("CheckDuplicateBlock : CVN 0x%08x is now banned and should be removed by the chain administrators immediately.\n", pblock->nCreatorId);
+
+            if (!mapBannedCVNs.count(pblock->nCreatorId))
+                mapBannedCVNs[pblock->nCreatorId] = chainActive.Tip()->nHeight;
+
+            uiInterface.NotifyCVNBanned(pblock->nCreatorId);
+
+            return false;
+        }
+    } else {
+        LOCK(cs_mapBlockIndexByPrevHash);
+        mapBlockIndexByPrevHash[pblock->hashPrevBlock] = pindex;
+    }
+
+    return true;
+}
+
 bool ProcessNewBlock(CValidationState& state, const CChainParams& chainparams, const CNode* pfrom, const CBlock* pblock, bool fForceProcessing, CDiskBlockPos* dbp)
 {
     // Preliminary checks
     bool checked = CheckBlock(*pblock, state);
 
+    CBlockIndex *pindex = NULL;
     {
         LOCK(cs_main);
         bool fRequested = MarkBlockAsReceived(pblock->GetHash());
@@ -3240,7 +3287,6 @@ bool ProcessNewBlock(CValidationState& state, const CChainParams& chainparams, c
         }
 
         // Store to disk
-        CBlockIndex *pindex = NULL;
         bool ret = AcceptBlock(*pblock, state, chainparams, &pindex, fRequested, dbp);
         if (pindex && pfrom) {
             mapBlockSource[pindex->GetBlockHash()] = pfrom->GetId();
@@ -3250,17 +3296,13 @@ bool ProcessNewBlock(CValidationState& state, const CChainParams& chainparams, c
             return error("%s: AcceptBlock FAILED", __func__);
     }
 
+    if (!CheckDuplicateBlock(state, chainparams, pblock, pindex)) {
+        LogPrintf("duplicate block received from IP %s\n", pfrom ? pfrom->addr.ToString() : "localhost");
+        return error("%s: ActivateBestChain failed", __func__);
+    }
+
     if (!ActivateBestChain(state, chainparams, pblock))
         return error("%s: ActivateBestChain failed", __func__);
-
-    if (pblock->HasCvnInfo())
-        UpdateCvnInfo(pblock);
-
-    if (pblock->HasChainParameters())
-        UpdateChainParameters(pblock);
-
-    if (pblock->HasChainAdmins())
-        UpdateChainAdmins(pblock);
 
     return true;
 }
