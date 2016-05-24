@@ -37,9 +37,11 @@ CvnSigMapType mapCvnSigs;
 CCriticalSection cs_mapChainData;
 ChainDataMapType mapChainData;
 
-BlockIndexByPrevHashType mapBlockIndexByPrevHash;
-BannedCVNMapType mapBannedCVNs;
 CCriticalSection cs_mapBlockIndexByPrevHash;
+BlockIndexByPrevHashType mapBlockIndexByPrevHash;
+
+CCriticalSection cs_mapBannedCVNs;
+BannedCVNMapType mapBannedCVNs;
 
 bool static CvnSignWithKey(const uint256& hashUnsignedBlock, const CKey cvnPrivKey, CCvnSignature& signature, const CCvnInfo& cvnInfo)
 {
@@ -278,7 +280,7 @@ bool AddCvnSignature(const CCvnSignature& signature, const uint256& hashPrevBloc
     if (mapCvnForhashPrev.count(signature.nSignerId)) // already have this, no error
         return true;
 
-    LogPrintf("AddCvnSignature : add sig for 0x%08x by 0x%08x, hash %s\n", nCreatorId, signature.nSignerId, hashPrevBlock.ToString());
+    LogPrint("cvnsig", "AddCvnSignature : add sig for 0x%08x by 0x%08x, hash %s\n", nCreatorId, signature.nSignerId, hashPrevBlock.ToString());
     mapCvnForhashPrev[signature.nSignerId] = signature;
 
     return true;

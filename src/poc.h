@@ -45,9 +45,10 @@ extern CCriticalSection cs_mapCvnSigs;
 extern CvnSigMapType mapCvnSigs;
 extern CCriticalSection cs_mapChainData;
 extern ChainDataMapType mapChainData;
-extern BlockIndexByPrevHashType mapBlockIndexByPrevHash;
-extern BannedCVNMapType mapBannedCVNs;
 extern CCriticalSection cs_mapBlockIndexByPrevHash;
+extern BlockIndexByPrevHashType mapBlockIndexByPrevHash;
+extern CCriticalSection cs_mapBannedCVNs;
+extern BannedCVNMapType mapBannedCVNs;
 
 bool CvnSign(const uint256& hashUnsignedBlock, CCvnSignature& signature, const uint32_t& nNextCreator, const uint32_t& nNodeId);
 bool CvnSignBlock(CBlock& block);

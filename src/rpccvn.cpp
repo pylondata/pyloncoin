@@ -8,6 +8,8 @@
 #include "main.h"
 #include "utilstrencodings.h"
 #include "poc.h"
+#include "miner.h"
+#include "cvn.h"
 
 #include <boost/algorithm/string.hpp>
 #include <univalue.h>
@@ -107,6 +109,59 @@ static void AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
             params.nMinSuccessiveSignatures = jsonParams[key].get_int();
         }
     }
+}
+
+UniValue getgenerate(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "getgenerate\n"
+            "\nReturn if the server is set to generate blocks or not. The default is false.\n"
+            "It is set with the command line argument -gen (or " + std::string(BITCOIN_CONF_FILENAME) + " setting gen)\n"
+            "It can also be set with the setgenerate call.\n"
+            "\nResult\n"
+            "true|false      (boolean) If the server is set to generate blocks or not\n"
+            "\nExamples:\n"
+            + HelpExampleCli("getgenerate", "")
+            + HelpExampleRpc("getgenerate", "")
+        );
+
+    LOCK(cs_main);
+    return GetBoolArg("-gen", DEFAULT_GENERATE);
+}
+
+UniValue setgenerate(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1 )
+        throw runtime_error(
+            "setgenerate generate\n"
+            "\nSet 'generate' true or false to turn generation on or off.\n"
+            "See the getgenerate call for the current setting.\n"
+            "\nArguments:\n"
+            "1. generate         (boolean, required) Set to true to turn on generation, off to turn off.\n"
+            "\nExamples:\n"
+            "\nSet the generation on\n"
+            + HelpExampleCli("setgenerate", "true") +
+            "\nCheck the setting\n"
+            + HelpExampleCli("getgenerate", "") +
+            "\nTurn off generation\n"
+            + HelpExampleCli("setgenerate", "false")
+        );
+
+    if (Params().MineBlocksOnDemand())
+        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Use the generate method instead of setgenerate on this network");
+
+    if (!nCvnNodeId)
+        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "CVN not configured. Can not start or stop CVN process");
+
+    bool fGenerate = true;
+    if (params.size() > 0)
+        fGenerate = params[0].get_bool();
+
+    mapArgs["-gen"] = (fGenerate ? "1" : "0");
+    RunCertifiedValidationNode(fGenerate, Params(), nCvnNodeId);
+
+    return NullUniValue;
 }
 
 UniValue addcvn(const UniValue& params, bool fHelp)

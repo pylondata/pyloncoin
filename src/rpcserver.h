@@ -182,6 +182,13 @@ extern UniValue importpubkey(const UniValue& params, bool fHelp);
 extern UniValue dumpwallet(const UniValue& params, bool fHelp);
 extern UniValue importwallet(const UniValue& params, bool fHelp);
 
+extern UniValue getgenerate(const UniValue& params, bool fHelp); // in rpccvn.cpp
+extern UniValue setgenerate(const UniValue& params, bool fHelp);
+extern UniValue addcvn(const UniValue& params, bool fHelp);
+extern UniValue removecvn(const UniValue& params, bool fHelp);
+extern UniValue signchaindata(const UniValue& params, bool fHelp);
+extern UniValue getcvninfo(const UniValue& params, bool fHelp);
+
 extern UniValue getnewaddress(const UniValue& params, bool fHelp); // in rpcwallet.cpp
 extern UniValue getaccountaddress(const UniValue& params, bool fHelp);
 extern UniValue getrawchangeaddress(const UniValue& params, bool fHelp);
@@ -246,11 +253,9 @@ extern UniValue getblock(const UniValue& params, bool fHelp);
 extern UniValue gettxoutsetinfo(const UniValue& params, bool fHelp);
 extern UniValue gettxout(const UniValue& params, bool fHelp);
 extern UniValue verifychain(const UniValue& params, bool fHelp);
-
-extern UniValue addcvn(const UniValue& params, bool fHelp);
-extern UniValue removecvn(const UniValue& params, bool fHelp);
-extern UniValue signchaindata(const UniValue& params, bool fHelp);
-extern UniValue getcvninfo(const UniValue& params, bool fHelp);
+extern UniValue getchaintips(const UniValue& params, bool fHelp);
+extern UniValue invalidateblock(const UniValue& params, bool fHelp);
+extern UniValue reconsiderblock(const UniValue& params, bool fHelp);
 
 bool StartRPC();
 void InterruptRPC();

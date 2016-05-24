@@ -280,6 +280,7 @@ static const CRPCCommand vRPCCommands[] =
     { "blockchain",         "getblock",               &getblock,               true  },
     { "blockchain",         "getblockhash",           &getblockhash,           true  },
     { "blockchain",         "getblockheader",         &getblockheader,         true  },
+    { "blockchain",         "getchaintips",           &getchaintips,           true  },
     { "blockchain",         "getmempoolinfo",         &getmempoolinfo,         true  },
     { "blockchain",         "getrawmempool",          &getrawmempool,          true  },
     { "blockchain",         "gettxout",               &gettxout,               true  },
@@ -287,6 +288,16 @@ static const CRPCCommand vRPCCommands[] =
     { "blockchain",         "verifytxoutproof",       &verifytxoutproof,       true  },
     { "blockchain",         "gettxoutsetinfo",        &gettxoutsetinfo,        true  },
     { "blockchain",         "verifychain",            &verifychain,            true  },
+
+    /* CVN function s */
+    { "cvn",                "addcvn",                 &addcvn,                 false },
+    { "cvn",                "removecvn",              &removecvn,              false },
+    { "cvn",                "signchaindata",          &signchaindata,          true  },
+    { "cvn",                "getcvninfo",             &getcvninfo,             true  },
+
+    /* Coin generation */
+    { "generating",         "getgenerate",            &getgenerate,            true  },
+    { "generating",         "setgenerate",            &setgenerate,            true  },
 
     /* Raw transactions */
     { "rawtransactions",    "createrawtransaction",   &createrawtransaction,   true  },
@@ -304,13 +315,9 @@ static const CRPCCommand vRPCCommands[] =
     { "util",               "validateaddress",        &validateaddress,        true  }, /* uses wallet if enabled */
     { "util",               "verifymessage",          &verifymessage,          true  },
 
-    /* CVN function s */
-    { "cvn",                "addcvn",                 &addcvn,                 false },
-    { "cvn",                "removecvn",              &removecvn,              false },
-    { "cvn",                "signchaindata",          &signchaindata,          true  },
-    { "cvn",                "getcvninfo",             &getcvninfo,             true  },
-
     /* Not shown in help */
+    { "hidden",             "invalidateblock",        &invalidateblock,        true  },
+    { "hidden",             "reconsiderblock",        &reconsiderblock,        true  },
     { "hidden",             "setmocktime",            &setmocktime,            true  },
 #ifdef ENABLE_WALLET
     { "hidden",             "resendwallettransactions", &resendwallettransactions, true},

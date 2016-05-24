@@ -2038,7 +2038,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     CAmount nFees = 0;
     int nInputs = 0;
     unsigned int nSigOps = 0;
-    CDiskTxPos pos(pindex->GetBlockPos(), GetSizeOfCompactSize(block.vtx.size()));
+    CDiskTxPos pos(pindex->GetBlockPos(), GetSizeOfCompactSize(block.vtx.size()) + GetSerializeSize(block.vCreatorSignature, SER_DISK, CLIENT_VERSION));
     std::vector<std::pair<uint256, CDiskTxPos> > vPos;
     vPos.reserve(block.vtx.size());
     if (block.HasTx())
@@ -3242,25 +3242,41 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, const CCha
     return true;
 }
 
-bool CheckDuplicateBlock(CValidationState &state, const CChainParams& chainparams, const CBlock *pblock, const CBlockIndex *pindex)
+bool CheckDuplicateBlock(CValidationState &state, const CChainParams& chainparams, const CBlock *pblock, const CBlockIndex *pindex, const CNode* pfrom)
 {
     BlockIndexByPrevHashType::iterator it = mapBlockIndexByPrevHash.find(pblock->hashPrevBlock);
     if (it != mapBlockIndexByPrevHash.end()) {
-        if (it->second->nCreatorId == pblock->nCreatorId) {
-            CBlock olderBlock;
-            if (!ReadBlockFromDisk(olderBlock, it->second, chainparams.GetConsensus())) {
+        if (it->second->nCreatorId == pblock->nCreatorId && it->second->GetBlockHash() != pblock->GetHash()) {
+            CBlock formerBlock;
+            if (!ReadBlockFromDisk(formerBlock, it->second, chainparams.GetConsensus())) {
                 return AbortNode(state, "Failed to read block");
             }
 
             LogPrintf("CheckDuplicateBlock : ======>>>>> FATAL! Possibly malicious CVN detected <<<<<======\n");
             LogPrintf("CheckDuplicateBlock : CVN 0x%08x created more than one block at the same height\nFIRST:\n%s\n\nSECOND:\n%s\n",
-                pblock->nCreatorId, pblock->ToString(), olderBlock.ToString());
+                pblock->nCreatorId, pblock->ToString(), formerBlock.ToString());
             LogPrintf("CheckDuplicateBlock : CVN 0x%08x is now banned and should be removed by the chain administrators immediately.\n", pblock->nCreatorId);
 
-            if (!mapBannedCVNs.count(pblock->nCreatorId))
-                mapBannedCVNs[pblock->nCreatorId] = chainActive.Tip()->nHeight;
+            {
+                LOCK(cs_mapBannedCVNs);
+                if (!mapBannedCVNs.count(pblock->nCreatorId))
+                    mapBannedCVNs[pblock->nCreatorId] = chainActive.Tip()->nHeight;
+            }
 
             uiInterface.NotifyCVNBanned(pblock->nCreatorId);
+
+            // tell all connected nodes about what happened
+            // they will also ban that CVN
+            CInv inv(MSG_BLOCK, pblock->GetHash());
+            CInv formerBlockInv(MSG_BLOCK, formerBlock.GetHash());
+            LOCK(cs_vNodes);
+            BOOST_FOREACH(CNode* pnode, vNodes) {
+                if (pfrom && pfrom->GetId() != pnode->GetId())
+                    continue;
+
+                pnode->PushInventory(formerBlockInv);
+                pnode->PushInventory(inv);
+            }
 
             return false;
         }
@@ -3296,10 +3312,8 @@ bool ProcessNewBlock(CValidationState& state, const CChainParams& chainparams, c
             return error("%s: AcceptBlock FAILED", __func__);
     }
 
-    if (!CheckDuplicateBlock(state, chainparams, pblock, pindex)) {
-        LogPrintf("duplicate block received from IP %s\n", pfrom ? pfrom->addr.ToString() : "localhost");
-        return error("%s: ActivateBestChain failed", __func__);
-    }
+    if (!CheckDuplicateBlock(state, chainparams, pblock, pindex, pfrom))
+        return error("%s: Bad block from peer %s", __func__, pfrom ? pfrom->addr.ToString() : "localhost");
 
     if (!ActivateBestChain(state, chainparams, pblock))
         return error("%s: ActivateBestChain failed", __func__);
@@ -4290,6 +4304,10 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
                         send = mi->second->IsValid(BLOCK_VALID_SCRIPTS) && (pindexBestHeader != NULL) &&
                             (pindexBestHeader->GetBlockTime() - mi->second->GetBlockTime() < nOneMonth) &&
                             (GetBlockProofEquivalentTime(*pindexBestHeader, *mi->second, *pindexBestHeader, consensusParams) < nOneMonth);
+
+                        // we also send bad blocks if the creating CVN is banned
+                        send |= mapBannedCVNs.count(mi->second->nCreatorId) > 0;
+
                         if (!send) {
                             LogPrintf("%s: ignoring request from peer=%i for old block that isn't in the main chain\n", __func__, pfrom->GetId());
                         }
