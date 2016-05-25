@@ -74,8 +74,8 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const u
     result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
     result.push_back(Pair("creator", strprintf("0x%08x", blockindex->nCreatorId)));
     result.push_back(Pair("creatorSignature", HexStr(block.vCreatorSignature)));
-    result.push_back(Pair("signatures", (uint64_t)blockindex->vSignatures.size()));
-    result.push_back(Pair("adminSignatures", (uint64_t)blockindex->vAdminSignatures.size()));
+    result.push_back(Pair("nSignatures", (uint64_t)blockindex->vSignatures.size()));
+    result.push_back(Pair("nAdminSignatures", (uint64_t)blockindex->vAdminSignatures.size()));
 
     ///////// TRANSACTIONS
     UniValue txs(UniValue::VARR);
