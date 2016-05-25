@@ -59,7 +59,7 @@ struct CCoin {
 };
 
 extern void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry);
-extern UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool txDetails = false);
+extern UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const uint32_t nMode = 0);
 extern UniValue mempoolInfoToJSON();
 extern UniValue mempoolToJSON(bool fVerbose = false);
 extern void ScriptPubKeyToJSON(const CScript& scriptPubKey, UniValue& out, bool fIncludeHex);
@@ -115,6 +115,17 @@ static bool ParseHashStr(const string& strReq, uint256& v)
         return false;
 
     v.SetHex(strReq);
+    return true;
+}
+
+static bool ParseHexStr(const string& strReq, uint32_t& v)
+{
+    if (!IsHex(strReq) || (strReq.size() != 8))
+        return false;
+
+    stringstream ss;
+    ss << hex << strReq;
+    ss >> v;
     return true;
 }
 
@@ -202,7 +213,7 @@ static bool rest_headers(HTTPRequest* req,
 
 static bool rest_block(HTTPRequest* req,
                        const std::string& strURIPart,
-                       bool showTxDetails)
+                       const uint32_t nMode)
 {
     if (!CheckWarmup(req))
         return false;
@@ -247,7 +258,7 @@ static bool rest_block(HTTPRequest* req,
     }
 
     case RF_JSON: {
-        UniValue objBlock = blockToJSON(block, pblockindex, showTxDetails);
+        UniValue objBlock = blockToJSON(block, pblockindex, nMode);
         string strJSON = objBlock.write() + "\n";
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, strJSON);
@@ -263,14 +274,19 @@ static bool rest_block(HTTPRequest* req,
     return true; // continue to process further HTTP reqs on this cxn
 }
 
+static bool rest_block_extended_all(HTTPRequest* req, const std::string& strURIPart)
+{
+    return rest_block(req, strURIPart, 2);
+}
+
 static bool rest_block_extended(HTTPRequest* req, const std::string& strURIPart)
 {
-    return rest_block(req, strURIPart, true);
+    return rest_block(req, strURIPart, 1);
 }
 
 static bool rest_block_notxdetails(HTTPRequest* req, const std::string& strURIPart)
 {
-    return rest_block(req, strURIPart, false);
+    return rest_block(req, strURIPart, 0);
 }
 
 static bool rest_chaininfo(HTTPRequest* req, const std::string& strURIPart)
@@ -285,6 +301,61 @@ static bool rest_chaininfo(HTTPRequest* req, const std::string& strURIPart)
         UniValue rpcParams(UniValue::VARR);
         UniValue chainInfoObject = getblockchaininfo(rpcParams, false);
         string strJSON = chainInfoObject.write() + "\n";
+        req->WriteHeader("Content-Type", "application/json");
+        req->WriteReply(HTTP_OK, strJSON);
+        return true;
+    }
+    default: {
+        return RESTERR(req, HTTP_NOT_FOUND, "output format not found (available: json)");
+    }
+    }
+
+    // not reached
+    return true; // continue to process further HTTP reqs on this cxn
+}
+
+static bool rest_chainparameters(HTTPRequest* req, const std::string& strURIPart)
+{
+    if (!CheckWarmup(req))
+        return false;
+    std::string param;
+    const RetFormat rf = ParseDataFormat(param, strURIPart);
+
+    switch (rf) {
+    case RF_JSON: {
+        UniValue rpcParams(UniValue::VOBJ);
+        UniValue chainParamsObject = getchainparameters(rpcParams, false);
+        string strJSON = chainParamsObject.write() + "\n";
+        req->WriteHeader("Content-Type", "application/json");
+        req->WriteReply(HTTP_OK, strJSON);
+        return true;
+    }
+    default: {
+        return RESTERR(req, HTTP_NOT_FOUND, "output format not found (available: json)");
+    }
+    }
+
+    // not reached
+    return true; // continue to process further HTTP reqs on this cxn
+}
+
+static bool rest_getcvninfo(HTTPRequest* req, const std::string& strURIPart)
+{
+    if (!CheckWarmup(req))
+        return false;
+    std::string param;
+    const RetFormat rf = ParseDataFormat(param, strURIPart);
+
+    uint32_t nNode;
+    if (!ParseHexStr(param, nNode))
+        return RESTERR(req, HTTP_BAD_REQUEST, "Invalid cvn ID: " + param);
+
+    switch (rf) {
+    case RF_JSON: {
+        UniValue rpcParams(UniValue::VOBJ);
+        rpcParams.push_back(param);
+        UniValue cvnInfoObject = getcvninfo(rpcParams, false);
+        string strJSON = cvnInfoObject.write() + "\n";
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, strJSON);
         return true;
@@ -602,12 +673,15 @@ static const struct {
 } uri_prefixes[] = {
       {"/rest/tx/", rest_tx},
       {"/rest/block/notxdetails/", rest_block_notxdetails},
+      {"/rest/block/all/", rest_block_extended_all},
       {"/rest/block/", rest_block_extended},
       {"/rest/chaininfo", rest_chaininfo},
+      {"/rest/chainparameters", rest_chainparameters},
       {"/rest/mempool/info", rest_mempool_info},
       {"/rest/mempool/contents", rest_mempool_contents},
       {"/rest/headers/", rest_headers},
       {"/rest/getutxos", rest_getutxos},
+      {"/rest/cvninfo/", rest_getcvninfo},
 };
 
 bool StartREST()

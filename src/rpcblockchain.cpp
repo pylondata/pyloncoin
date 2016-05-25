@@ -26,8 +26,8 @@
 using namespace std;
 
 extern void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry);
+extern void DynamicChainparametersToJSON(CDynamicChainParams& cp, UniValue& result);
 void ScriptPubKeyToJSON(const CScript& scriptPubKey, UniValue& out, bool fIncludeHex);
-
 
 UniValue blockheaderToJSON(const CBlockIndex* blockindex)
 {
@@ -56,7 +56,7 @@ UniValue blockheaderToJSON(const CBlockIndex* blockindex)
     return result;
 }
 
-UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool txDetails = false)
+UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const uint32_t nMode = 0)
 {
     UniValue result(UniValue::VOBJ);
     result.push_back(Pair("hash", block.GetHash().GetHex()));
@@ -70,10 +70,18 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     result.push_back(Pair("version", block.nVersion));
     result.push_back(Pair("payload", blockindex->GetPayloadString()));
     result.push_back(Pair("merkleroot", block.hashMerkleRoot.GetHex()));
+    result.push_back(Pair("time", block.GetBlockTime()));
+    result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
+    result.push_back(Pair("creator", strprintf("0x%08x", blockindex->nCreatorId)));
+    result.push_back(Pair("creatorSignature", HexStr(block.vCreatorSignature)));
+    result.push_back(Pair("signatures", (uint64_t)blockindex->vSignatures.size()));
+    result.push_back(Pair("adminSignatures", (uint64_t)blockindex->vAdminSignatures.size()));
+
+    ///////// TRANSACTIONS
     UniValue txs(UniValue::VARR);
     BOOST_FOREACH(const CTransaction&tx, block.vtx)
     {
-        if(txDetails)
+        if (nMode >= 5)
         {
             UniValue objTx(UniValue::VOBJ);
             TxToJSON(tx, uint256(), objTx);
@@ -83,18 +91,81 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
             txs.push_back(tx.GetHash().GetHex());
     }
     result.push_back(Pair("tx", txs));
-    result.push_back(Pair("time", block.GetBlockTime()));
-    result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
-    result.push_back(Pair("creator", strprintf("0x%08x", blockindex->nCreatorId)));
-    result.push_back(Pair("creatorSignature", HexStr(block.vCreatorSignature)));
-    result.push_back(Pair("signatures", (uint64_t)blockindex->vSignatures.size()));
-    result.push_back(Pair("adminSignatures", (uint64_t)blockindex->vAdminSignatures.size()));
 
     if (blockindex->pprev)
         result.push_back(Pair("previousblockhash", blockindex->pprev->GetBlockHash().GetHex()));
     CBlockIndex *pnext = chainActive.Next(blockindex);
     if (pnext)
         result.push_back(Pair("nextblockhash", pnext->GetBlockHash().GetHex()));
+
+    if (nMode < 2)
+        return result;
+
+    ///////// CVN INFO
+    UniValue cvns(UniValue::VARR);
+    BOOST_FOREACH(const CCvnInfo&cvn, block.vCvns)
+    {
+        UniValue objCvn(UniValue::VOBJ);
+        objCvn.push_back(Pair("nodeId", strprintf("0x%08x", cvn.nNodeId)));
+        objCvn.push_back(Pair("heightAdded", (int)cvn.nHeightAdded));
+        if (nMode >= 3)
+            objCvn.push_back(Pair("pubKey", HexStr(cvn.vPubKey)));
+
+        cvns.push_back(objCvn);
+    }
+    result.push_back(Pair("cvnInfo", cvns));
+
+    ///////// DYNAMIC CHAIN PARAMETERS
+    UniValue dParams(UniValue::VOBJ);
+    if (block.HasChainParameters()) {
+        CDynamicChainParams p = block.dynamicChainParams;
+        DynamicChainparametersToJSON(p, dParams);
+    }
+
+    result.push_back(Pair("chainParameters", dParams));
+
+    ///////// ADMIN INFO
+    UniValue admins(UniValue::VARR);
+    BOOST_FOREACH(const CChainAdmin&admin, block.vChainAdmins)
+    {
+        UniValue objAdmin(UniValue::VOBJ);
+        objAdmin.push_back(Pair("adminId", strprintf("0x%08x", admin.nAdminId)));
+        if (nMode >= 3)
+            objAdmin.push_back(Pair("pubKey", HexStr(admin.vPubKey)));
+
+        admins.push_back(objAdmin);
+    }
+    result.push_back(Pair("admins", admins));
+
+    if (nMode < 4)
+        return result;
+
+    ///////// CVN SIGNATURES
+    UniValue signatures(UniValue::VARR);
+    BOOST_FOREACH(const CCvnSignature&sig, block.vSignatures)
+    {
+        UniValue objSignature(UniValue::VOBJ);
+        objSignature.push_back(Pair("version", (int)sig.nVersion));
+        objSignature.push_back(Pair("signerId", strprintf("0x%08x", sig.nSignerId)));
+        objSignature.push_back(Pair("signature", HexStr(sig.vSignature)));
+
+        signatures.push_back(objSignature);
+    }
+    result.push_back(Pair("signatures", signatures));
+
+    ///////// ADMIN SIGNATURES
+    UniValue adminSignatures(UniValue::VARR);
+    BOOST_FOREACH(const CCvnSignature&sig, block.vAdminSignatures)
+    {
+        UniValue objSignature(UniValue::VOBJ);
+        objSignature.push_back(Pair("version", (int)sig.nVersion));
+        objSignature.push_back(Pair("adminId", strprintf("0x%08x", sig.nSignerId)));
+        objSignature.push_back(Pair("signature", HexStr(sig.vSignature)));
+
+        adminSignatures.push_back(objSignature);
+    }
+    result.push_back(Pair("adminSignatures", adminSignatures));
+
     return result;
 }
 
@@ -355,9 +426,9 @@ UniValue getblock(const UniValue& params, bool fHelp)
     std::string strHash = params[0].get_str();
     uint256 hash(uint256S(strHash));
 
-    bool fVerbose = true;
+    uint32_t nMode = 0;
     if (params.size() > 1)
-        fVerbose = params[1].get_bool();
+        nMode = params[1].get_int();
 
     if (mapBlockIndex.count(hash) == 0)
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
@@ -371,7 +442,7 @@ UniValue getblock(const UniValue& params, bool fHelp)
     if(!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Can't read block from disk");
 
-    if (!fVerbose)
+    if (!nMode)
     {
         CDataStream ssBlock(SER_NETWORK, PROTOCOL_VERSION);
         ssBlock << block;
@@ -379,7 +450,7 @@ UniValue getblock(const UniValue& params, bool fHelp)
         return strHex;
     }
 
-    return blockToJSON(block, pblockindex);
+    return blockToJSON(block, pblockindex, nMode);
 }
 
 UniValue gettxoutsetinfo(const UniValue& params, bool fHelp)

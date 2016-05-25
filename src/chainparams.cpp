@@ -108,7 +108,6 @@ public:
                 consensus.hashGenesisBlock.ToString().c_str(),
                 genesis.hashMerkleRoot.ToString().c_str());
 #else
-        // also update checkpoints!
         assert(consensus.hashGenesisBlock == uint256S("b47399d14fcb0a8b969cfa02bf461effc21e2f8f273532fb1f119278dd2b00e8"));
         assert(genesis.hashMerkleRoot == uint256S("c8bf1a91c6ae81a4d6d93dc4f44dd49ea93e89776cf7cf2a7b18db66ec040aef"));
 #endif

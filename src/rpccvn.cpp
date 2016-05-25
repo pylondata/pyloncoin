@@ -393,12 +393,12 @@ UniValue signchaindata(const UniValue& params, bool fHelp)
 
 UniValue getcvninfo(const UniValue& params, bool fHelp)
 {
-    if (fHelp || params.size() != 0)
+    if (fHelp || params.size() > 1)
         throw runtime_error(
             "getcvninfo\n"
             "\nDisplay the current state of the CVN\n"
             "\nArguments:\n"
-            "none\n"
+            "1. \"cvnId\"   (string, optional) The ID (in hex) of the CVN to display infos about\n"
             "\nResult:\n"
             "{\n"
                 "  \"nextBlockToCreate\":height     ,           (int) The estimated next block to create\n"
@@ -409,7 +409,48 @@ UniValue getcvninfo(const UniValue& params, bool fHelp)
             + HelpExampleCli("getcvninfo","")
         );
 
-    LOCK(cs_main);
+    uint32_t nNodeId = nCvnNodeId;
+
+    if (params.size() == 1) {
+        stringstream ss;
+        ss << hex << params[1].get_str();
+        ss >> nNodeId;
+    }
 
     return "to be implemented";
+}
+
+void DynamicChainparametersToJSON(CDynamicChainParams& cp, UniValue& result)
+{
+    result.push_back(Pair("version", (int)cp.nVersion));
+    result.push_back(Pair("minCvnSigners", (int)cp.nMinCvnSigners));
+    result.push_back(Pair("maxCvnSigners", (int)cp.nMaxCvnSigners));
+    result.push_back(Pair("blockSpacing", (int)cp.nBlockSpacing));
+    result.push_back(Pair("blockSpacingGracePeriod", (int)cp.nBlockSpacingGracePeriod));
+    result.push_back(Pair("dustThreshold", (int)cp.nDustThreshold));
+    result.push_back(Pair("minSuccessiveSignatures", (int)cp.nMinSuccessiveSignatures));
+}
+
+UniValue getchainparameters(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "getchainparameters\n"
+            "\nDisplay the current values of the dynamic chain parameters\n"
+            "\nArguments:\n"
+            "none\n"
+            "\nResult:\n"
+            "{\n"
+                "  \"nextBlockToCreate\":height     ,           (int) The estimated next block to create\n"
+                "  \"reserved\":\"reserved\",                   (string) reserved\n"
+             "}\n"
+            "\nExamples:\n"
+            "\nDisplay dynamic chain parameters\n"
+            + HelpExampleCli("getchainparameters","")
+        );
+
+    UniValue result(UniValue::VOBJ);
+    DynamicChainparametersToJSON(dynParams, result);
+
+    return result;
 }
