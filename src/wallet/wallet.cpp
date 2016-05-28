@@ -2790,7 +2790,7 @@ void CWallet::GetScriptForMining(CReserveScript **script)
     }
 
     *script = rKey;
-    (*script)->reserveScript = CScript() << ToByteVector(pubkey) << OP_CHECKSIG;
+    (*script)->reserveScript = GetScriptForDestination(pubkey.GetID());
 }
 
 void CWallet::LockCoin(COutPoint& output)
