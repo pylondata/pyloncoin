@@ -27,8 +27,9 @@ public:
     static const int32_t              CVN_PAYLOAD = 1 << 9;
     static const int32_t CHAIN_PARAMETERS_PAYLOAD = 1 << 10;
     static const int32_t     CHAIN_ADMINS_PAYLOAD = 1 << 11;
-    static const int32_t       ADMIN_PAYLOAD_MASK = CVN_PAYLOAD | CHAIN_PARAMETERS_PAYLOAD | CHAIN_ADMINS_PAYLOAD;
-    static const int32_t             PAYLOAD_MASK = TX_PAYLOAD | CVN_PAYLOAD | CHAIN_PARAMETERS_PAYLOAD | CHAIN_ADMINS_PAYLOAD;
+    static const int32_t      COIN_SUPPLY_PAYLOAD = 1 << 12;
+    static const int32_t       ADMIN_PAYLOAD_MASK = CVN_PAYLOAD | CHAIN_PARAMETERS_PAYLOAD | CHAIN_ADMINS_PAYLOAD | COIN_SUPPLY_PAYLOAD;
+    static const int32_t             PAYLOAD_MASK = TX_PAYLOAD | CVN_PAYLOAD | CHAIN_PARAMETERS_PAYLOAD | CHAIN_ADMINS_PAYLOAD | COIN_SUPPLY_PAYLOAD;
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
@@ -99,6 +100,11 @@ public:
         return (nVersion & CHAIN_ADMINS_PAYLOAD);
     }
 
+    bool HasCoinSupplyPayload() const
+    {
+        return (nVersion & COIN_SUPPLY_PAYLOAD);
+    }
+
     bool HasAdminPayload() const
     {
         return (nVersion & ADMIN_PAYLOAD_MASK);
@@ -114,6 +120,7 @@ public:
     std::vector<CCvnInfo> vCvns;
     std::vector<CChainAdmin> vChainAdmins;
     CDynamicChainParams dynamicChainParams;
+    CCoinSupply coinSupply;
 
     // memory only
     mutable bool fChecked;
@@ -144,6 +151,8 @@ public:
             READWRITE(vChainAdmins);
         if (HasChainParameters())
             READWRITE(dynamicChainParams);
+        if (HasCoinSupplyPayload())
+            READWRITE(coinSupply);
     }
 
     void SetNull()
@@ -154,6 +163,7 @@ public:
         vCreatorSignature.clear();
         vChainAdmins.clear();
         dynamicChainParams = CDynamicChainParams();
+        coinSupply = CCoinSupply();
         fChecked = false;
     }
 

@@ -337,8 +337,11 @@ static bool AddChainDataToBlock(CBlock *pblock, const CChainDataMsg& msg)
         pblock->nVersion |= CBlock::CHAIN_PARAMETERS_PAYLOAD;
         pblock->dynamicChainParams = msg.dynamicChainParams;
     }
+    if (msg.HasCoinSupplyPayload()) {
+        pblock->nVersion |= CBlock::COIN_SUPPLY_PAYLOAD;
+        pblock->coinSupply = msg.coinSupply;
+    }
 
-    // and finally the admin signatures
     pblock->vAdminSignatures = msg.vAdminSignatures;
 
     return true;
@@ -414,7 +417,7 @@ static bool CreateNewBlock(const CChainParams& chainparams, CBlockTemplate& bloc
 
     // final tests
     CValidationState state;
-    if (!TestBlockValidity(state, chainparams, *pblock, blockTemplate.pindexPrev, false, false)) {
+    if (!TestBlockValidity(state, chainparams, *pblock, blockTemplate.pindexPrev, true, false)) {
         LogPrintf("ERROR: TestBlockValidity failed: %s", FormatStateMessage(state));
         return false;
     }

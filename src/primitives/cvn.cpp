@@ -7,6 +7,7 @@
 #include "hash.h"
 #include "tinyformat.h"
 #include "utilstrencodings.h"
+#include "base58.h"
 
 uint256 CDynamicChainParams::GetHash() const
 {
@@ -16,12 +17,29 @@ uint256 CDynamicChainParams::GetHash() const
 std::string CDynamicChainParams::ToString() const
 {
     std::stringstream s;
-        s << strprintf("CDynamicChainParams(ver=%d, minCvnSigners=%u, maxCvnSigners=%u, blockSpacing=%u, blockSpacingGracePeriod=%u, dustThreshold=%u, minSuccessiveSignatures=%u)",
+        s << strprintf("CDynamicChainParams(ver=%d, minAdminSigs=%u, maxAdminSigs=%u, blockSpacing=%u, blockSpacingGracePeriod=%u, transactionFee=%u, dustThreshold=%u, minSuccessiveSignatures=%u)",
             nVersion,
-            nMinCvnSigners, nMaxCvnSigners,
+            nMinAdminSigs, nMaxAdminSigs,
             nBlockSpacing, nBlockSpacingGracePeriod,
-            nDustThreshold,
+            nTransactionFee, nDustThreshold,
             nMinSuccessiveSignatures
+        );
+    return s.str();
+}
+
+uint256 CCoinSupply::GetHash() const
+{
+    return SerializeHash(*this);
+}
+
+std::string CCoinSupply::ToString() const
+{
+    std::stringstream s;
+        s << strprintf("CCoinSupply(ver=%d, nValue=%d.%08d, rawScriptDestination=%s, asm=%s)",
+            nVersion,
+			nValue / COIN, nValue % COIN,
+			HexStr(scriptDestination),
+			CBitcoinAddress(CScriptID(scriptDestination)).ToString()
         );
     return s.str();
 }
@@ -81,6 +99,8 @@ uint256 CChainDataMsg::GetHash() const
         hashes.push_back(HashChainAdmins());
     if (HasChainParameters())
         hashes.push_back(dynamicChainParams.GetHash());
+    if (HasCoinSupplyPayload())
+        hashes.push_back(coinSupply.GetHash());
 
     return Hash(hashes.begin(), hashes.end());
 }
@@ -95,8 +115,10 @@ std::string CChainDataMsg::ToString() const
         payload << strprintf("%sadmins", (payload.tellp() > 0) ? "," : "");
     if (HasChainParameters())
         payload << strprintf("%sparams", (payload.tellp() > 0) ? "," : "");
+    if (HasCoinSupplyPayload())
+        payload << strprintf("%ssupply", (payload.tellp() > 0) ? "," : "");
 
-    s << strprintf("CChainDataMsg(payload(%u)=%s, hashPrevBlock=%s, signers=%u)",
+    s << strprintf("CChainDataMsg(payload(%02x)=%s, hashPrevBlock=%s, signers=%u)",
         nPayload, payload.str(),
         hashPrevBlock.ToString(),
         vAdminSignatures.size()); //TODO: add more

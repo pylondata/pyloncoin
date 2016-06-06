@@ -34,6 +34,8 @@ typedef map<uint32_t, uint32_t> BannedCVNMapType; // nCreatorID/nHeight at which
 #define MIN_BLOCK_SPACING 30
 #define MAX_DUST_THRESHOLD 1 * COIN
 #define MIN_DUST_THRESHOLD 1000
+#define MAX_TX_FEE_THRESHOLD 1 * COIN
+#define MIN_TX_FEE_THRESHOLD 1000
 
 #define __DBG_ LogPrintf("DEBUG: In file %s in function %s in line %d\n", __FILE__, __func__, __LINE__);
 
@@ -61,7 +63,7 @@ bool AddCvnSignature(const CCvnSignature& signature, const uint256& hashPrevBloc
 bool AddChainData(const CChainDataMsg& msg);
 void RemoveCvnSignatures(const uint256& hashPrevBlock);
 bool CvnValidateSignature(const CCvnSignature& signature, const uint256& hashPrevBlock, const uint32_t nCreatorId);
-bool CheckAdminSignatures(const uint256 hashAdminData, const vector<CCvnSignature> vAdminSignatures);
+bool CheckAdminSignatures(const uint256 hashAdminData, const vector<CCvnSignature> vAdminSignatures, const bool fCoinSupply);
 void RelayChainData(const CChainDataMsg& msg);
 void RelayCvnSignature(const CCvnSignatureMsg& msg);
 

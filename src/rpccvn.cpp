@@ -10,6 +10,7 @@
 #include "poc.h"
 #include "miner.h"
 #include "cvn.h"
+#include "core_io.h"
 
 #include <boost/algorithm/string.hpp>
 #include <univalue.h>
@@ -18,17 +19,23 @@ using namespace std;
 
 static bool AddAdminSignatures(CChainDataMsg &msg, const UniValue& sigs)
 {
-    if (sigs.size() < (size_t)dynParams.nMinCvnSigners)
+    const uint32_t nSigs = (uint32_t)sigs.size();
+    if (nSigs < dynParams.nMinAdminSigs)
         throw runtime_error(
             strprintf("not enough signatures supplied "
-                      "(got %u signatures, but need at least %u to sign)", sigs.size(), (size_t)dynParams.nMinCvnSigners));
-    if (sigs.size() > (size_t)dynParams.nMaxCvnSigners)
+                      "(got %u signatures, but need at least %u to sign)", nSigs, dynParams.nMinAdminSigs));
+    if (nSigs > dynParams.nMaxAdminSigs)
         throw runtime_error(
-            strprintf("too many signatures supplied %u (%u max)\nReduce the number", sigs.size(), (size_t)dynParams.nMaxCvnSigners));
+            strprintf("too many signatures supplied %u (%u max)\nReduce the number", nSigs, dynParams.nMaxAdminSigs));
 
-    msg.vAdminSignatures.resize(sigs.size());
+    if (msg.HasCoinSupplyPayload() && nSigs < dynParams.nMaxAdminSigs)
+        throw runtime_error(
+                strprintf("not enough signatures supplied "
+                       "(got %u signatures, but need at least %u to sign for coin supply)", nSigs, dynParams.nMaxAdminSigs));
 
-    for (uint32_t i = 0 ; i < sigs.size() ; i++)
+    msg.vAdminSignatures.resize(nSigs);
+
+    for (uint32_t i = 0 ; i < nSigs ; i++)
     {
         const string& strSig = sigs[i].get_str();
         vector<string> vTokens;
@@ -45,7 +52,7 @@ static bool AddAdminSignatures(CChainDataMsg &msg, const UniValue& sigs)
         msg.vAdminSignatures[i] = CCvnSignature(signerId, ParseHex(vTokens[1]));
     }
 
-    return CheckAdminSignatures(msg.GetHash(), msg.vAdminSignatures);
+    return CheckAdminSignatures(msg.GetHash(), msg.vAdminSignatures, msg.HasCoinSupplyPayload());
 }
 
 static void AddCvnInfoToMsg(CChainDataMsg &msg, const uint32_t nNodeId, const uint32_t nHeightAdded, const vector<unsigned char> vPubKey)
@@ -57,7 +64,7 @@ static void AddCvnInfoToMsg(CChainDataMsg &msg, const uint32_t nNodeId, const ui
     BOOST_FOREACH(const CvnMapType::value_type& cvn, mapCVNs)
     {
         msg.vCvns[index++] = cvn.second;
-    };
+    }
 
     CCvnInfo cvn(nNodeId, nHeightAdded, vPubKey);
     msg.vCvns[index] = cvn;
@@ -72,7 +79,7 @@ static void AddChainAdminToMsg(CChainDataMsg &msg, const uint32_t nAdminId, cons
     BOOST_FOREACH(const ChainAdminMapType::value_type& cvn, mapChainAdmins)
     {
         msg.vChainAdmins[index++] = cvn.second;
-    };
+    }
 
     CChainAdmin admin(nAdminId, vPubKey);
     msg.vChainAdmins[index] = admin;
@@ -80,31 +87,34 @@ static void AddChainAdminToMsg(CChainDataMsg &msg, const uint32_t nAdminId, cons
 
 static void AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
 {
-    LogPrintf("AddDynParamsToBlock : adding %u parameters\n", jsonParams.getKeys().size());
+    LogPrintf("AddDynParamsToMsg : adding %u parameters\n", jsonParams.getKeys().size());
     msg.nPayload |= CChainDataMsg::CHAIN_PARAMETERS_PAYLOAD;
 
     CDynamicChainParams& params = msg.dynamicChainParams;
 
     params.nBlockSpacing            = dynParams.nBlockSpacing;
     params.nBlockSpacingGracePeriod = dynParams.nBlockSpacingGracePeriod;
+    params.nTransactionFee          = dynParams.nTransactionFee;
     params.nDustThreshold           = dynParams.nDustThreshold;
-    params.nMaxCvnSigners           = dynParams.nMaxCvnSigners;
-    params.nMinCvnSigners           = dynParams.nMinCvnSigners;
+    params.nMaxAdminSigs            = dynParams.nMaxAdminSigs;
+    params.nMinAdminSigs            = dynParams.nMinAdminSigs;
     params.nMinSuccessiveSignatures = dynParams.nMinSuccessiveSignatures;
 
     vector<string> paramsList = jsonParams.getKeys();
     BOOST_FOREACH(const string& key, paramsList) {
-        LogPrintf("AddDynParamsToBlock : adding %s: %u\n", key, jsonParams[key].get_int());
+        LogPrintf("AddDynParamsToMsg : adding %s: %u\n", key, jsonParams[key].get_int());
         if (key == "nBlockSpacing") {
             params.nBlockSpacing = jsonParams[key].get_int();
         } else if (key == "nBlockSpacingGracePeriod") {
             params.nBlockSpacingGracePeriod = jsonParams[key].get_int();
+        } else if (key == "nTransactionFee") {
+            params.nTransactionFee = jsonParams[key].get_int();
         } else if (key == "nDustThreshold") {
             params.nDustThreshold = jsonParams[key].get_int();
-        } else if (key == "nMaxCvnSigners") {
-            params.nMaxCvnSigners = jsonParams[key].get_int();
-        } else if (key == "nMinCvnSigners") {
-            params.nMinCvnSigners = jsonParams[key].get_int();
+        } else if (key == "nMaxAdminSigs") {
+            params.nMaxAdminSigs = jsonParams[key].get_int();
+        } else if (key == "nMinAdminSigs") {
+            params.nMinAdminSigs = jsonParams[key].get_int();
         } else if (key == "nMinSuccessiveSignatures") {
             params.nMinSuccessiveSignatures = jsonParams[key].get_int();
         }
@@ -174,12 +184,12 @@ UniValue addcvn(const UniValue& params, bool fHelp)
             "1. \"type\"               (string, required) c=CVNInfo, a=ChainAdmin\n"
             "2. \"Id\"                 (string, required) The ID (in hex) of the new CVN or admin.\n"
             "3. \"pubkey\"             (string, required but can be empty) The public key of the new CVN or Chain Admin (in hex).\n"
-            "4. \"[n:sigs]\"           (string, required) The admin signatures prefix by the signer ID (n)\n"
+            "4. \"[n:sigs]\"           (string, required) The admin signatures prefixed by the signer ID (n)\n"
             "5. \"{\"key\":\"val\"}]\" (string, optional) The dynamic chain parameters to set)\n"
             "\nResult:\n"
             "{\n"
                 "  \"type\":\"type of added info\",             (string) The type of the added info (c=CVNInfo, a=ChainAdmin)\n"
-                "  \"Id\":\"ID in hex\",                    (hex) The ID of the new CVN (or admin) in hexadecimal form\n"
+                "  \"Id\":\"ID in hex\",                        (hex) The ID of the new CVN (or admin) in hexadecimal form\n"
                 "  \"prevBlockHash\":\"hash (hex)\",            (string) The timestamp of the block\n"
                 "  \"address\":\"faircoin address\",            (string) The FairCoin address of the new CVN.\n"
                 "  \"pubKey\":\"public key\",                   (string) The public key of the new CVN (in hex).\n"
@@ -224,7 +234,7 @@ UniValue addcvn(const UniValue& params, bool fHelp)
         AddDynParamsToMsg(msg, params[4].get_obj());
 
     // if no signatures are supplied we print out the CChainDataMsg's hash to sign
-    if (!sigs.size())
+    if (sigs.empty())
         return msg.GetHash().ToString();
 
     if (!AddAdminSignatures(msg, sigs))
@@ -272,7 +282,7 @@ UniValue removecvn(const UniValue& params, bool fHelp)
             "\nArguments:\n"
             "1. \"type\"         (string, required) c=CVNInfo, a=ChainAdmin\n"
             "2. \"Id\"           (string, required) The ID (in hex) of the CVN or admin to remove.\n"
-            "3. \"n:sigs\"       (string, required) The admin signatures prefix by the signer ID (n)\n"
+            "3. \"n:sigs\"       (string, required) The admin signatures prefixed by the signer ID (n)\n"
             "\nResult:\n"
             "{\n"
                 "  \"type\":\"type of info\",                   (string) The type of the info (c=CVNInfo, a=ChainAdmin)\n"
@@ -312,7 +322,7 @@ UniValue removecvn(const UniValue& params, bool fHelp)
         {
             if (cvn.first != nNodeId)
                 msg.vCvns[index++] = cvn.second;
-        };
+        }
     } else {
         LOCK(cs_mapChainAdmins);
         msg.vChainAdmins.resize(mapChainAdmins.size() - 1);
@@ -325,14 +335,14 @@ UniValue removecvn(const UniValue& params, bool fHelp)
         {
             if (adm.first != nNodeId)
                 msg.vChainAdmins[index++] = adm.second;
-        };
+        }
     }
 
     if (IsInitialBlockDownload())
         return "wait for block chain download to finish";
 
     // if no signatures are supplied we print out the CChainDataMsg's hash to sign
-    if (!sigs.size())
+    if (sigs.empty())
         return msg.GetHash().ToString();
 
     AddAdminSignatures(msg, sigs);
@@ -384,9 +394,8 @@ UniValue signchaindata(const UniValue& params, bool fHelp)
 
     CCvnSignature sig(nAdminId, vSignature);
 
-    if (!CvnVerifyAdminSignature(hashChainData, sig)) {
+    if (!CvnVerifyAdminSignature(hashChainData, sig))
         return "error signing chain data";
-    }
 
     return "\"" + params[1].get_str() + ":" + HexStr(vSignature) + "\"";
 }
@@ -423,10 +432,11 @@ UniValue getcvninfo(const UniValue& params, bool fHelp)
 void DynamicChainparametersToJSON(CDynamicChainParams& cp, UniValue& result)
 {
     result.push_back(Pair("version", (int)cp.nVersion));
-    result.push_back(Pair("minCvnSigners", (int)cp.nMinCvnSigners));
-    result.push_back(Pair("maxCvnSigners", (int)cp.nMaxCvnSigners));
+    result.push_back(Pair("minAdminSigs", (int)cp.nMinAdminSigs));
+    result.push_back(Pair("maxAdminSigs", (int)cp.nMaxAdminSigs));
     result.push_back(Pair("blockSpacing", (int)cp.nBlockSpacing));
     result.push_back(Pair("blockSpacingGracePeriod", (int)cp.nBlockSpacingGracePeriod));
+    result.push_back(Pair("transactionFee", (int)cp.nTransactionFee));
     result.push_back(Pair("dustThreshold", (int)cp.nDustThreshold));
     result.push_back(Pair("minSuccessiveSignatures", (int)cp.nMinSuccessiveSignatures));
 }
@@ -452,5 +462,78 @@ UniValue getchainparameters(const UniValue& params, bool fHelp)
     UniValue result(UniValue::VOBJ);
     DynamicChainparametersToJSON(dynParams, result);
 
+    return result;
+}
+
+UniValue addcoinsupply(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() != 3)
+        throw runtime_error(
+            "addcoinsupply \"faircoinaddress\"\"amount\" \n"
+            "\nAdd instructions to increase the coin supply to the FairCoin network\n"
+            "\nArguments:\n"
+            "1. \"faircoinaddress\"  (string, required) The FairCoin address to send to.\n"
+            "2. \"amount\"           (numeric or string, required) The amount in " + CURRENCY_UNIT + " to send. eg 0.1\n"
+            "3. \"comment\"          (string, required) A comment used to store what this additional supply is for. \n"
+            "4. \"n:sigs\"           (string, required) The admin signatures prefixed by the signer ID (n)\n"
+            "\nResult:\n"
+            "{\n"
+                "  \"type\":\"type of added info\",             (string) The type of the added info (c=CVNInfo, a=ChainAdmin)\n"
+                "  \"Id\":\"ID in hex\",                        (hex) The ID of the new CVN (or admin) in hexadecimal form\n"
+                "  \"prevBlockHash\":\"hash (hex)\",            (string) The timestamp of the block\n"
+                "  \"address\":\"faircoin address\",            (string) The FairCoin address of the new CVN.\n"
+                "  \"pubKey\":\"public key\",                   (string) The public key of the new CVN (in hex).\n"
+                "  \"signatures\":\"number of signatures\"      (string) The number of admin signatures that signed the CvnInfo.\n"
+                "  \"chainParams\":\"serialized params\"        (string) The serialized representation of CDynamicChainParams.\n"
+             "}\n"
+            "\nExamples:\n"
+            "\nAdd a new CVN\n"
+            + HelpExampleCli("addcoinsupply", "fairVs8iHyLzgHQrdxb9j6hR4WGpdDbKN3 4000.777 \"thewaterproject.org\"")
+        );
+
+    if (IsInitialBlockDownload())
+        throw JSONRPCError(RPC_IN_WARMUP, "wait for block chain download to finish");
+
+    CBitcoinAddress address(params[0].get_str());
+    if (!address.IsValid())
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid FairCoin address");
+
+    // Amount
+    CAmount nAmount = AmountFromValue(params[1]);
+    if (nAmount <= 0)
+        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount");
+
+    if (params[2].isNull() || params[2].get_str().empty())
+        throw JSONRPCError(RPC_TYPE_ERROR, "The comment is mandatory");
+
+    const UniValue& sigs = params[3].get_array();
+
+    CChainDataMsg msg;
+    CCoinSupply& spl = msg.coinSupply;
+
+    msg.nPayload             = CChainDataMsg::COIN_SUPPLY_PAYLOAD;
+    msg.hashPrevBlock        = chainActive.Tip()->GetBlockHash();
+    spl.nValue               = nAmount;
+    spl.scriptDestination    = GetScriptForDestination(address.Get());
+
+    UniValue result(UniValue::VOBJ);
+
+    // if no signatures are supplied we print out the CChainDataMsg's hash to sign
+    if (sigs.empty())
+        return msg.GetHash().ToString();
+
+    if (!AddAdminSignatures(msg, sigs))
+        return "error in signatures";
+
+    if (AddChainData(msg))
+        RelayChainData(msg);
+    else
+        LogPrintf("ERROR\n%s\n", msg.ToString());
+
+    result.push_back(Pair("msghash", msg.GetHash().ToString()));
+    result.push_back(Pair("address", address.ToString()));
+    result.push_back(Pair("amount", ValueFromAmount(nAmount)));
+    result.push_back(Pair("comment", msg.strComment));
+    result.push_back(Pair("script", ScriptToAsmStr(msg.coinSupply.scriptDestination, true)));
     return result;
 }

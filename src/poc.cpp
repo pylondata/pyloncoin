@@ -46,7 +46,9 @@ BannedCVNMapType mapBannedCVNs;
 bool static CvnSignWithKey(const uint256& hashUnsignedBlock, const CKey cvnPrivKey, CCvnSignature& signature, const CCvnInfo& cvnInfo)
 {
     if (cvnInfo.vPubKey != cvnPubKey) {
-        LogPrintf("CvnSignWithKey : key does not match node ID\n  CVN pubkey: %s\n CARD pubkey: %s\n", HexStr(cvnInfo.vPubKey), HexStr(cvnPubKey));
+        LogPrintf("CvnSignWithKey : key does not match node ID\n"
+                "  block chain pubkey: %s\n"
+                "    CARD/FILE pubkey: %s\n", HexStr(cvnInfo.vPubKey), HexStr(cvnPubKey));
         return false;
     }
 
@@ -194,9 +196,25 @@ void RelayChainData(const CChainDataMsg& msg)
     }
 }
 
-bool CheckAdminSignatures(const uint256 hashAdminData, const vector<CCvnSignature> vAdminSignatures)
+bool CheckAdminSignatures(const uint256 hashAdminData, const vector<CCvnSignature> vAdminSignatures, const bool fCoinSupply)
 {
-    // first check the admin sigs
+    const uint32_t nSigs = (uint32_t) vAdminSignatures.size();
+    if (nSigs < dynParams.nMinAdminSigs) {
+        LogPrintf("not enough admin signatures supplied (got %u signatures, but need at least %u to sign)\n", nSigs, dynParams.nMinAdminSigs);
+        return false;
+    }
+
+    if (nSigs > dynParams.nMaxAdminSigs) {
+        LogPrintf("too many admin signatures supplied %u (%u max)\n", nSigs, dynParams.nMaxAdminSigs);
+        return false;
+    }
+
+    if (fCoinSupply && nSigs < dynParams.nMaxAdminSigs) {
+        LogPrintf("not enough admin signatures supplied (got %u signatures, but need at least %u to sign for coin supply)\n",
+            nSigs, dynParams.nMaxAdminSigs);
+        return false;
+    }
+
     BOOST_FOREACH(const CCvnSignature& sig, vAdminSignatures) {
         if (!CvnVerifyAdminSignature(hashAdminData, sig)) {
             LogPrintf("ERROR: could not verify admin signature ID 0x%08x\n", sig.nSignerId);
@@ -209,7 +227,7 @@ bool CheckAdminSignatures(const uint256 hashAdminData, const vector<CCvnSignatur
 
 bool AddChainData(const CChainDataMsg& msg)
 {
-    if (!CheckAdminSignatures(msg.GetHash(), msg.vAdminSignatures))
+    if (!CheckAdminSignatures(msg.GetHash(), msg.vAdminSignatures, msg.HasCoinSupplyPayload()))
         return false;
 
     uint256 hashBlock = msg.hashPrevBlock;
@@ -223,7 +241,7 @@ bool AddChainData(const CChainDataMsg& msg)
     mapChainData.insert(std::make_pair(hashBlock, msg));
 
     LogPrintf("AddChainData : signed by %u (minimum %u) admins of %u to be added after blockHash %s\n",
-            msg.vAdminSignatures.size(), dynParams.nMinCvnSigners, dynParams.nMaxCvnSigners, hashBlock.ToString());
+            msg.vAdminSignatures.size(), dynParams.nMinAdminSigs, dynParams.nMaxAdminSigs, hashBlock.ToString());
 
     return true;
 }
@@ -392,13 +410,18 @@ bool CheckDynamicChainParameters(const CDynamicChainParams& params)
         return false;
     }
 
+    if (params.nTransactionFee > MAX_TX_FEE_THRESHOLD || params.nDustThreshold < MIN_TX_FEE_THRESHOLD) {
+        LogPrintf("CheckChainParameters : ERROR, tx fee threshold %u exceeds limit\n", params.nTransactionFee);
+        return false;
+    }
+
     if (params.nDustThreshold > MAX_DUST_THRESHOLD || params.nDustThreshold < MIN_DUST_THRESHOLD) {
         LogPrintf("CheckChainParameters : ERROR, dust threshold %u exceeds limit\n", params.nDustThreshold);
         return false;
     }
 
-    if (!params.nMinCvnSigners || params.nMinCvnSigners > params.nMaxCvnSigners) {
-        LogPrintf("CheckChainParameters : ERROR, number of CVN signers %u/%u exceeds limit\n", params.nMinCvnSigners, params.nMaxCvnSigners);
+    if (!params.nMinAdminSigs || params.nMinAdminSigs > params.nMaxAdminSigs) {
+        LogPrintf("CheckChainParameters : ERROR, number of CVN signers %u/%u exceeds limit\n", params.nMinAdminSigs, params.nMaxAdminSigs);
         return false;
     }
 
@@ -418,9 +441,10 @@ void UpdateChainParameters(const CBlock* pblock)
 
     dynParams.nBlockSpacing              = pblock->dynamicChainParams.nBlockSpacing;
     dynParams.nBlockSpacingGracePeriod   = pblock->dynamicChainParams.nBlockSpacingGracePeriod;
+    dynParams.nTransactionFee            = pblock->dynamicChainParams.nTransactionFee;
     dynParams.nDustThreshold             = pblock->dynamicChainParams.nDustThreshold;
-    dynParams.nMaxCvnSigners             = pblock->dynamicChainParams.nMaxCvnSigners;
-    dynParams.nMinCvnSigners             = pblock->dynamicChainParams.nMinCvnSigners;
+    dynParams.nMaxAdminSigs              = pblock->dynamicChainParams.nMaxAdminSigs;
+    dynParams.nMinAdminSigs              = pblock->dynamicChainParams.nMinAdminSigs;
     dynParams.nMinSuccessiveSignatures   = pblock->dynamicChainParams.nMinSuccessiveSignatures;
 }
 

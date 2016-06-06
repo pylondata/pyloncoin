@@ -7,6 +7,8 @@
 
 #include "serialize.h"
 #include "uint256.h"
+#include "script/script.h"
+#include "amount.h"
 
 using namespace std;
 
@@ -180,11 +182,16 @@ class CDynamicChainParams
 public:
     static const uint32_t CURRENT_VERSION = 1;
     uint32_t nVersion;
-    uint32_t nMinCvnSigners;
-    uint32_t nMaxCvnSigners;
+
+    // chain admin signatures
+    uint32_t nMinAdminSigs;
+    uint32_t nMaxAdminSigs;
+
     uint32_t nBlockSpacing; // in seconds
     uint32_t nBlockSpacingGracePeriod; // in seconds
-    uint32_t nDustThreshold; // in µFAIR
+
+    CAmount nTransactionFee; // in µFAIR
+    CAmount nDustThreshold; // in µFAIR
     // for a node to create the next block it needs to have co-signed
     // the last nMinSuccessiveSignatures blocks
     uint32_t nMinSuccessiveSignatures;
@@ -200,10 +207,11 @@ public:
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(this->nVersion);
         nVersion = this->nVersion;
-        READWRITE(nMinCvnSigners);
-        READWRITE(nMaxCvnSigners);
+        READWRITE(nMinAdminSigs);
+        READWRITE(nMaxAdminSigs);
         READWRITE(nBlockSpacing);
         READWRITE(nBlockSpacingGracePeriod);
+        READWRITE(nTransactionFee);
         READWRITE(nDustThreshold);
         READWRITE(nMinSuccessiveSignatures);
     }
@@ -211,12 +219,48 @@ public:
     void SetNull()
     {
         nVersion = CDynamicChainParams::CURRENT_VERSION;
-        nMaxCvnSigners = 0;
-        nMinCvnSigners = 0;
+        nMaxAdminSigs = 0;
+        nMinAdminSigs = 0;
         nBlockSpacing = 0;
         nBlockSpacingGracePeriod = 0;
+        nTransactionFee = 0;
         nDustThreshold = 0;
         nMinSuccessiveSignatures = 0;
+    }
+
+    uint256 GetHash() const;
+
+    string ToString() const;
+};
+
+class CCoinSupply
+{
+public:
+    static const uint32_t CURRENT_VERSION = 1;
+    uint32_t nVersion;
+    CAmount nValue;
+    CScript scriptDestination;
+
+    CCoinSupply()
+    {
+        SetNull();
+    }
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(this->nVersion);
+        nVersion = this->nVersion;
+        READWRITE(nValue);
+        READWRITE(*(CScriptBase*)(&scriptDestination));
+    }
+
+    void SetNull()
+    {
+        nVersion = CDynamicChainParams::CURRENT_VERSION;
+        nValue = -1;
+        scriptDestination.clear();
     }
 
     uint256 GetHash() const;
@@ -231,6 +275,7 @@ public:
     static const int32_t              CVN_PAYLOAD = 1 << 0;
     static const int32_t     CHAIN_ADMINS_PAYLOAD = 1 << 1;
     static const int32_t CHAIN_PARAMETERS_PAYLOAD = 1 << 2;
+    static const int32_t      COIN_SUPPLY_PAYLOAD = 1 << 3;
     uint32_t nPayload;
 
     // this chain data must be contained in the block after this hash
@@ -242,6 +287,8 @@ public:
 
     // these are the administrator signatures of the payload hash
     vector<CCvnSignature> vAdminSignatures;
+    CCoinSupply coinSupply;
+    string strComment; // currently only used with coinSupply
 
     CChainDataMsg()
     {
@@ -262,6 +309,10 @@ public:
             READWRITE(vChainAdmins);
         if (HasChainParameters())
             READWRITE(dynamicChainParams);
+        if (HasCoinSupplyPayload()) {
+            READWRITE(coinSupply);
+            READWRITE(strComment);
+        }
     }
 
     void SetNull()
@@ -272,6 +323,8 @@ public:
         vCvns.clear();
         vChainAdmins.clear();
         dynamicChainParams.SetNull();
+        coinSupply.SetNull();
+        strComment.clear();
     }
 
     uint256 HashChainAdmins() const;
@@ -296,6 +349,11 @@ public:
     bool HasChainParameters() const
     {
         return (nPayload & CHAIN_PARAMETERS_PAYLOAD);
+    }
+
+    bool HasCoinSupplyPayload() const
+    {
+        return (nPayload & COIN_SUPPLY_PAYLOAD);
     }
 };
 

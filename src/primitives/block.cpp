@@ -42,6 +42,8 @@ uint256 CBlock::GetChainAdminDataHash() const
         hashes.push_back(dynamicChainParams.GetHash());
     if (HasChainAdmins())
         hashes.push_back(HashChainAdmins());
+    if (HasCoinSupplyPayload())
+        hashes.push_back(coinSupply.GetHash());
 
     return Hash(hashes.begin(), hashes.end());
 }
@@ -58,6 +60,8 @@ std::string CBlock::ToString() const
         payload << strprintf("%sparams", (payload.tellp() > 0) ? "|" : "");
     if (HasChainAdmins())
         payload << strprintf("%sadmins", (payload.tellp() > 0) ? "|" : "");
+    if (HasCoinSupplyPayload())
+        payload << strprintf("%ssupply", (payload.tellp() > 0) ? "|" : "");
 
     s << strprintf("CBlock(hash=%s, ver=%d, payload=%s, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nCreatorId=0x%08x, signatures=%u, vtx=%u)\n",
         GetHash().ToString(),
@@ -82,6 +86,10 @@ std::string CBlock::ToString() const
     if (HasChainParameters())
     {
         s << dynamicChainParams.ToString() << "\n";
+    }
+    if (HasCoinSupplyPayload())
+    {
+        s << coinSupply.ToString() << "\n";
     }
     if (HasChainAdmins())
     {

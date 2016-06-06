@@ -2953,7 +2953,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
         if (!CvnVerifySignature(block.GetHash(), creatorSignature))
             return false;
 
-        if (block.HasAdminPayload() && !CheckAdminSignatures(block.GetChainAdminDataHash(), block.vAdminSignatures))
+        if (block.HasAdminPayload() && !CheckAdminSignatures(block.GetChainAdminDataHash(), block.vAdminSignatures, block.HasCoinSupplyPayload()))
             return false;
     }
 

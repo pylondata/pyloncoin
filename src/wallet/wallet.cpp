@@ -2781,7 +2781,6 @@ void CWallet::UpdatedTransaction(const uint256 &hashTx)
 
 void CWallet::GetScriptForMining(CReserveScript **script)
 {
-    LogPrintf("GetScriptForMining()\n");
     CReserveKey *rKey = new CReserveKey(this);
     CPubKey pubkey;
     if (!rKey->GetReservedKey(pubkey)) {

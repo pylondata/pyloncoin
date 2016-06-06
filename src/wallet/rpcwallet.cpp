@@ -405,11 +405,11 @@ UniValue sendtoaddress(const UniValue& params, bool fHelp)
     
     if (fHelp || params.size() < 2 || params.size() > 5)
         throw runtime_error(
-            "sendtoaddress \"bitcoinaddress\" amount ( \"comment\" \"comment-to\" subtractfeefromamount )\n"
+            "sendtoaddress \"faircoinaddress\" amount ( \"comment\" \"comment-to\" subtractfeefromamount )\n"
             "\nSend an amount to a given address.\n"
             + HelpRequiringPassphrase() +
             "\nArguments:\n"
-            "1. \"bitcoinaddress\"  (string, required) The bitcoin address to send to.\n"
+            "1. \"faircoinaddress\"  (string, required) The FairCoin address to send to.\n"
             "2. \"amount\"      (numeric or string, required) The amount in " + CURRENCY_UNIT + " to send. eg 0.1\n"
             "3. \"comment\"     (string, optional) A comment used to store what the transaction is for. \n"
             "                             This is not part of the transaction, just kept in your wallet.\n"

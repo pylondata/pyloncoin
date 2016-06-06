@@ -1162,10 +1162,11 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         CBlock genesis = chainparams.GenesisBlock();
         UpdateCvnInfo(&genesis);
         UpdateChainAdmins(&genesis);
+        LogPrintf("Genesis Admin hash     : %s\n", genesis.GetChainAdminDataHash().ToString());
 
         CCvnSignature blockSig;
         CvnSign(genesis.hashPrevBlock, blockSig, GENESIS_NODE_ID, GENESIS_NODE_ID);
-        LogPrintf("Genesis PoC signature: %s\n", HexStr(blockSig.vSignature));
+        LogPrintf("Genesis PoC signature  : %s\n", HexStr(blockSig.vSignature));
 
         CvnSignBlock(genesis);
         LogPrintf("Genesis block signature: %s\n", HexStr(genesis.vCreatorSignature));
