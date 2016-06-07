@@ -467,9 +467,9 @@ UniValue getchainparameters(const UniValue& params, bool fHelp)
 
 UniValue addcoinsupply(const UniValue& params, bool fHelp)
 {
-    if (fHelp || params.size() != 3)
+    if (fHelp || params.size() != 4)
         throw runtime_error(
-            "addcoinsupply \"faircoinaddress\"\"amount\" \n"
+            "addcoinsupply \"faircoinaddress\" \"amount\"  \"comment\" \"admin sigs\"\n"
             "\nAdd instructions to increase the coin supply to the FairCoin network\n"
             "\nArguments:\n"
             "1. \"faircoinaddress\"  (string, required) The FairCoin address to send to.\n"

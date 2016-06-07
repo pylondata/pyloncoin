@@ -105,6 +105,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "addcvn", 3 },
     { "addcvn", 4 },
     { "removecvn", 2 },
+    { "addcoinsupply", 3 },
 };
 
 class CRPCConvertTable

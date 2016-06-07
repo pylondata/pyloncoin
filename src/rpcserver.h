@@ -189,6 +189,7 @@ extern UniValue removecvn(const UniValue& params, bool fHelp);
 extern UniValue signchaindata(const UniValue& params, bool fHelp);
 extern UniValue getcvninfo(const UniValue& params, bool fHelp);
 extern UniValue getchainparameters(const UniValue& params, bool fHelp);
+extern UniValue addcoinsupply(const UniValue& params, bool fHelp);
 
 extern UniValue getnewaddress(const UniValue& params, bool fHelp); // in rpcwallet.cpp
 extern UniValue getaccountaddress(const UniValue& params, bool fHelp);

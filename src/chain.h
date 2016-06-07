@@ -259,6 +259,8 @@ public:
             payload << strprintf("%sparams", (payload.tellp() > 0) ? "|" : "");
         if (nVersion & CBlock::CHAIN_ADMINS_PAYLOAD)
             payload << strprintf("%sadmins", (payload.tellp() > 0) ? "|" : "");
+        if (nVersion & CBlock::COIN_SUPPLY_PAYLOAD)
+            payload << strprintf("%ssupply", (payload.tellp() > 0) ? "|" : "");
 
         return payload.str();
     }

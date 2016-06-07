@@ -8,6 +8,7 @@
 #include "tinyformat.h"
 #include "utilstrencodings.h"
 #include "base58.h"
+#include "core_io.h"
 
 uint256 CDynamicChainParams::GetHash() const
 {
@@ -39,7 +40,7 @@ std::string CCoinSupply::ToString() const
             nVersion,
 			nValue / COIN, nValue % COIN,
 			HexStr(scriptDestination),
-			CBitcoinAddress(CScriptID(scriptDestination)).ToString()
+			ScriptToAsmStr(scriptDestination)
         );
     return s.str();
 }

@@ -85,11 +85,11 @@ std::string CBlock::ToString() const
     }
     if (HasChainParameters())
     {
-        s << dynamicChainParams.ToString() << "\n";
+        s << "  " << dynamicChainParams.ToString() << "\n";
     }
     if (HasCoinSupplyPayload())
     {
-        s << coinSupply.ToString() << "\n";
+        s << "  " << coinSupply.ToString() << "\n";
     }
     if (HasChainAdmins())
     {

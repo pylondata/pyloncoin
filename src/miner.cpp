@@ -340,6 +340,12 @@ static bool AddChainDataToBlock(CBlock *pblock, const CChainDataMsg& msg)
     if (msg.HasCoinSupplyPayload()) {
         pblock->nVersion |= CBlock::COIN_SUPPLY_PAYLOAD;
         pblock->coinSupply = msg.coinSupply;
+
+        CMutableTransaction tx(pblock->vtx[0]);
+        tx.vout.push_back(CTxOut(msg.coinSupply.nValue, msg.coinSupply.scriptDestination));
+
+        pblock->vtx[0] = tx;
+        pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
     }
 
     pblock->vAdminSignatures = msg.vAdminSignatures;
@@ -418,7 +424,7 @@ static bool CreateNewBlock(const CChainParams& chainparams, CBlockTemplate& bloc
     // final tests
     CValidationState state;
     if (!TestBlockValidity(state, chainparams, *pblock, blockTemplate.pindexPrev, true, false)) {
-        LogPrintf("ERROR: TestBlockValidity failed: %s", FormatStateMessage(state));
+        LogPrintf("ERROR: TestBlockValidity failed: %s\n", FormatStateMessage(state));
         return false;
     }
 
