@@ -467,7 +467,8 @@ UniValue getchainparameters(const UniValue& params, bool fHelp)
 
 UniValue addcoinsupply(const UniValue& params, bool fHelp)
 {
-    if (fHelp || params.size() != 4)
+#ifdef ENABLE_COINSUPPLY
+	if (fHelp || params.size() != 4)
         throw runtime_error(
             "addcoinsupply \"faircoinaddress\" \"amount\"  \"comment\" \"admin sigs\"\n"
             "\nAdd instructions to increase the coin supply to the FairCoin network\n"
@@ -536,4 +537,7 @@ UniValue addcoinsupply(const UniValue& params, bool fHelp)
     result.push_back(Pair("comment", msg.strComment));
     result.push_back(Pair("script", ScriptToAsmStr(msg.coinSupply.scriptDestination, true)));
     return result;
+#else
+    throw runtime_error("this wallet was not compiled with coins supply functionality\n");
+#endif
 }

@@ -35,6 +35,7 @@
 #include "utilstrencodings.h"
 #include "validationinterface.h"
 #include "miner.h"
+#include "core_io.h"
 
 #include <sstream>
 
@@ -2091,8 +2092,34 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 
     CAmount blockReward = nFees + (hashPrevBlock == chainparams.GetConsensus().hashGenesisBlock ? MAX_MONEY : 0);
 
-    if (block.HasCoinSupplyPayload())
+#ifdef ENABLE_COINSUPPLY
+    if (block.HasCoinSupplyPayload()) {
+        if (block.vtx[0].vout.size() != 2)
+            return state.DoS(100, error("ConnectBlock(): invalid coinbase transaction for new supply. Not enough outputs"),
+                            REJECT_INVALID, "bad-cb-size");
+
+        if (block.vtx[0].vout[1].nValue != block.coinSupply.nValue)
+            return state.DoS(100,
+                    error("ConnectBlock(): invalid amount in coinbase transaction for new supply. (actual=%d vs expected=%d)",
+                            block.vtx[0].vout[1].nValue, block.coinSupply.nValue),
+                            REJECT_INVALID, "bad-cb-amount");
+
+        if (block.vtx[0].vout[1].scriptPubKey != block.coinSupply.scriptDestination)
+            return state.DoS(100,
+                    error("ConnectBlock(): invalid amount in coinbase script for new supply. (actual=%s vs expected=%s)",
+                            ScriptToAsmStr(block.vtx[0].vout[1].scriptPubKey), ScriptToAsmStr(block.coinSupply.scriptDestination)),
+                            REJECT_INVALID, "bad-cb-script");
+
         blockReward += block.coinSupply.nValue;
+    }
+#else
+    if (block.HasCoinSupplyPayload()) {
+        if (block.vtx[0].vout[1].scriptPubKey != block.coinSupply.scriptDestination)
+            return state.DoS(100,
+                    error("ConnectBlock(): received coin supply payload but this wallet is not compiled with coin supply enabled"),
+                            REJECT_INVALID, "bad-cb-supply");
+    }
+#endif
 
     if (block.HasTx() && block.vtx[0].GetValueOut() > blockReward)
         return state.DoS(100,
