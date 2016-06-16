@@ -460,8 +460,7 @@ bool CheckProofOfCooperation(const CBlockHeader& block, const Consensus::Params&
 
     int64_t nTimeStart = GetTimeMicros();
 
-    boost::unordered_set<uint32_t> setSignerIds;
-    setSignerIds.reserve(block.vSignatures.size());
+    boost::unordered_set<uint32_t> setSignerIds(block.vSignatures.size());
 
     BOOST_FOREACH(CCvnSignature signature, block.vSignatures) {
         if (!setSignerIds.insert(signature.nSignerId).second)
@@ -648,8 +647,7 @@ static const string CreateSignerIdList(const std::vector<CCvnSignature>& vSignat
  */
 uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTimeToTest)
 {
-    TimeWeightSetType setCreatorCandidates;
-    setCreatorCandidates.reserve(mapCVNs.size());
+    TimeWeightSetType setCreatorCandidates(mapCVNs.size());
     vector<uint32_t> vCreatorCandidates;
     map<uint32_t, uint32_t> mapLastSignatures; // key: signerId, value: # of sigs
     uint32_t nMinSuccessiveSignatures = dynParams.nMinSuccessiveSignatures;
