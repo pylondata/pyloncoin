@@ -36,6 +36,6 @@ struct CBlockTemplate
 };
 
 /** Run the CVN thread */
-void RunCertifiedValidationNode(bool fGenerate, const CChainParams& chainparams, uint32_t& nNodeId);
+void RunCertifiedValidationNode(const bool fGenerate, const CChainParams& chainparams, const uint32_t& nNodeId = 0);
 
 #endif // BITCOIN_MINER_H

@@ -335,8 +335,8 @@ void SendCVNSignature(const CBlockIndex *pindexNew, const bool fRelay)
         return;
     }
 
-    LogPrintf("SendCVNSignature : created CVN signature for block hash %s, nNextCreator: 0x%08x and nCvnNodeId: 0x%08x\n",
-            hashPrevBlock.ToString(), nNextCreator, nCvnNodeId);
+    LogPrintf("SendCVNSignature : created CVN signature for block hash %s, nNextCreator: 0x%08x\n",
+            hashPrevBlock.ToString(), nNextCreator);
 
     CCvnSignatureMsg msg;
     msg.nVersion   = signature.nVersion;
@@ -739,7 +739,6 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
 
 void static CCVNSignerThread(const CChainParams& chainparams, const uint32_t& nNodeId)
 {
-    LogPrintf("CVN signer thread started for node ID 0x%08x\n", nNodeId);
     SetThreadPriority(THREAD_PRIORITY_LOWEST);
     RenameThread("CVN-signer");
 
@@ -759,30 +758,43 @@ void static CCVNSignerThread(const CChainParams& chainparams, const uint32_t& nN
     uint32_t nLastCreator = nNextCreator;
     CBlockIndex* pindexLastTip = chainActive.Tip();
 
+    LogPrintf("CVN signer thread started for node ID 0x%08x\n", nNodeId);
     SendCVNSignature(pindexLastTip);
-    try {
-        while (true) {
-            uint32_t nWait = 5 * 2; // 5 seconds
 
-            while (nWait--)
+    try {
+        while (!ShutdownRequested()) {
+            uint32_t nWait = 2 * 2; // 5 seconds
+
+            while (nWait-- && !ShutdownRequested())
                 MilliSleep(500);
 
             CBlockIndex* pindexPrev = chainActive.Tip();
 
             nNextCreator = CheckNextBlockCreator(pindexPrev, GetAdjustedTime());
+
+            if (!nNextCreator) {
+                MilliSleep(2000);
+                continue;
+            }
+
             if (nLastCreator != nNextCreator || pindexLastTip != chainActive.Tip()) {
                 srand(pindexPrev->nTime);
                 uint32_t nRandomWait = rand() % 10 + 1;
 
-                while (nRandomWait--)
-                     MilliSleep(500);
+                while (nRandomWait-- && !ShutdownRequested())
+                    MilliSleep(500);
 
-                LogPrintf("CCVNSignerThread : sending sig for prev block: %s\n", chainActive.Tip()->GetBlockHash().ToString());
+                if (ShutdownRequested())
+                    break;
+
+                LogPrint("cvn", "CCVNSignerThread : sending sig for prev block: %s\n", chainActive.Tip()->GetBlockHash().ToString());
                 SendCVNSignature(chainActive.Tip());
                 nLastCreator = nNextCreator;
                 pindexLastTip = chainActive.Tip();
             }
         }
+
+        LogPrintf("CVN signer thread stopped\n");
     }
     catch (const boost::thread_interrupted&)
     {
@@ -796,7 +808,7 @@ void static CCVNSignerThread(const CChainParams& chainparams, const uint32_t& nN
     }
 }
 
-void RunCVNSignerThread(const CChainParams& chainparams, const uint32_t& nNodeId)
+void RunCVNSignerThread(const bool fGenerate, const CChainParams& chainparams, const uint32_t& nNodeId)
 {
     static boost::thread_group* signerThreads = NULL;
 
@@ -806,6 +818,14 @@ void RunCVNSignerThread(const CChainParams& chainparams, const uint32_t& nNodeId
         delete signerThreads;
         signerThreads = NULL;
 
+        return;
+    }
+
+    if (!fGenerate)
+        return;
+
+    if (!nNodeId) {
+        LogPrintf("Not starting CVN signer thread. CVN not configured.\n");
         return;
     }
 

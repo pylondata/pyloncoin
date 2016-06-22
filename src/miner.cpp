@@ -268,7 +268,7 @@ static void PopulateBlock(const CChainParams& chainparams, CBlockTemplate& block
         }
         nLastBlockTx = nBlockTx;
         nLastBlockSize = nBlockSize;
-        LogPrintf("CreateNewBlock(): total size %u txs: %u fees: %ld sigops %d\n", nBlockSize, nBlockTx, nFees, nBlockSigOps);
+        LogPrintf("PopulateBlock(): total size %u txs: %u fees: %ld sigops %d\n", nBlockSize, nBlockTx, nFees, nBlockSigOps);
 
         // Compute final coinbase transaction.
         txNew.vout[0].nValue = nFees + (pindexPrev->GetBlockHash() == chainparams.GetConsensus().hashGenesisBlock ? MAX_MONEY : 0);
@@ -443,7 +443,6 @@ void static CertifiedValidationNode(const CChainParams& chainparams, const uint3
 {
     SetThreadPriority(THREAD_PRIORITY_NORMAL);
     RenameThread("certified-validation-node");
-    RunCVNSignerThread(chainparams, nNodeId);
 
 #ifdef USE_OPENSC
     // wait for smartcard init
@@ -468,7 +467,7 @@ void static CertifiedValidationNode(const CChainParams& chainparams, const uint3
         if (!coinbaseScript || coinbaseScript->reserveScript.empty())
             throw std::runtime_error("No coinbase script available (PoC requires a wallet)");
 
-        while (true) {
+        while (!ShutdownRequested()) {
             if (chainparams.MiningRequiresPeers()) {
                 // Busy-wait for the network to come online so we don't waste time mining
                 // on an obsolete chain. In regtest mode we expect to fly solo.
@@ -481,14 +480,13 @@ void static CertifiedValidationNode(const CChainParams& chainparams, const uint3
                     if (!fvNodesEmpty && !IsInitialBlockDownload())
                         break;
                     MilliSleep(1000);
-                } while (true);
+                } while (!ShutdownRequested());
             }
 
             uint32_t nWait = 5 * 2; // 5 seconds
 
-            while (nWait--) {
+            while (nWait-- && !ShutdownRequested())
                 MilliSleep(500);
-            }
 
             // wait for block spacing
             if (chainActive.Tip()->nTime + dynParams.nBlockSpacing > GetAdjustedTime()) {
@@ -524,6 +522,8 @@ void static CertifiedValidationNode(const CChainParams& chainparams, const uint3
             if (chainparams.MineBlocksOnDemand())
                 throw boost::thread_interrupted();
         }
+
+        LogPrintf("Certified validation node 0x%08x stopped\n", nNodeId);
     }
     catch (const boost::thread_interrupted&)
     {
@@ -537,7 +537,7 @@ void static CertifiedValidationNode(const CChainParams& chainparams, const uint3
     }
 }
 
-void RunCertifiedValidationNode(bool fGenerate, const CChainParams& chainparams, uint32_t& nNodeId)
+void RunCertifiedValidationNode(const bool fGenerate, const CChainParams& chainparams, const uint32_t& nNodeId)
 {
     static boost::thread_group* minerThreads = NULL;
 

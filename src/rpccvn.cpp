@@ -170,6 +170,7 @@ UniValue setgenerate(const UniValue& params, bool fHelp)
 
     mapArgs["-gen"] = (fGenerate ? "1" : "0");
     RunCertifiedValidationNode(fGenerate, Params(), nCvnNodeId);
+    RunCVNSignerThread(fGenerate, Params(), nCvnNodeId);
 
     return NullUniValue;
 }

@@ -4939,7 +4939,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
         if (!AlreadyHave(inv)) {
             if (msg.hashPrev != chainActive.Tip()->GetBlockHash())
-                LogPrint("net", "received outdated CVN signature for block %s: %s\n", msg.hashPrev.ToString(), msg.ToString());
+                LogPrint("net", "received outdated CVN signature from peer %d for block %s: %s\n", pfrom->id, msg.hashPrev.ToString(), msg.ToString());
             else if(AddCvnSignature(msg.GetCvnSignature(), msg.hashPrev, msg.nCreatorId)) {
                 RelayCvnSignature(msg);
             }
