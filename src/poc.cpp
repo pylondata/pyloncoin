@@ -263,7 +263,7 @@ void RelayCvnSignature(const CCvnSignatureMsg& signature)
 
         // Save original serialized message so newer versions are preserved
         mapRelay.insert(std::make_pair(inv, ss));
-        vRelayExpiration.push_back(std::make_pair(GetTime() + dynParams.nBlockSpacing * 60, inv));
+        vRelayExpiration.push_back(std::make_pair(GetTime() + dynParams.nBlockSpacing + dynParams.nBlockSpacingGracePeriod, inv));
     }
 
     LOCK(cs_vNodes);
@@ -307,11 +307,8 @@ bool AddCvnSignature(const CCvnSignature& signature, const uint256& hashPrevBloc
 void RemoveCvnSignatures(const uint256& hashPrevBlock)
 {
     LOCK(cs_mapCvnSigs);
-
-    if (!mapCvnSigs.count(hashPrevBlock))
-        return;
-
-    mapCvnSigs.erase(hashPrevBlock);
+    if (mapCvnSigs.count(hashPrevBlock))
+        mapCvnSigs.erase(hashPrevBlock);
 }
 
 void SendCVNSignature(const CBlockIndex *pindexNew, const bool fRelay)

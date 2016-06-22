@@ -4550,11 +4550,11 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                 CAddress addr = GetLocalAddress(&pfrom->addr);
                 if (addr.IsRoutable())
                 {
-                    LogPrintf("ProcessMessages: advertizing address %s\n", addr.ToString());
+                    LogPrint("net", "ProcessMessages: advertizing address %s\n", addr.ToString());
                     pfrom->PushAddress(addr);
                 } else if (IsPeerAddrLocalGood(pfrom)) {
                     addr.SetIP(pfrom->addrLocal);
-                    LogPrintf("ProcessMessages: advertizing address %s\n", addr.ToString());
+                    LogPrint("net", "ProcessMessages: advertizing address %s\n", addr.ToString());
                     pfrom->PushAddress(addr);
                 }
 
@@ -4914,7 +4914,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
         if (!AlreadyHave(inv)) {
             if (msg.hashPrevBlock != chainActive.Tip()->GetBlockHash())
-                LogPrint("net", "received outdated chain data for block %s: %s\n", msg.hashPrevBlock.ToString(), msg.ToString());
+                LogPrintf("received outdated chain data for block %s: %s\n", msg.hashPrevBlock.ToString(), msg.ToString());
             else if (AddChainData(msg))
                 RelayChainData(msg);
             else
@@ -4939,7 +4939,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
         if (!AlreadyHave(inv)) {
             if (msg.hashPrev != chainActive.Tip()->GetBlockHash())
-                LogPrint("net", "received outdated CVN signature from peer %d for block %s: %s\n", pfrom->id, msg.hashPrev.ToString(), msg.ToString());
+                LogPrintf("received outdated CVN signature from peer %s for block %s: %s\n", pfrom->addr.ToStringIP(), msg.hashPrev.ToString(), msg.ToString());
             else if(AddCvnSignature(msg.GetCvnSignature(), msg.hashPrev, msg.nCreatorId)) {
                 RelayCvnSignature(msg);
             }
