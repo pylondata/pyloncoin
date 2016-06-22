@@ -263,7 +263,7 @@ void RelayCvnSignature(const CCvnSignatureMsg& signature)
 
         // Save original serialized message so newer versions are preserved
         mapRelay.insert(std::make_pair(inv, ss));
-        vRelayExpiration.push_back(std::make_pair(GetTime() + dynParams.nBlockSpacing + dynParams.nBlockSpacingGracePeriod, inv));
+        vRelayExpiration.push_back(std::make_pair(GetTime() + dynParams.nBlockSpacing, inv));
     }
 
     LOCK(cs_vNodes);
