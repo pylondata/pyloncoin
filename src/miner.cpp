@@ -483,20 +483,15 @@ void static CertifiedValidationNode(const CChainParams& chainparams, const uint3
                 } while (!ShutdownRequested());
             }
 
-            uint32_t nWait = 5 * 2; // 5 seconds
-
-            while (nWait-- && !ShutdownRequested())
-                MilliSleep(500);
-
             // wait for block spacing
-            if (chainActive.Tip()->nTime + dynParams.nBlockSpacing > GetAdjustedTime()) {
-                nExtraNonce++; // create some 'randomness' for the coinbase
-                continue;
-            }
+            int64_t nTimeToWait = (chainActive.Tip()->nTime + dynParams.nBlockSpacing) - GetAdjustedTime();
+            if (nTimeToWait > 0)
+                MilliSleep(nTimeToWait * 1000);
 
             int64_t nCurrentTime = GetAdjustedTime();
             if (CheckNextBlockCreator(chainActive.Tip(), nCurrentTime) != nNodeId) {
-                nExtraNonce++; // create some 'randomness' for the coinbase
+                nExtraNonce++; // create some 'randomness' for the coinbase, we need a unique merkle hash
+                MilliSleep(1000);
                 continue;
             }
 

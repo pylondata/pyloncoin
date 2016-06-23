@@ -741,18 +741,19 @@ void static CCVNSignerThread(const CChainParams& chainparams, const uint32_t& nN
 
     while (IsInitialBlockDownload() && !ShutdownRequested()) {
         LogPrintf("Block chain download in progress. Waiting...\n");
-        MilliSleep(1000);
+        MilliSleep(5000);
     }
 
     uint32_t nNextCreator = CheckNextBlockCreator(chainActive.Tip(), GetAdjustedTime());
 
     while (!nNextCreator && !ShutdownRequested()) {
         LogPrintf("Next creator ID not available. Waiting...\n");
-        MilliSleep(1000);
+        MilliSleep(5000);
         nNextCreator = CheckNextBlockCreator(chainActive.Tip(), GetAdjustedTime());
     }
 
     uint32_t nLastCreator = nNextCreator;
+    uint64_t nLastRandomWait = 0;
     CBlockIndex* pindexLastTip = chainActive.Tip();
 
     LogPrintf("CVN signer thread started for node ID 0x%08x\n", nNodeId);
@@ -760,34 +761,37 @@ void static CCVNSignerThread(const CChainParams& chainparams, const uint32_t& nN
 
     try {
         while (!ShutdownRequested()) {
-            uint32_t nWait = 2 * 2; // 5 seconds
-
-            while (nWait-- && !ShutdownRequested())
-                MilliSleep(500);
-
             CBlockIndex* pindexPrev = chainActive.Tip();
 
             nNextCreator = CheckNextBlockCreator(pindexPrev, GetAdjustedTime());
 
-            if (!nNextCreator) {
+            if (!nNextCreator) { // should not happen! And if it did, behave nice
                 MilliSleep(2000);
                 continue;
             }
 
-            if (nLastCreator != nNextCreator || pindexLastTip != chainActive.Tip()) {
-                srand(pindexPrev->nTime);
-                uint32_t nRandomWait = rand() % 10 + 1;
+            bool fNewTip = pindexLastTip != chainActive.Tip();
 
-                while (nRandomWait-- && !ShutdownRequested())
-                    MilliSleep(500);
+            if (nLastCreator != nNextCreator || fNewTip) {
+                // randomise distribution of the CVN signature to avoid peeks on the network
+                srand(pindexPrev->nTime + nLastRandomWait);
+                uint64_t nRandomWait = rand() % 10 + 1;
+                MilliSleep(nLastRandomWait * 1000);
+                nLastRandomWait = nRandomWait;
 
                 if (ShutdownRequested())
                     break;
 
                 LogPrint("cvn", "CCVNSignerThread : sending sig for prev block: %s\n", chainActive.Tip()->GetBlockHash().ToString());
                 SendCVNSignature(chainActive.Tip());
-                nLastCreator = nNextCreator;
+                nLastCreator = CheckNextBlockCreator(pindexPrev, GetAdjustedTime());
                 pindexLastTip = chainActive.Tip();
+
+                int64_t nTimeToWait = chainActive.Tip()->nTime + dynParams.nBlockSpacing + (fNewTip ? 0 : dynParams.nBlockSpacingGracePeriod) - GetAdjustedTime();
+                LogPrintf("CCVNSignerThread : waiting for %u sec.\n", nTimeToWait);
+                MilliSleep(nTimeToWait * 1000);
+            } else {
+                MilliSleep(1000);
             }
         }
 

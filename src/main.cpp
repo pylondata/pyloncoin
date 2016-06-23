@@ -4939,7 +4939,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
         if (!AlreadyHave(inv)) {
             if (msg.hashPrev != chainActive.Tip()->GetBlockHash())
-                LogPrintf("received outdated CVN signature from peer %s for block %s: %s\n", pfrom->addr.ToStringIP(), msg.hashPrev.ToString(), msg.ToString());
+                LogPrintf("received outdated CVN signature from peer %d for block %s\n", pfrom->id, msg.hashPrev.ToString());
             else if(AddCvnSignature(msg.GetCvnSignature(), msg.hashPrev, msg.nCreatorId)) {
                 RelayCvnSignature(msg);
             }
@@ -4990,7 +4990,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         LogPrint("net", "received %u CVN signatures for hash %s from peer %d\n", vSigList.size(), hashPeersTip.ToString(), pfrom->id);
 
         if (hashPeersTip != chainActive.Tip()->GetBlockHash())
-            LogPrint("net", "ignoring CVN signatures because they are not for our chains tip\n");
+            LogPrintf("received outdated CVN signature list from peer %d for block %s\n", pfrom->id, hashPeersTip.ToString());
         else {
             if (vSigList.size()) {
                 LOCK(cs_mapCvnSigs);
