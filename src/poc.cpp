@@ -443,6 +443,8 @@ void UpdateChainParameters(const CBlock* pblock)
     dynParams.nMaxAdminSigs              = pblock->dynamicChainParams.nMaxAdminSigs;
     dynParams.nMinAdminSigs              = pblock->dynamicChainParams.nMinAdminSigs;
     dynParams.nMinSuccessiveSignatures   = pblock->dynamicChainParams.nMinSuccessiveSignatures;
+
+    ::minRelayTxFee = CFeeRate(dynParams.nTransactionFee);
 }
 
 static int64_t nTimeCheck = 0;

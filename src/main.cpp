@@ -942,6 +942,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
 
         CAmount nValueOut = tx.GetValueOut();
         CAmount nFees = nValueIn-nValueOut;
+
         // nModifiedFees includes any fee deltas from PrioritiseTransaction
         CAmount nModifiedFees = nFees;
         double nPriorityDummy = 0;
@@ -963,6 +964,10 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
 
         CTxMemPoolEntry entry(tx, nFees, GetTime(), dPriority, chainActive.Height(), pool.HasNoInputsOf(tx), inChainInputValue, fSpendsCoinbase, nSigOps);
         unsigned int nSize = entry.GetTxSize();
+
+        // The FairCoin network requires a mandatory transaction fee set by the dynamic chain parameters
+        if (nFees < ::minRelayTxFee.GetFee(nSize))
+            return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "insufficient mandatory fee", false, strprintf("%u < %u", nFees, ::minRelayTxFee.GetFee(nSize)));
 
         // Check that the transaction doesn't have an excessive number of
         // sigops, making it impossible to mine. Since the coinbase transaction
@@ -4939,7 +4944,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
         if (!AlreadyHave(inv)) {
             if (msg.hashPrev != chainActive.Tip()->GetBlockHash())
-                LogPrintf("received outdated CVN signature from peer %d for block %s\n", pfrom->id, msg.hashPrev.ToString());
+                LogPrintf("received outdated CVN signature from peer %d for block %s signed by 0x%08x\n", pfrom->id, msg.hashPrev.ToString(), msg.nSignerId);
             else if(AddCvnSignature(msg.GetCvnSignature(), msg.hashPrev, msg.nCreatorId)) {
                 RelayCvnSignature(msg);
             }
