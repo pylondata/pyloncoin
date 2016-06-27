@@ -788,10 +788,11 @@ void static CCVNSignerThread(const CChainParams& chainparams, const uint32_t& nN
                 pindexLastTip = chainActive.Tip();
 
                 int64_t nTimeToWait = chainActive.Tip()->nTime + dynParams.nBlockSpacing + (fNewTip ? 0 : dynParams.nBlockSpacingGracePeriod) - GetAdjustedTime();
-                if (nTimeToWait > 0) {
-                    LogPrintf("CCVNSignerThread : waiting for %u sec.\n", nTimeToWait);
-                    MilliSleep(nTimeToWait * 1000);
-                }
+
+                if (nTimeToWait < 1)
+                    nTimeToWait = 1;
+
+                MilliSleep(nTimeToWait * 1000);
             } else {
                 MilliSleep(1000);
             }
