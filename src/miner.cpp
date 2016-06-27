@@ -485,15 +485,25 @@ void static CertifiedValidationNode(const CChainParams& chainparams, const uint3
 
             // wait for block spacing
             int64_t nTimeToWait = (chainActive.Tip()->nTime + dynParams.nBlockSpacing) - GetAdjustedTime();
-            if (nTimeToWait > 0)
-                MilliSleep(nTimeToWait * 1000);
+            if (nTimeToWait < 1)
+                nTimeToWait = 1;
+
+            MilliSleep(nTimeToWait * 1000);
 
             int64_t nCurrentTime = GetAdjustedTime();
+
             if (CheckNextBlockCreator(chainActive.Tip(), nCurrentTime) != nNodeId) {
-                nExtraNonce++; // create some 'randomness' for the coinbase, we need a unique merkle hash
                 MilliSleep(1000);
                 continue;
             }
+
+            if ((chainActive.Tip()->nTime + dynParams.nBlockSpacing) > GetAdjustedTime()) {
+                LogPrintf("WARN, not yet time to create the next block\n");
+                MilliSleep(1000);
+                continue;
+            }
+
+            nExtraNonce += rand() % 10 + 1; // create some 'randomness' for the coinbase, we need a unique merkle hash
 
             //
             // This node is potentially the next to advance the chain
