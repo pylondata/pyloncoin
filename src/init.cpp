@@ -1709,11 +1709,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     StartNode(threadGroup, scheduler);
 
-    // Monitor the chain, and alert if we get blocks much quicker or slower than expected
-    CScheduler::Function f = boost::bind(&PartitionCheck, &IsInitialBlockDownload,
-                                         boost::ref(cs_main), boost::cref(pindexBestHeader));
-    scheduler.scheduleEvery(f, 3 * 60); // every 3 minutes
-
     // Start up a CVN (generate blocks)
     RunCertifiedValidationNode(GetBoolArg("-gen", DEFAULT_GENERATE), chainparams, nCvnNodeId);
     RunCVNSignerThread(GetBoolArg("-gen", DEFAULT_GENERATE), chainparams, nCvnNodeId);
