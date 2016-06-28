@@ -1,5 +1,5 @@
-FairCoin2 Core working tree
-=====================================
+FairCoin2 proof-of-cooperation working tree
+===========================================
 
 https://fair.to/fc2
 
