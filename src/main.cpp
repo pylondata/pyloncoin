@@ -2927,7 +2927,7 @@ bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, bool f
     return true;
 }
 
-bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bool fCheckMerkleRoot)
+bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOC, bool fCheckMerkleRoot)
 {
     // These are checks that are independent of context.
 
@@ -2936,17 +2936,19 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
 
     // Check that the header is valid. This is mostly
     // redundant with the call in AcceptBlockHeader.
-    if (!CheckBlockHeader(block, state, fCheckPOW))
+    if (!CheckBlockHeader(block, state, fCheckPOC))
         return false;
 
-    if (fCheckPOW) {
+    if (fCheckPOC) {
         // check for correct signature of the block hash by the creator
         CCvnSignature creatorSignature(block.nCreatorId, block.vCreatorSignature);
         if (!CvnVerifySignature(block.GetHash(), creatorSignature))
-            return false;
+            return state.DoS(100, error("CheckBlock(): invalid creator signature"),
+                                         REJECT_INVALID, "bad-creator-sig", true);
 
         if (block.HasAdminPayload() && !CheckAdminSignatures(block.GetChainAdminDataHash(), block.vAdminSignatures, block.HasCoinSupplyPayload()))
-            return false;
+            return state.DoS(100, error("CheckBlock(): invalid chain admin signature"),
+                                                     REJECT_INVALID, "bad-admin-sig", true);
     }
 
     // Check the merkle root.
@@ -3026,7 +3028,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOW, bo
 
     }
 
-    if (fCheckPOW && fCheckMerkleRoot)
+    if (fCheckPOC && fCheckMerkleRoot)
         block.fChecked = true;
 
     return true;
