@@ -202,8 +202,8 @@ void Shutdown()
     if (pwalletMain)
         pwalletMain->Flush(false);
 #endif
-    RunCertifiedValidationNode(false, Params());
-    RunCVNSignerThread(false, Params());
+    RunCertifiedValidationNode(false, Params(), 0);
+    RunCVNSignerThread(false, Params(), 0);
     StopNode();
     StopTorControl();
     UnregisterNodeSignals(GetNodeSignals());

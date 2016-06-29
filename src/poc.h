@@ -79,6 +79,6 @@ void UpdateChainAdmins(const CBlock* pblock);
 bool CheckDynamicChainParameters(const CDynamicChainParams& params);
 
 /** strart the CVN voter thread */
-void RunCVNSignerThread(const bool fGenerate, const CChainParams& chainparams, const uint32_t& nNodeId = 0);
+void RunCVNSignerThread(const bool fGenerate, const CChainParams& chainparams, const uint32_t& nNodeId);
 
 #endif // BITCOIN_POC_H
