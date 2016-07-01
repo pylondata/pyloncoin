@@ -11,6 +11,7 @@
 #include "miner.h"
 #include "cvn.h"
 #include "core_io.h"
+#include "timedata.h"
 
 #include <boost/algorithm/string.hpp>
 #include <univalue.h>
@@ -287,7 +288,7 @@ UniValue removecvn(const UniValue& params, bool fHelp)
             "\nResult:\n"
             "{\n"
                 "  \"type\":\"type of info\",                   (string) The type of the info (c=CVNInfo, a=ChainAdmin)\n"
-                "  \"Id\":\"node ID (hex)\",                    (string) The ID  of the new CVN in hex separated by a space\n"
+                "  \"Id\":\"node ID (hex)\",                    (string) The ID of the CVN to remove in hexadecimal form\n"
              "}\n"
             "\nExamples:\n"
             "\nRemove a CVN\n"
@@ -430,6 +431,57 @@ UniValue getcvninfo(const UniValue& params, bool fHelp)
     return "to be implemented";
 }
 
+UniValue getactivecvns(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() > 1)
+        throw runtime_error(
+            "getactivecvns\n"
+            "\nDisplay a list of all currently active CVN\n"
+            "\nArguments:\n"
+            "\nResult:\n"
+            "{\n"
+            "  \"nCvns\" : \"n\",               (numeric) The number currently activated CNVs\n"
+            "  \"currentHeight\" : \"n\",       (numberc) The current block height the result relates to\n"
+            "  \"cvns\" : [                   (array of json objects)\n"
+            "     {\n"
+            "       \"nodeId\": \"id\",         (string) The transaction id\n"
+            "       \"pubKey\": \"public key\", (string) The public key of the CVN\n"
+            "       \"heightAdded\": n        (numeric) The height when the CVN was added to the network\n"
+            "     }\n"
+            "     ,...\n"
+            "  ],\n"
+            "\nExamples:\n"
+            "\nDisplay CVN list\n"
+            + HelpExampleCli("getactivecvns","")
+        );
+
+    UniValue result(UniValue::VOBJ);
+    result.push_back(Pair("nCvns", (int)mapCVNs.size()));
+    result.push_back(Pair("currentHeight", chainActive.Tip()->nHeight));
+    UniValue cvns(UniValue::VARR);
+
+    BOOST_FOREACH(const CvnMapType::value_type& cvn, mapCVNs)
+    {
+        const CCvnInfo& c = cvn.second;
+
+        UniValue cvnEntry(UniValue::VOBJ);
+        cvnEntry.push_back(Pair("nodeId", strprintf("0x%08x", c.nNodeId)));
+        cvnEntry.push_back(Pair("pubKey", HexStr(c.vPubKey)));
+        cvnEntry.push_back(Pair("heightAdded", (int)c.nHeightAdded));
+
+        CCvnStatus status(c.nNodeId);
+        CheckNextBlockCreator(chainActive.Tip(), GetAdjustedTime(), &status);
+        cvnEntry.push_back(Pair("predictedNextBlock", (int)status.nPredictedNextBlock));
+        cvnEntry.push_back(Pair("lastBlocksSigned", (int)status.nBlockSigned));
+
+        cvns.push_back(cvnEntry);
+    }
+
+    result.push_back(Pair("cvns", cvns));
+
+    return result;
+}
+
 void DynamicChainparametersToJSON(CDynamicChainParams& cp, UniValue& result)
 {
     result.push_back(Pair("version", (int)cp.nVersion));
@@ -466,9 +518,9 @@ UniValue getchainparameters(const UniValue& params, bool fHelp)
     return result;
 }
 
+#ifdef ENABLE_COINSUPPLY
 UniValue addcoinsupply(const UniValue& params, bool fHelp)
 {
-#ifdef ENABLE_COINSUPPLY
 	if (fHelp || params.size() != 4)
         throw runtime_error(
             "addcoinsupply \"faircoinaddress\" \"amount\"  \"comment\" \"admin sigs\"\n"
@@ -538,7 +590,5 @@ UniValue addcoinsupply(const UniValue& params, bool fHelp)
     result.push_back(Pair("comment", msg.strComment));
     result.push_back(Pair("script", ScriptToAsmStr(msg.coinSupply.scriptDestination, true)));
     return result;
-#else
-    throw runtime_error("this wallet was not compiled with coins supply functionality\n");
-#endif
 }
+#endif

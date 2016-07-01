@@ -67,7 +67,7 @@ bool CheckAdminSignatures(const uint256 hashAdminData, const vector<CCvnSignatur
 void RelayChainData(const CChainDataMsg& msg);
 void RelayCvnSignature(const CCvnSignatureMsg& msg);
 
-uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTimeToTest);
+uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTimeToTest, CCvnStatus* state = NULL);
 
 /** Check whether a block hash satisfies the proof-of-cooperation requirements */
 bool CheckProofOfCooperation(const CBlockHeader& block, const Consensus::Params&);

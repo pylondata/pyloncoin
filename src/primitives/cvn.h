@@ -357,4 +357,29 @@ public:
     }
 };
 
+class CCvnStatus
+{
+public:
+    uint32_t nNodeId;
+    uint32_t nPredictedNextBlock;
+    uint32_t nBlockSigned; // number of blocks signed within the last 'nMinSuccessiveSignatures' blocks
+
+    CCvnStatus()
+    {
+        SetNull();
+    }
+
+    CCvnStatus(const uint32_t nNodeId)
+    {
+        SetNull();
+        this->nNodeId = nNodeId;
+    }
+
+    void SetNull()
+    {
+        nPredictedNextBlock = 0;
+        nBlockSigned = 0;
+    }
+};
+
 #endif // BITCOIN_PRIMITIVES_CVN_H

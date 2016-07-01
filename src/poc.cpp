@@ -644,7 +644,8 @@ static const string CreateSignerIdList(const std::vector<CCvnSignature>& vSignat
  * 2. It must have co-signed the last nCreatorMinSignatures blocks
  *    to proof it's cooperation.
  */
-uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTimeToTest)
+//TODO: we should really make sure some lock is held here
+uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTimeToTest, CCvnStatus* state)
 {
     TimeWeightSetType setCreatorCandidates(mapCVNs.size());
     vector<uint32_t> vCreatorCandidates;
@@ -705,7 +706,6 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
 
     itCandidates += nCandidateOffset;
     nMinSuccessiveSignatures = dynParams.nMinSuccessiveSignatures; // reset
-    uint32_t maxLoop = 1100;
     do {
         uint32_t nCreatorCandidate = *(itCandidates ++);
 
@@ -715,7 +715,7 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
             break;
         }
 
-        // if we did not find a candidate who signed enough successive blocks we lower
+        // if we did not find a candidate who signed enough blocks we lower
         // our requirement to avoid the block chain become stalled
         if (itCandidates == vCreatorCandidates.rend()) {
             itCandidates = vCreatorCandidates.rbegin();
@@ -723,15 +723,37 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
             nMinSuccessiveSignatures--;
             LogPrintf("CheckNextBlockCreator: WARNING, could not find a CVN that signed enough successive blocks. Lowering number of required sigs to %u\n", nMinSuccessiveSignatures);
         }
-    } while (nMinSuccessiveSignatures && maxLoop--);
-
-    if (!maxLoop)
-        LogPrintf("WARN: infinite loop detected. Aborted...\n");
+    } while (nMinSuccessiveSignatures);
 
     if (nNextCreatorId)
         LogPrint("cvn", "NODE ID 0x%08x should create the next block #%u\n", nNextCreatorId, pindexStart->nHeight + 1);
     else
         LogPrintf("ERROR, could not find any node ID that should create the next block #%u\n", pindexStart->nHeight + 1);
+
+    if (state) { // in case the CVNs status is requested
+        state->nBlockSigned = mapLastSignatures[state->nNodeId];
+
+        uint32_t nPredictedNextBlock = chainActive.Tip()->nHeight;
+        nMinSuccessiveSignatures = dynParams.nMinSuccessiveSignatures;
+        itCandidates = vCreatorCandidates.rbegin();
+
+        do {
+            uint32_t nCreatorCandidate = *(itCandidates ++);
+
+            if (mapLastSignatures[nCreatorCandidate] >= nMinSuccessiveSignatures && nCreatorCandidate == state->nNodeId)
+                break;
+
+            nPredictedNextBlock++;
+
+            if (itCandidates == vCreatorCandidates.rend()) {
+                itCandidates = vCreatorCandidates.rbegin();
+                itCandidates += nCandidateOffset;
+                nMinSuccessiveSignatures--;
+            }
+        } while (nMinSuccessiveSignatures);
+
+        state->nPredictedNextBlock = nPredictedNextBlock;
+    }
 
     return nNextCreatorId;
 }

@@ -295,7 +295,10 @@ static const CRPCCommand vRPCCommands[] =
     { "cvn",                "signchaindata",          &signchaindata,          true  },
     { "cvn",                "getcvninfo",             &getcvninfo,             true  },
     { "cvn",                "getchainparameters",     &getchainparameters,     true  },
+    { "cvn",                "getactivecvns",          &getactivecvns,          true  },
+#ifdef ENABLE_COINSUPPLY
     { "cvn",                "addcoinsupply",          &addcoinsupply,          true  },
+#endif
 
     /* Coin generation */
     { "generating",         "getgenerate",            &getgenerate,            true  },
