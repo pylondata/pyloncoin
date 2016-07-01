@@ -454,7 +454,7 @@ CLEANFILES += zmq/*.gcda zmq/*.gcno
 
 DISTCLEANFILES = obj/build.h
 
-EXTRA_DIST = leveldb
+EXTRA_DIST =
 
 clean-local:
 	-$(MAKE) -C leveldb clean
