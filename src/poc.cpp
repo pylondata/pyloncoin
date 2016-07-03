@@ -733,7 +733,7 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
     if (state) { // in case the CVNs status is requested
         state->nBlockSigned = mapLastSignatures[state->nNodeId];
 
-        uint32_t nPredictedNextBlock = chainActive.Tip()->nHeight;
+        uint32_t nPredictedNextBlock = chainActive.Tip()->nHeight + 1;
         nMinSuccessiveSignatures = dynParams.nMinSuccessiveSignatures;
         itCandidates = vCreatorCandidates.rbegin();
 
