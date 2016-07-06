@@ -273,12 +273,19 @@ static void PopulateBlock(const CChainParams& chainparams, CBlockTemplate& block
         // Compute final coinbase transaction.
         txNew.vout[0].nValue = nFees + (pindexPrev->GetBlockHash() == chainparams.GetConsensus().hashGenesisBlock ? MAX_MONEY : 0);
         txNew.vin[0].scriptSig = CScript() << nHeight << OP_0;
-        pblock->vtx[0] = txNew;
+
         blocktemplate.vTxFees[0] = -nFees;
 
+        // don't spam the CVNs wallet with zero value transactions
+        if (txNew.vout[0].nValue == 0) {
+            txNew.vout[0].scriptPubKey = CScript() << OP_RETURN;
+            LogPrint("cvn", "creating OP_RETURN coinbase transaction for zero fee block\n");
+        }
+
+        pblock->vtx[0] = txNew;
+
         // Fill in header
-        pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
-        pblock->nCreatorId     = nCvnNodeId;
+        pblock->hashPrevBlock = pindexPrev->GetBlockHash();
         blocktemplate.vTxSigOps[0] = GetLegacySigOpCount(pblock->vtx[0]);
     }
 }
@@ -371,18 +378,18 @@ static bool CreateNewBlock(const CChainParams& chainparams, CBlockTemplate& bloc
             return false;
         }
 
-        CvnSigCreatorType& mapSigsByCreators = mapCvnSigs[hashBlock];
-        if (!mapSigsByCreators.count(blockTemplate.nNodeId)) {
+        CvnSigCreatorType& mapSigsByNextCreator = mapCvnSigs[hashBlock];
+        if (!mapSigsByNextCreator.count(blockTemplate.nNodeId)) {
             LogPrintf("ERROR: no signatures found. Can not create block\n");
             return false;
         }
 
-        CvnSigSignerType mapSigsBySigners = mapSigsByCreators[blockTemplate.nNodeId];
+        CvnSigSignerType mapSigsBySigners = mapSigsByNextCreator[blockTemplate.nNodeId];
         LogPrintf("# of sig available for block %s: %u (c: %u, h: %u)\n",
-                hashBlock.ToString(), mapSigsBySigners.size(), mapSigsByCreators.size(), mapCvnSigs.size());
+                hashBlock.ToString(), mapSigsBySigners.size(), mapSigsByNextCreator.size(), mapCvnSigs.size());
 
-        if (!mapSigsBySigners.count(nCvnNodeId)) {
-            LogPrintf("WARN: signature for local CVN (0x%08x) not found...\n", nCvnNodeId);
+        if (!mapSigsBySigners.count(blockTemplate.nNodeId)) {
+            LogPrintf("WARN: signature for local CVN (0x%08x) not found...\n", blockTemplate.nNodeId);
             return false;
         }
 

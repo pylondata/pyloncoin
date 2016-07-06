@@ -4921,10 +4921,10 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
         if (mapCvnSigs.count(hashPeersTip)) {
             LOCK(cs_mapCvnSigs);
-            CvnSigCreatorType mapSigsByCreator = mapCvnSigs[hashPeersTip];
+            CvnSigCreatorType mapSigsByNextCreator = mapCvnSigs[hashPeersTip];
 
-            if (mapSigsByCreator.count(nNextCreator)) {
-                CvnSigSignerType mapSigsBySigner = mapSigsByCreator[nNextCreator];
+            if (mapSigsByNextCreator.count(nNextCreator)) {
+                CvnSigSignerType mapSigsBySigner = mapSigsByNextCreator[nNextCreator];
                 vector<CCvnSignature> vSigList(mapSigsBySigner.size());
 
                 int i = 0;
