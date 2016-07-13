@@ -802,6 +802,7 @@ public:
 
     /* Set the hd chain model (chain child index counters) */
     bool SetHDChain(const CHDChain& chain, bool memonly);
+    const CHDChain& GetHDChain() { return hdChain; }
 
     /* Set the current hd master key (will reset the chain child index counters) */
     bool SetHDMasterKey(const CKey& key);
