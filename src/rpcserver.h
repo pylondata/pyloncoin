@@ -190,6 +190,7 @@ extern UniValue signchaindata(const UniValue& params, bool fHelp);
 extern UniValue getcvninfo(const UniValue& params, bool fHelp);
 extern UniValue getchainparameters(const UniValue& params, bool fHelp);
 extern UniValue getactivecvns(const UniValue& params, bool fHelp);
+extern UniValue submitblock(const UniValue& params, bool fHelp);
 #ifdef ENABLE_COINSUPPLY
 extern UniValue addcoinsupply(const UniValue& params, bool fHelp);
 #endif

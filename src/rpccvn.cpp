@@ -12,6 +12,8 @@
 #include "cvn.h"
 #include "core_io.h"
 #include "timedata.h"
+#include "validationinterface.h"
+#include "consensus/validation.h"
 
 #include <boost/algorithm/string.hpp>
 #include <univalue.h>
@@ -516,6 +518,104 @@ UniValue getchainparameters(const UniValue& params, bool fHelp)
     DynamicChainparametersToJSON(dynParams, result);
 
     return result;
+}
+
+// NOTE: Assumes a conclusive result; if result is inconclusive, it must be handled by caller
+static UniValue BIP22ValidationResult(const CValidationState& state)
+{
+    if (state.IsValid())
+        return NullUniValue;
+
+    std::string strRejectReason = state.GetRejectReason();
+    if (state.IsError())
+        throw JSONRPCError(RPC_VERIFY_ERROR, strRejectReason);
+    if (state.IsInvalid())
+    {
+        if (strRejectReason.empty())
+            return "rejected";
+        return strRejectReason;
+    }
+    // Should be impossible
+    return "valid?";
+}
+
+class submitblock_StateCatcher : public CValidationInterface
+{
+public:
+    uint256 hash;
+    bool found;
+    CValidationState state;
+
+    submitblock_StateCatcher(const uint256 &hashIn) : hash(hashIn), found(false), state() {};
+
+protected:
+    virtual void BlockChecked(const CBlock& block, const CValidationState& stateIn) {
+        if (block.GetHash() != hash)
+            return;
+        found = true;
+        state = stateIn;
+    };
+};
+
+UniValue submitblock(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() < 1 || params.size() > 2)
+        throw runtime_error(
+            "submitblock \"hexdata\" ( \"jsonparametersobject\" )\n"
+            "\nAttempts to submit new block to network.\n"
+            "The 'jsonparametersobject' parameter is currently ignored.\n"
+            "See https://en.bitcoin.it/wiki/BIP_0022 for full specification.\n"
+
+            "\nArguments\n"
+            "1. \"hexdata\"    (string, required) the hex-encoded block data to submit\n"
+            "2. \"jsonparametersobject\"     (string, optional) object of optional parameters\n"
+            "    {\n"
+            "      \"workid\" : \"id\"    (string, optional) if the server provided a workid, it MUST be included with submissions\n"
+            "    }\n"
+            "\nResult:\n"
+            "\nExamples:\n"
+            + HelpExampleCli("submitblock", "\"mydata\"")
+            + HelpExampleRpc("submitblock", "\"mydata\"")
+        );
+
+    CBlock block;
+    if (!DecodeHexBlk(block, params[0].get_str()))
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Block decode failed");
+
+    uint256 hash = block.GetHash();
+    bool fBlockPresent = false;
+    {
+        LOCK(cs_main);
+        BlockMap::iterator mi = mapBlockIndex.find(hash);
+        if (mi != mapBlockIndex.end()) {
+            CBlockIndex *pindex = mi->second;
+            if (pindex->IsValid(BLOCK_VALID_SCRIPTS))
+                return "duplicate";
+            if (pindex->nStatus & BLOCK_FAILED_MASK)
+                return "duplicate-invalid";
+            // Otherwise, we might only have the header - process the block before returning
+            fBlockPresent = true;
+        }
+    }
+
+    CValidationState state;
+    submitblock_StateCatcher sc(block.GetHash());
+    RegisterValidationInterface(&sc);
+    bool fAccepted = ProcessNewBlock(state, Params(), NULL, &block, true, NULL);
+    UnregisterValidationInterface(&sc);
+    if (fBlockPresent)
+    {
+        if (fAccepted && !sc.found)
+            return "duplicate-inconclusive";
+        return "duplicate";
+    }
+    if (fAccepted)
+    {
+        if (!sc.found)
+            return "inconclusive";
+        state = sc.state;
+    }
+    return BIP22ValidationResult(state);
 }
 
 #ifdef ENABLE_COINSUPPLY

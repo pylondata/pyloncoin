@@ -289,13 +289,14 @@ static const CRPCCommand vRPCCommands[] =
     { "blockchain",         "gettxoutsetinfo",        &gettxoutsetinfo,        true  },
     { "blockchain",         "verifychain",            &verifychain,            true  },
 
-    /* CVN function s */
+    /* CVN functions */
     { "cvn",                "addcvn",                 &addcvn,                 false },
     { "cvn",                "removecvn",              &removecvn,              false },
     { "cvn",                "signchaindata",          &signchaindata,          true  },
     { "cvn",                "getcvninfo",             &getcvninfo,             true  },
     { "cvn",                "getchainparameters",     &getchainparameters,     true  },
     { "cvn",                "getactivecvns",          &getactivecvns,          true  },
+    { "cvn",                "submitblock",            &submitblock,            true  },
 #ifdef ENABLE_COINSUPPLY
     { "cvn",                "addcoinsupply",          &addcoinsupply,          true  },
 #endif
