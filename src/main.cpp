@@ -3242,13 +3242,12 @@ bool CheckDuplicateBlock(CValidationState &state, const CChainParams& chainparam
     if (it != mapBlockIndexByPrevHash.end()) {
         if (it->second->nCreatorId == pblock->nCreatorId && it->second->GetBlockHash() != pblock->GetHash()) {
             CBlock formerBlock;
-            if (!ReadBlockFromDisk(formerBlock, it->second, chainparams.GetConsensus())) {
+            if (!ReadBlockFromDisk(formerBlock, it->second, chainparams.GetConsensus()))
                 return AbortNode(state, "Failed to read block");
-            }
 
             LogPrintf("CheckDuplicateBlock : ======>>>>> FATAL! Possibly malicious CVN detected <<<<<======\n");
-            LogPrintf("CheckDuplicateBlock : CVN 0x%08x created more than one block at the same height\nFIRST:\n%s\n\nSECOND:\n%s\n",
-                pblock->nCreatorId, pblock->ToString(), formerBlock.ToString());
+            LogPrintf("CheckDuplicateBlock : CVN 0x%08x created more than one block for the same parent hash\nreceived FIRST:\n%s\n\nreceived SECOND:\n%s\n",
+                pblock->nCreatorId, formerBlock.ToString(), pblock->ToString());
             LogPrintf("CheckDuplicateBlock : CVN 0x%08x is now banned and should be removed by the chain administrators immediately.\n", pblock->nCreatorId);
 
             {

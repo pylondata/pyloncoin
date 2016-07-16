@@ -588,7 +588,7 @@ static uint32_t FindDormantNode(const CBlockIndex* pindexStart, const map<uint32
 {
     set<uint32_t> setDormantNodes;
     BOOST_FOREACH(const map_t::value_type &signer, vLastSignatures) {
-        if (!setCreatorCandidates.count(signer.first) && signer.second >= nMinSigs)
+        if (!setCreatorCandidates.count(signer.first) && signer.second >= nMinSigs && !mapBannedCVNs.count(signer.first))
             setDormantNodes.insert(signer.first);
     }
 
@@ -637,7 +637,7 @@ static const string CreateSignerIdList(const std::vector<CCvnSignature>& vSignat
 #endif
 
 /**
- * The rules are as follows: (THIS COMMENT NEEDS TO BE UPDATED)
+ * The rules are as follows:
  * 1. If there is any newly added CVN it is its turn
  * 1. Find the node with the highest time-weight. That's the
  *    node that created its last block the furthest in the past.
@@ -650,7 +650,7 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
     TimeWeightSetType setCreatorCandidates(mapCVNs.size());
     vector<uint32_t> vCreatorCandidates;
     map<uint32_t, uint32_t> mapLastSignatures; // key: signerId, value: # of sigs
-    uint32_t nMinSuccessiveSignatures = dynParams.nMinSuccessiveSignatures;
+    uint32_t nMinSignatures = dynParams.nMinSuccessiveSignatures;
 
     // create a list of creator candidates
     // scan no more than the last 200 blocks
@@ -665,27 +665,27 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
             vCreatorCandidates.push_back(pindex->nCreatorId);
 
         // record the number of signatures within the nMinSuccessiveSignatures range
-        if (nMinSuccessiveSignatures) {
-            nMinSuccessiveSignatures--;
+        if (nMinSignatures) {
+            nMinSignatures--;
             BOOST_FOREACH(const CCvnSignature& sig, pindex->vSignatures) {
                 mapLastSignatures[sig.nSignerId]++;
             }
         }
 
-        if (vCreatorCandidates.size() == nRegisteredCVNs && !nMinSuccessiveSignatures)
+        if (vCreatorCandidates.size() == nRegisteredCVNs && !nMinSignatures)
             break; // no more work to do
     }
 
     uint32_t nNextCreatorId = FindNewlyAddedCVN(pindexStart);
 
     if (nNextCreatorId) {
-        LogPrint("cvn", "CheckNextBlockCreator : CVN 0x%08x (%u sigs) needs to be bootstrapped\n", nNextCreatorId, mapLastSignatures[nNextCreatorId]);
+        LogPrintf("CheckNextBlockCreator : CVN 0x%08x (%u sigs) needs to be bootstrapped\n", nNextCreatorId, mapLastSignatures[nNextCreatorId]);
         vCreatorCandidates.push_back(nNextCreatorId);
     } else if (vCreatorCandidates.size() < nRegisteredCVNs) {
         nNextCreatorId = FindDormantNode(pindexStart, mapLastSignatures, setCreatorCandidates, dynParams.nMinSuccessiveSignatures);
 
         if (nNextCreatorId) {
-            LogPrint("cvn", "CheckNextBlockCreator : dormant CVN 0x%08x (%u sigs) detected - activating...\n", nNextCreatorId, mapLastSignatures[nNextCreatorId]);
+            LogPrintf("CheckNextBlockCreator : dormant CVN 0x%08x (%u sigs) detected - activating...\n", nNextCreatorId, mapLastSignatures[nNextCreatorId]);
             vCreatorCandidates.push_back(nNextCreatorId);
         }
     }
@@ -701,16 +701,17 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
     uint32_t nCandidateOffset = FindCandidateOffset(pindexStart->nTime, nTimeToTest);
     if (nCandidateOffset >= vCreatorCandidates.size()) {
         LogPrintf("CheckNextBlockCreator : WARN, CandidateOffset exceeds limits: %u >= %u\n", nCandidateOffset, vCreatorCandidates.size());
-        nCandidateOffset = vCreatorCandidates.size() - 1;
+        nCandidateOffset %= vCreatorCandidates.size();
+        LogPrintf("CheckNextBlockCreator : reducing offset to %u\n", nCandidateOffset);
     }
 
     itCandidates += nCandidateOffset;
-    nMinSuccessiveSignatures = dynParams.nMinSuccessiveSignatures; // reset
+    nMinSignatures = dynParams.nMinSuccessiveSignatures; // reset
     do {
         uint32_t nCreatorCandidate = *(itCandidates ++);
 
         // check if the candidate signed the last nMinSuccessiveSignatures blocks
-        if (mapLastSignatures[nCreatorCandidate] >= nMinSuccessiveSignatures) {
+        if (mapLastSignatures[nCreatorCandidate] >= nMinSignatures) {
             nNextCreatorId = nCreatorCandidate;
             break;
         }
@@ -720,10 +721,10 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
         if (itCandidates == vCreatorCandidates.rend()) {
             itCandidates = vCreatorCandidates.rbegin();
             itCandidates += nCandidateOffset;
-            nMinSuccessiveSignatures--;
-            LogPrintf("CheckNextBlockCreator: WARNING, could not find a CVN that signed enough successive blocks. Lowering number of required sigs to %u\n", nMinSuccessiveSignatures);
+            nMinSignatures--;
+            LogPrintf("CheckNextBlockCreator: WARN, could not find a CVN that signed enough successive blocks. Lowering number of required sigs to %u\n", nMinSignatures);
         }
-    } while (nMinSuccessiveSignatures);
+    } while (nMinSignatures);
 
     if (nNextCreatorId)
         LogPrint("cvn", "NODE ID 0x%08x should create the next block #%u\n", nNextCreatorId, pindexStart->nHeight + 1);
@@ -734,13 +735,13 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
         state->nBlockSigned = mapLastSignatures[state->nNodeId];
 
         uint32_t nPredictedNextBlock = chainActive.Tip()->nHeight + 1;
-        nMinSuccessiveSignatures = dynParams.nMinSuccessiveSignatures;
+        nMinSignatures = dynParams.nMinSuccessiveSignatures;
         itCandidates = vCreatorCandidates.rbegin();
 
         do {
             uint32_t nCreatorCandidate = *(itCandidates ++);
 
-            if (mapLastSignatures[nCreatorCandidate] >= nMinSuccessiveSignatures && nCreatorCandidate == state->nNodeId)
+            if (mapLastSignatures[nCreatorCandidate] >= nMinSignatures && nCreatorCandidate == state->nNodeId)
                 break;
 
             nPredictedNextBlock++;
@@ -748,9 +749,9 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
             if (itCandidates == vCreatorCandidates.rend()) {
                 itCandidates = vCreatorCandidates.rbegin();
                 itCandidates += nCandidateOffset;
-                nMinSuccessiveSignatures--;
+                nMinSignatures--;
             }
-        } while (nMinSuccessiveSignatures);
+        } while (nMinSignatures);
 
         state->nPredictedNextBlock = nPredictedNextBlock;
     }
