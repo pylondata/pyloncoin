@@ -498,10 +498,10 @@ private:
 
     void SyncMetaData(std::pair<TxSpends::iterator, TxSpends::iterator>);
 
+public:
     /* the hd chain data model (external chain counters) */
     CHDChain hdChain;
 
-public:
     /*
      * Main wallet lock.
      * This lock protects all the fields added by CWallet
