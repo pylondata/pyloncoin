@@ -169,22 +169,18 @@ bool CvnVerifyAdminSignature(const uint256 &hash, const CCvnSignature &sig)
 
 void RelayChainData(const CChainDataMsg& msg)
 {
-    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
-    ss << msg;
-
     CInv inv(MSG_POC_CHAIN_DATA, msg.GetHash());
     {
-        LOCK(cs_mapRelay);
+        LOCK(cs_mapRelayChainData);
         // Expire old relay messages
         while (!vRelayExpiration.empty() && vRelayExpiration.front().first < GetTime())
         {
-            mapRelay.erase(vRelayExpiration.front().second);
+            mapRelayChainData.erase(vRelayExpiration.front().second);
             vRelayExpiration.pop_front();
         }
 
-        // Save original serialized message so newer versions are preserved
-        mapRelay.insert(std::make_pair(inv, ss));
-        vRelayExpiration.push_back(std::make_pair(GetTime() + dynParams.nBlockSpacing * 60, inv));
+        mapRelayChainData.insert(std::make_pair(inv.hash, msg));
+        vRelayExpiration.push_back(std::make_pair(GetTime() + dynParams.nBlockSpacing, inv.hash));
     }
 
     LOCK(cs_vNodes);
@@ -248,22 +244,18 @@ bool AddChainData(const CChainDataMsg& msg)
 
 void RelayCvnSignature(const CCvnSignatureMsg& signature)
 {
-    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
-    ss << signature;
-
     CInv inv(MSG_CVN_SIGNATURE, signature.GetHash());
     {
-        LOCK(cs_mapRelay);
+        LOCK(cs_mapRelaySigs);
         // Expire old relay messages
         while (!vRelayExpiration.empty() && vRelayExpiration.front().first < GetTime())
         {
-            mapRelay.erase(vRelayExpiration.front().second);
+            mapRelaySigs.erase(vRelayExpiration.front().second);
             vRelayExpiration.pop_front();
         }
 
-        // Save original serialized message so newer versions are preserved
-        mapRelay.insert(std::make_pair(inv, ss));
-        vRelayExpiration.push_back(std::make_pair(GetTime() + dynParams.nBlockSpacing, inv));
+        mapRelaySigs.insert(std::make_pair(inv.hash, signature));
+        vRelayExpiration.push_back(std::make_pair(GetTime() + dynParams.nBlockSpacing, inv.hash));
     }
 
     LOCK(cs_vNodes);

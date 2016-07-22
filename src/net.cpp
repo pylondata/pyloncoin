@@ -96,6 +96,9 @@ limitedmap<uint256, int64_t> mapAlreadyAskedFor(MAX_INV_SZ);
 CCriticalSection cs_mapRelaySigs;
 map<uint256, CCvnSignatureMsg> mapRelaySigs;
 
+CCriticalSection cs_mapRelayChainData;
+map<uint256, CChainDataMsg> mapRelayChainData;
+
 static deque<string> vOneShots;
 CCriticalSection cs_vOneShots;
 

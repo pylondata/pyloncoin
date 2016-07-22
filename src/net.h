@@ -15,6 +15,7 @@
 #include "streams.h"
 #include "sync.h"
 #include "uint256.h"
+#include "poc.h"
 
 #include <deque>
 #include <stdint.h>
@@ -170,6 +171,12 @@ extern CCriticalSection cs_vAddedNodes;
 
 extern NodeId nLastNodeId;
 extern CCriticalSection cs_nLastNodeId;
+
+extern CCriticalSection cs_mapRelaySigs;
+extern std::map<uint256, CCvnSignatureMsg> mapRelaySigs;
+
+extern CCriticalSection cs_mapRelayChainData;
+extern std::map<uint256, CChainDataMsg> mapRelayChainData;
 
 /** Subversion as sent to the P2P network in `version` messages */
 extern std::string strSubVersion;
