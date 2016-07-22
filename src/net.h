@@ -194,7 +194,7 @@ class CNodeStats
 public:
     NodeId nodeid;
     uint64_t nServices;
-    bool fRelayTxes;
+    bool fRelayTxes; //protected by cs_filter
     int64_t nLastSend;
     int64_t nLastRecv;
     int64_t nTimeConnected;
