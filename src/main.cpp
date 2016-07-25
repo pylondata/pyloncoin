@@ -1223,7 +1223,7 @@ bool AcceptToMemoryPoolWorker(CTxMemPool& pool, CValidationState &state, const C
                     FormatMoney(nModifiedFees - nConflictingFees),
                     (int)nSize - (int)nConflictingSize);
         }
-        pool.RemoveStaged(allConflicting);
+        pool.RemoveStaged(allConflicting, false);
 
         // Store transaction in memory
         pool.addUnchecked(hash, entry, setAncestors, !IsInitialBlockDownload());
@@ -5876,23 +5876,12 @@ bool SendMessages(CNode* pto)
                 std::vector<uint256> vtxid;
                 mempool.queryHashes(vtxid);
                 pto->fSendMempool = false;
-                CAmount filterrate = 0;
-                {
-                    LOCK(pto->cs_feeFilter);
-                    filterrate = pto->minFeeFilter;
-                }
 
                 LOCK(pto->cs_filter);
 
                 BOOST_FOREACH(const uint256& hash, vtxid) {
                     CInv inv(MSG_TX, hash);
                     pto->setInventoryTxToSend.erase(hash);
-                    if (filterrate) {
-                        CFeeRate feeRate;
-                        mempool.lookupFeeRate(hash, feeRate);
-                        if (feeRate.GetFeePerK() < filterrate)
-                            continue;
-                    }
                     if (pto->pfilter) {
                         CTransaction tx;
                         bool fInMemPool = mempool.lookup(hash, tx);
@@ -5909,18 +5898,12 @@ bool SendMessages(CNode* pto)
             }
 
             // Determine transactions to relay
-            LOCK(pto->cs_inventory);
             if (fSendTrickle) {
                 // Produce a vector with all candidates for sending
                 vector<std::set<uint256>::iterator> vInvTx;
                 vInvTx.reserve(pto->setInventoryTxToSend.size());
                 for (std::set<uint256>::iterator it = pto->setInventoryTxToSend.begin(); it != pto->setInventoryTxToSend.end(); it++) {
                     vInvTx.push_back(it);
-                }
-                CAmount filterrate = 0;
-                {
-                    LOCK(pto->cs_feeFilter);
-                    filterrate = pto->minFeeFilter;
                 }
                 // Topologically and fee-rate sort the inventory we send for privacy and priority reasons.
                 // A heap is used so that not all items need sorting if only a few are being sent.
@@ -5940,14 +5923,6 @@ bool SendMessages(CNode* pto)
                     pto->setInventoryTxToSend.erase(it);
                     // Check if not in the filter already
                     if (pto->filterInventoryKnown.contains(hash)) {
-                        continue;
-                    }
-                    // Not in the mempool anymore? don't bother sending it.
-                    CFeeRate feeRate;
-                    if (!mempool.lookupFeeRate(hash, feeRate)) {
-                        continue;
-                    }
-                    if (filterrate && feeRate.GetFeePerK() < filterrate) {
                         continue;
                     }
                     if (pto->pfilter) {
