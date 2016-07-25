@@ -17,14 +17,6 @@ namespace Consensus {
  */
 struct Params {
     uint256 hashGenesisBlock;
-    int nSubsidyHalvingInterval;
-    /** Used to check majorities for block version upgrade */
-    int nMajorityEnforceBlockUpgrade;
-    int nMajorityRejectBlockOutdated;
-    int nMajorityWindow;
-
-    int64_t nPowTargetSpacing;
-    int64_t nPowTargetTimespan;
 };
 } // namespace Consensus
 

@@ -403,6 +403,8 @@ public:
     // There is no final sorting before sending, as they are always sent immediately
     // and in the order requested.
     std::vector<uint256> vInventoryBlockToSend;
+    std::set<uint256> vInventoryChainSignaturesToSend;
+    std::set<uint256> vInventoryChainDataToSend;
     CCriticalSection cs_inventory;
     std::set<uint256> setAskFor;
     std::multimap<int64_t, CInv> mapAskFor;
