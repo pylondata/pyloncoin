@@ -44,7 +44,7 @@ static const CAmount DEFAULT_FALLBACK_FEE = 20000;
 //! -mintxfee default
 static const CAmount DEFAULT_TRANSACTION_MINFEE = 1000;
 //! -maxtxfee default
-static const CAmount DEFAULT_TRANSACTION_MAXFEE = 0.1 * COIN;
+static const CAmount DEFAULT_TRANSACTION_MAXFEE = 1000 * COIN;
 //! minimum change amount
 static const CAmount MIN_CHANGE = CENT;
 //! Default for -spendzeroconfchange

@@ -584,6 +584,8 @@ void SendCoinsDialog::updateGlobalFeeVariables()
         // set nMinimumTotalFee to 0 in case of user has selected that the fee is per KB
         CoinControlDialog::coinControl->nMinimumTotalFee = ui->radioCustomAtLeast->isChecked() ? ui->customFee->value() : 0;
     }
+
+    payTxFee = ::minRelayTxFee;
 }
 
 void SendCoinsDialog::updateFeeMinimizedLabel()

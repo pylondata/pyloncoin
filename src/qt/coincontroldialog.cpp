@@ -475,18 +475,15 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
         }
     }
 
-    QString sPriorityLabel      = tr("none");
+    QString sPriorityLabel      = "-";
     CAmount nAmount             = 0;
     CAmount nPayFee             = 0;
     CAmount nAfterFee           = 0;
     CAmount nChange             = 0;
     unsigned int nBytes         = 0;
     unsigned int nBytesInputs   = 0;
-    double dPriority            = 0;
-    double dPriorityInputs      = 0;
     unsigned int nQuantity      = 0;
     int nQuantityUncompressed   = 0;
-    bool fAllowFree             = false;
 
     std::vector<COutPoint> vCoinControl;
     std::vector<COutput>   vOutputs;
@@ -509,9 +506,6 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
 
         // Amount
         nAmount += out.tx->vout[out.i].nValue;
-
-        // Priority
-        dPriorityInputs += (double)out.tx->vout[out.i].nValue * (out.nDepth+1);
 
         // Bytes
         CTxDestination address;
@@ -537,11 +531,6 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
         // Bytes
         nBytes = nBytesInputs + ((CoinControlDialog::payAmounts.size() > 0 ? CoinControlDialog::payAmounts.size() + 1 : 2) * 34) + 10; // always assume +1 output for change here
 
-        // Priority
-        double mempoolEstimatePriority = mempool.estimateSmartPriority(nTxConfirmTarget);
-        dPriority = dPriorityInputs / (nBytes - nBytesInputs + (nQuantityUncompressed * 29)); // 29 = 180 - 151 (uncompressed public keys are over the limit. max 151 bytes of the input are ignored for priority)
-        sPriorityLabel = CoinControlDialog::getPriorityLabel(dPriority, mempoolEstimatePriority);
-
         // in the subtract fee from amount case, we can tell if zero change already and subtract the bytes, so that fee calculation afterwards is accurate
         if (CoinControlDialog::fSubtractFeeFromAmount)
             if (nAmount - nPayAmount == 0)
@@ -551,15 +540,6 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
         nPayFee = CWallet::GetMinimumFee(nBytes, nTxConfirmTarget, mempool);
         if (nPayFee > 0 && coinControl->nMinimumTotalFee > nPayFee)
             nPayFee = coinControl->nMinimumTotalFee;
-
-
-        // Allow free? (require at least hard-coded threshold and default to that if no estimate)
-        double dPriorityNeeded = std::max(mempoolEstimatePriority, AllowFreeThreshold());
-        fAllowFree = (dPriority >= dPriorityNeeded);
-
-        if (fSendFreeTransactions)
-            if (fAllowFree && nBytes <= MAX_FREE_TRANSACTION_CREATE_SIZE)
-                nPayFee = 0;
 
         if (nPayAmount > 0)
         {
@@ -632,7 +612,6 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
 
     // turn labels "red"
     l5->setStyleSheet((nBytes >= MAX_FREE_TRANSACTION_CREATE_SIZE) ? "color:red;" : "");// Bytes >= 1000
-    l6->setStyleSheet((dPriority > 0 && !fAllowFree) ? "color:red;" : "");              // Priority < "medium"
     l7->setStyleSheet((fDust) ? "color:red;" : "");                                     // Dust = "yes"
 
     // tool tips
