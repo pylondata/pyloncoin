@@ -528,6 +528,12 @@ public:
             }
         } else if (inv.type == MSG_BLOCK) {
             vInventoryBlockToSend.push_back(inv.hash);
+        } else if (inv.type == MSG_CVN_SIGNATURE) {
+            if (!filterInventoryKnown.contains(inv.hash))
+                vInventoryChainSignaturesToSend.insert(inv.hash);
+        } else if (inv.type == MSG_POC_CHAIN_DATA) {
+            if (!filterInventoryKnown.contains(inv.hash))
+                vInventoryChainDataToSend.insert(inv.hash);
         }
     }
 

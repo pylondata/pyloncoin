@@ -58,7 +58,7 @@ bool CvnVerifySignature(const uint256 &hash, const CCvnSignature &sig);
 bool CvnVerifyAdminSignature(const uint256 &hash, const CCvnSignature &sig);
 bool CheckForDuplicateCvns(const CBlock& block);
 bool CheckForDuplicateChainAdmins(const CBlock& block);
-void SendCVNSignature(const CBlockIndex *pindexNew, const bool fRelay = true);
+void SendCVNSignature(const CBlockIndex *pindexNew);
 bool AddCvnSignature(const CCvnSignature& signature, const uint256& hashPrevBlock, const uint32_t nCreatorId);
 bool AddChainData(const CChainDataMsg& msg);
 void RemoveCvnSignatures(const uint256& hashPrevBlock);

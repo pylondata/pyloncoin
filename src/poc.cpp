@@ -242,9 +242,9 @@ bool AddChainData(const CChainDataMsg& msg)
     return true;
 }
 
-void RelayCvnSignature(const CCvnSignatureMsg& signature)
+void RelayCvnSignature(const CCvnSignatureMsg& msg)
 {
-    CInv inv(MSG_CVN_SIGNATURE, signature.GetHash());
+    CInv inv(MSG_CVN_SIGNATURE, msg.GetHash());
     {
         LOCK(cs_mapRelaySigs);
         // Expire old relay messages
@@ -254,7 +254,7 @@ void RelayCvnSignature(const CCvnSignatureMsg& signature)
             vRelayExpiration.pop_front();
         }
 
-        mapRelaySigs.insert(std::make_pair(inv.hash, signature));
+        mapRelaySigs.insert(std::make_pair(inv.hash, msg));
         vRelayExpiration.push_back(std::make_pair(GetTime() + dynParams.nBlockSpacing, inv.hash));
     }
 
@@ -285,13 +285,13 @@ bool AddCvnSignature(const CCvnSignature& signature, const uint256& hashPrevBloc
     LOCK(cs_mapCvnSigs);
     CvnSigCreatorType& mapSigsByCreators = mapCvnSigs[hashPrevBlock];
 
-    CvnSigSignerType& mapCvnForhashPrev = mapSigsByCreators[nCreatorId]; // this adds an element if not already there, that's OK
+    CvnSigSignerType& mapSigsBySigner = mapSigsByCreators[nCreatorId]; // this adds an element if not already there, that's OK
 
-    if (mapCvnForhashPrev.count(signature.nSignerId)) // already have this, no error
+    if (mapSigsBySigner.count(signature.nSignerId)) // already have this, no error
         return true;
 
     LogPrint("cvnsig", "AddCvnSignature : add sig for 0x%08x by 0x%08x, hash %s\n", nCreatorId, signature.nSignerId, hashPrevBlock.ToString());
-    mapCvnForhashPrev[signature.nSignerId] = signature;
+    mapSigsBySigner[signature.nSignerId] = signature;
 
     return true;
 }
@@ -303,7 +303,7 @@ void RemoveCvnSignatures(const uint256& hashPrevBlock)
         mapCvnSigs.erase(hashPrevBlock);
 }
 
-void SendCVNSignature(const CBlockIndex *pindexNew, const bool fRelay)
+void SendCVNSignature(const CBlockIndex *pindexNew)
 {
     if (IsInitialBlockDownload())
         return;
@@ -327,14 +327,9 @@ void SendCVNSignature(const CBlockIndex *pindexNew, const bool fRelay)
     LogPrintf("SendCVNSignature : created CVN signature for block hash %s, nNextCreator: 0x%08x\n",
             hashPrevBlock.ToString(), nNextCreator);
 
-    CCvnSignatureMsg msg;
-    msg.nVersion   = signature.nVersion;
-    msg.nSignerId  = signature.nSignerId;
-    msg.vSignature = signature.vSignature;
-    msg.hashPrev   = hashPrevBlock;
-    msg.nCreatorId = nNextCreator;
+    CCvnSignatureMsg msg(signature, hashPrevBlock, nNextCreator);
 
-    if (fRelay && AddCvnSignature(signature, msg.hashPrev, nNextCreator))
+    if (AddCvnSignature(signature, msg.hashPrevBlock, nNextCreator))
         RelayCvnSignature(msg);
 }
 

@@ -65,7 +65,7 @@ public:
 class CCvnSignatureMsg : public CCvnSignature
 {
 public:
-    uint256 hashPrev;
+    uint256 hashPrevBlock;
     uint32_t nCreatorId; // the CVN node ID of the creator of the next block
 
     CCvnSignatureMsg()
@@ -73,10 +73,20 @@ public:
         SetNull();
     }
 
+    CCvnSignatureMsg(const CCvnSignature signature, const uint256 hashPrevBlock, const uint32_t nCreatorId)
+    {
+        nVersion   = signature.nVersion;
+        nSignerId  = signature.nSignerId;
+        vSignature = signature.vSignature;
+        this->hashPrevBlock = hashPrevBlock;
+
+        this->nCreatorId = nCreatorId;
+    }
+
     void SetNull()
     {
         CCvnSignature::SetNull();
-        hashPrev.SetNull();
+        hashPrevBlock.SetNull();
         nCreatorId = 0;
     }
 
@@ -85,7 +95,7 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(*(CCvnSignature*)this);
-        READWRITE(hashPrev);
+        READWRITE(hashPrevBlock);
         READWRITE(nCreatorId);
     }
 

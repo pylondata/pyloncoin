@@ -4254,9 +4254,9 @@ bool static AlreadyHave(const CInv& inv) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
     case MSG_BLOCK:
         return mapBlockIndex.count(inv.hash);
     case MSG_CVN_SIGNATURE:
-        return mapCvnSigs.count(inv.hash);
+        return mapRelaySigs.count(inv.hash);
     case MSG_POC_CHAIN_DATA:
-        return mapChainData.count(inv.hash);
+        return mapRelayChainData.count(inv.hash);
     }
     // Don't know what it is, just say we already got one
     return true;
@@ -4376,6 +4376,20 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
                     CTransaction tx;
                     if (mempool.lookup(inv.hash, tx)) {
                         pfrom->PushMessage(NetMsgType::TX, tx);
+                        pushed = true;
+                    }
+                }
+                if (!pushed && inv.type == MSG_CVN_SIGNATURE) {
+                    if (mapRelaySigs.count(inv.hash)) {
+                        CCvnSignatureMsg msg = mapRelaySigs[inv.hash];
+                        pfrom->PushMessage(NetMsgType::SIG, msg);
+                        pushed = true;
+                    }
+                }
+                if (!pushed && inv.type == MSG_POC_CHAIN_DATA) {
+                    if (mapRelayChainData.count(inv.hash)) {
+                        CChainDataMsg msg = mapRelayChainData[inv.hash];
+                        pfrom->PushMessage(NetMsgType::CHAINDATA, msg);
                         pushed = true;
                     }
                 }
@@ -4695,7 +4709,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             pfrom->AddInventoryKnown(inv);
 
             bool fAlreadyHave = AlreadyHave(inv);
-            LogPrint("net", "got inv: %s  %s peer=%d\n", inv.ToString(), fAlreadyHave ? "have" : "new", pfrom->id);
+            LogPrint("net", "got inv: %s %s peer=%d\n", inv.ToString(), fAlreadyHave ? "have" : "new", pfrom->id);
 
             if (inv.type == MSG_BLOCK) {
                 UpdateBlockAvailability(pfrom->GetId(), inv.hash);
@@ -4876,11 +4890,11 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
         if (!AlreadyHave(inv)) {
             if (msg.hashPrevBlock != chainActive.Tip()->GetBlockHash())
-                LogPrintf("received outdated chain data for block %s: %s\n", msg.hashPrevBlock.ToString(), msg.ToString());
+                LogPrintf("received outdated chain data for tip %s: %s\n", msg.hashPrevBlock.ToString(), msg.ToString());
             else if (AddChainData(msg))
                 RelayChainData(msg);
             else
-                LogPrint("net", "received invalid chain data %s\n", msg.ToString());
+                LogPrintf("received invalid chain data %s\n", msg.ToString());
         } else
             LogPrint("net", "AlreadyHave chain data %s\n", hashData.ToString());
     }
@@ -4900,13 +4914,14 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         mapAlreadyAskedFor.erase(inv.hash);
 
         if (!AlreadyHave(inv)) {
-            if (msg.hashPrev != chainActive.Tip()->GetBlockHash())
-                LogPrintf("received outdated CVN signature from peer %d for block %s signed by 0x%08x\n", pfrom->id, msg.hashPrev.ToString(), msg.nSignerId);
-            else if(AddCvnSignature(msg.GetCvnSignature(), msg.hashPrev, msg.nCreatorId)) {
+            if (msg.hashPrevBlock != chainActive.Tip()->GetBlockHash())
+                LogPrintf("received outdated CVN signature from peer %d for tip %s signed by 0x%08x\n", pfrom->id, msg.hashPrevBlock.ToString(), msg.nSignerId);
+            else if (AddCvnSignature(msg.GetCvnSignature(), msg.hashPrevBlock, msg.nCreatorId))
                 RelayCvnSignature(msg);
-            }
+            else
+                LogPrintf("received invalid signature data %s\n", msg.ToString());
         } else
-            LogPrint("net", "AlreadyHave sig %s\n", msg.hashPrev.ToString());
+            LogPrint("net", "AlreadyHave sig %s\n", msg.hashPrevBlock.ToString());
     }
 
 
@@ -5940,6 +5955,53 @@ bool SendMessages(CNode* pto)
                     pto->filterInventoryKnown.insert(hash);
                 }
             }
+
+            //
+            // Handle: PoC chain signatures
+            //
+
+            const uint256& hashTip = chainActive.Tip()->GetBlockHash();
+            BOOST_FOREACH(const uint256& hash, pto->vInventoryChainSignaturesToSend) {
+                CInv inv(MSG_CVN_SIGNATURE, hash);
+
+                if (mapRelaySigs.count(hash)) {
+                    CCvnSignatureMsg& msg = mapRelaySigs[hash];
+
+                    // we only relay signatures for the active chain tip
+                    if (msg.hashPrevBlock == hashTip) {
+                        vInv.push_back(inv);
+                        if (vInv.size() == MAX_INV_SZ) {
+                            pto->PushMessage(NetMsgType::INV, vInv);
+                            vInv.clear();
+                        }
+                    } else
+                        mapRelaySigs.erase(hash);
+                }
+
+            }
+            pto->vInventoryChainSignaturesToSend.clear();
+
+            //
+            // Handle: PoC chain data
+            //
+            BOOST_FOREACH(const uint256& hash, pto->vInventoryChainDataToSend) {
+                CInv inv(MSG_POC_CHAIN_DATA, hash);
+
+                if (mapRelayChainData.count(hash)) {
+                    CChainDataMsg& msg = mapRelayChainData[hash];
+
+                    // we only relay chain data for the active chain tip
+                    if (msg.hashPrevBlock == hashTip) {
+                        vInv.push_back(inv);
+                        if (vInv.size() == MAX_INV_SZ) {
+                            pto->PushMessage(NetMsgType::INV, vInv);
+                            vInv.clear();
+                        }
+                    } else
+                        mapRelayChainData.erase(hash);
+                }
+            }
+            pto->vInventoryChainDataToSend.clear();
         }
 
         if (!vInv.empty())
