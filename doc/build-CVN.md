@@ -28,16 +28,15 @@ make -j`nproc`
 Please make sure to start your FairCoin wallet in normal mode first and let it download the complete block chain before restaring it as a CVN.
 
 This is how to start the wallet software:  
-```/opt/faircoin/faircoin2/src/qt/faircoin-qt```
+```/opt/faircoin/faircoin2/src/qt/faircoin-qt ```
 
 There are two ways to run a CVN.  
 1. By using a smart card which contains all the information required  
 2. By using an x509 Key/certificate pair which containls all the information required (for testing only)  
 
 ### 3.1 Using a smart card
-The smart card is provided by the FairCoin development team. Once you have received the card & reader plug it into a USB port and start the wallet using the parameters
-```-cvn=card -gen=1```
+The smart card is provided by the FairCoin development team. Once you have received the card & reader plug it into a USB port and start the wallet using the parameters ```-cvn=card -gen=1 ```
 ### 3.2 Using an x509 Key/certificate pair
 The wallet searches for a file named cvn.pem in the FairCoin data directory (in Linux ~/.faircoin2)
 
-Start the wallet with the arguments: ```-cvn=file -gen=1```
+Start the wallet with the arguments: ```-cvn=file -gen=1 ```
