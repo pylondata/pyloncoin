@@ -1,17 +1,19 @@
-# How to create a CVN
+# How to build a CVN
 ## 1 Compile and install the OpenSC smart card framework
 First we need a recent version of the OpenSC framework. Most linux distributions use old versions that do not support the SmarCardHSM smart card.
 
-In the HOWTO we suppose that you are going to install into the folder /opt/faircoin.
+In this HOWTO we suppose that you are going to install into the folder /opt/faircoin. You don not need to run any steps of this guide as root user except the first tow steps.
 ```
-mkdir /opt/faircoin && cd /opt/faircoin
+sudo mkdir /opt/faircoin
+sudo chown <insertYourUserName>.<insertYourUserName> /opt/faircoin
+cd /opt/faircoin
 git clone https://github.com/OpenSC/OpenSC.git
 cd OpenSC
 git checkout 0.16.0
 ./bootstrap
 ./configure --prefix=/opt/faircoin/OpenSC/target --sysconfdir=/opt/faircoin/OpenSC/target/etc
 make -j`nproc`
-make install
+make install # (no sudo required)
 ```
 ## 2 Compile the FairCoin2 wallet
 ```
@@ -23,9 +25,14 @@ cd faircoin2
 make -j`nproc`
 ```
 ## 3 Run the FairCoin2 wallet in CVN mode
-There are two ways to run a CVN.
-1. By using a smart card which contains all the information required
-2. By using an x509 Key/certificate pair which containls all the information required (for testing only)
+Please make sure to start your FairCoin wallet in normal mode first and let it download the complete block chain before restaring it as a CVN.
+
+This is how to start the wallet software:  
+```/opt/faircoin/faircoin2/src/qt/faircoin-qt```
+
+There are two ways to run a CVN.  
+1. By using a smart card which contains all the information required  
+2. By using an x509 Key/certificate pair which containls all the information required (for testing only)  
 
 ### 3.1 Using a smart card
 The smart card is provided by the FairCoin development team. Once you have received the card & reader plug it into a USB port and start the wallet using the parameters
