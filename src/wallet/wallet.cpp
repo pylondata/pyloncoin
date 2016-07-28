@@ -26,6 +26,7 @@
 #include "utilmoneystr.h"
 
 #include <assert.h>
+#include <sstream>
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
@@ -124,7 +125,9 @@ CPubKey CWallet::GenerateNewKey()
             // childIndex | BIP32_HARDENED_KEY_LIMIT = derive childIndex in hardened child-index-range
             // example: 1 | BIP32_HARDENED_KEY_LIMIT == 0x80000001 == 2147483649
             externalChainChildKey.Derive(childKey, hdChain.nExternalChainCounter | BIP32_HARDENED_KEY_LIMIT);
-            metadata.hdKeypath     = "m/0'/0'/"+std::to_string(hdChain.nExternalChainCounter)+"'";
+            std::stringstream ss;
+            ss << hdChain.nExternalChainCounter;
+            metadata.hdKeypath     = "m/0'/0'/" + ss.str() + "'";
             metadata.hdMasterKeyID = hdChain.masterKeyID;
             // increment childkey index
             hdChain.nExternalChainCounter++;
