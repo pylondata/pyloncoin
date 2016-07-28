@@ -4914,6 +4914,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         mapAlreadyAskedFor.erase(inv.hash);
 
         if (!AlreadyHave(inv)) {
+            LogPrint("net", "received chain signature %s (hasPrev: %s)\n", msg.GetHash().ToString(), msg.hashPrevBlock.ToString());
             if (msg.hashPrevBlock != chainActive.Tip()->GetBlockHash())
                 LogPrintf("received outdated CVN signature from peer %d for tip %s signed by 0x%08x\n", pfrom->id, msg.hashPrevBlock.ToString(), msg.nSignerId);
             else if (AddCvnSignature(msg.GetCvnSignature(), msg.hashPrevBlock, msg.nCreatorId))
