@@ -2414,7 +2414,10 @@ void CNode::AskFor(const CInv& inv)
     nLastTime = nNow;
 
     // Each retry is 2 minutes after the last
-    nRequestTime = std::max(nRequestTime + 2 * 60 * 1000000, nNow);
+    int64_t nDefaultRetryInterval = 2;
+    if ((inv.type == MSG_CVN_SIGNATURE || inv.type == MSG_POC_CHAIN_DATA) && dynParams.nBlockSpacing < nDefaultRetryInterval * 60)
+        nRequestTime = dynParams.nBlockSpacing / 2;
+    nRequestTime = std::max(nRequestTime + nDefaultRetryInterval * 60 * 1000000, nNow);
     if (it != mapAlreadyAskedFor.end())
         mapAlreadyAskedFor.update(it, nRequestTime);
     else

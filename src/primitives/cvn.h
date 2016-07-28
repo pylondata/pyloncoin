@@ -79,7 +79,6 @@ public:
         nSignerId  = signature.nSignerId;
         vSignature = signature.vSignature;
         this->hashPrevBlock = hashPrevBlock;
-
         this->nCreatorId = nCreatorId;
     }
 

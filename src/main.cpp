@@ -4914,13 +4914,15 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         mapAlreadyAskedFor.erase(inv.hash);
 
         if (!AlreadyHave(inv)) {
-            LogPrint("net", "received chain signature %s (hasPrev: %s)\n", msg.GetHash().ToString(), msg.hashPrevBlock.ToString());
             if (msg.hashPrevBlock != chainActive.Tip()->GetBlockHash())
                 LogPrintf("received outdated CVN signature from peer %d for tip %s signed by 0x%08x\n", pfrom->id, msg.hashPrevBlock.ToString(), msg.nSignerId);
-            else if (AddCvnSignature(msg.GetCvnSignature(), msg.hashPrevBlock, msg.nCreatorId))
-                RelayCvnSignature(msg);
-            else
-                LogPrintf("received invalid signature data %s\n", msg.ToString());
+            else {
+                LogPrint("net", "received chain signature %s for tip %s\n", msg.GetHash().ToString(), msg.hashPrevBlock.ToString());
+                if (AddCvnSignature(msg.GetCvnSignature(), msg.hashPrevBlock, msg.nCreatorId))
+                    RelayCvnSignature(msg);
+                else
+                    LogPrintf("received invalid signature data %s\n", msg.ToString());
+            }
         } else
             LogPrint("net", "AlreadyHave sig %s\n", msg.hashPrevBlock.ToString());
     }
@@ -5963,13 +5965,12 @@ bool SendMessages(CNode* pto)
 
             const uint256& hashTip = chainActive.Tip()->GetBlockHash();
             BOOST_FOREACH(const uint256& hash, pto->vInventoryChainSignaturesToSend) {
-                CInv inv(MSG_CVN_SIGNATURE, hash);
-
                 if (mapRelaySigs.count(hash)) {
                     CCvnSignatureMsg& msg = mapRelaySigs[hash];
 
                     // we only relay signatures for the active chain tip
                     if (msg.hashPrevBlock == hashTip) {
+                        CInv inv(MSG_CVN_SIGNATURE, hash);
                         vInv.push_back(inv);
                         if (vInv.size() == MAX_INV_SZ) {
                             pto->PushMessage(NetMsgType::INV, vInv);
@@ -5986,13 +5987,12 @@ bool SendMessages(CNode* pto)
             // Handle: PoC chain data
             //
             BOOST_FOREACH(const uint256& hash, pto->vInventoryChainDataToSend) {
-                CInv inv(MSG_POC_CHAIN_DATA, hash);
-
                 if (mapRelayChainData.count(hash)) {
                     CChainDataMsg& msg = mapRelayChainData[hash];
 
                     // we only relay chain data for the active chain tip
                     if (msg.hashPrevBlock == hashTip) {
+                        CInv inv(MSG_POC_CHAIN_DATA, hash);
                         vInv.push_back(inv);
                         if (vInv.size() == MAX_INV_SZ) {
                             pto->PushMessage(NetMsgType::INV, vInv);
