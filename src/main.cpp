@@ -5976,8 +5976,7 @@ bool SendMessages(CNode* pto)
                             pto->PushMessage(NetMsgType::INV, vInv);
                             vInv.clear();
                         }
-                    } else
-                        mapRelaySigs.erase(hash);
+                    }
                 }
 
             }
@@ -5998,8 +5997,7 @@ bool SendMessages(CNode* pto)
                             pto->PushMessage(NetMsgType::INV, vInv);
                             vInv.clear();
                         }
-                    } else
-                        mapRelayChainData.erase(hash);
+                    }
                 }
             }
             pto->vInventoryChainDataToSend.clear();

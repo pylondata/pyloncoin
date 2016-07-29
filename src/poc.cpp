@@ -255,7 +255,8 @@ void RelayCvnSignature(const CCvnSignatureMsg& msg)
         }
 
         mapRelaySigs.insert(std::make_pair(inv.hash, msg));
-        vRelayExpiration.push_back(std::make_pair(GetTime() + dynParams.nBlockSpacing, inv.hash));
+        // we keep them around for 30min. so AlreadyHave() works properly
+        vRelayExpiration.push_back(std::make_pair(GetTime() + 1800, inv.hash));
     }
 
     LOCK(cs_vNodes);
