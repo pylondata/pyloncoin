@@ -1121,7 +1121,7 @@ CPubKey CWallet::GenerateNewHDMasterKey()
 
         // write the key&metadata to the database
         if (!AddKeyPubKey(key, pubkey))
-            throw std::runtime_error("CWallet::GenerateNewKey(): AddKey failed");
+            throw std::runtime_error("CWallet::GenerateNewHDMasterKey(): AddKey failed");
     }
 
     return pubkey;
