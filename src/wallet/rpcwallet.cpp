@@ -18,10 +18,12 @@
 #include "utilmoneystr.h"
 #include "wallet.h"
 #include "walletdb.h"
+#include "coincontrol.h"
 
 #include <stdint.h>
 
 #include <boost/assign/list_of.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 #include <univalue.h>
 
@@ -956,7 +958,7 @@ UniValue sendmany(const UniValue& params, bool fHelp)
             "      ,...\n"
             "    }\n"
             "3. minconf                 (numeric, optional, default=1) Only use the balance confirmed at least this many times.\n"
-            "4. \"comment\"             (string, optional) A comment\n"
+            "4. \"comment\"             (string, optional) A comment, if the comment starts with 'change:' the remaining characters are used as the change address\n"
             "5. subtractfeefromamount   (string, optional) A json array with addresses.\n"
             "                           The fee will be equally deducted from the amount of each selected address.\n"
             "                           Those recipients will receive less bitcoins than you enter in their corresponding amount field.\n"
@@ -987,10 +989,20 @@ UniValue sendmany(const UniValue& params, bool fHelp)
     if (params.size() > 2)
         nMinDepth = params[2].get_int();
 
+    CCoinControl coinControl;
     CWalletTx wtx;
     wtx.strFromAccount = strAccount;
-    if (params.size() > 3 && !params[3].isNull() && !params[3].get_str().empty())
-        wtx.mapValue["comment"] = params[3].get_str();
+    if (params.size() > 3 && !params[3].isNull() && !params[3].get_str().empty()) {
+        if (boost::algorithm::starts_with(params[3].get_str(), "change:")) {
+            CBitcoinAddress changeAddress(params[3].get_str().substr(7));
+            if (!changeAddress.IsValid())
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid FairCoin address: ") + changeAddress.ToString());
+            coinControl.destChange = changeAddress.Get();
+            LogPrintf("Change address is %s\n", changeAddress.ToString());
+        }
+        else
+            wtx.mapValue["comment"] = params[3].get_str();
+    }
 
     UniValue subtractFeeFromAmount(UniValue::VARR);
     if (params.size() > 4)
@@ -1005,7 +1017,7 @@ UniValue sendmany(const UniValue& params, bool fHelp)
     {
         CBitcoinAddress address(name_);
         if (!address.IsValid())
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Bitcoin address: ")+name_);
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid FairCoin address: ")+name_);
 
         if (setAddress.count(address))
             throw JSONRPCError(RPC_INVALID_PARAMETER, string("Invalid parameter, duplicated address: ")+name_);
@@ -1040,9 +1052,10 @@ UniValue sendmany(const UniValue& params, bool fHelp)
     CAmount nFeeRequired = 0;
     int nChangePosRet = -1;
     string strFailReason;
-    bool fCreated = pwalletMain->CreateTransaction(vecSend, wtx, keyChange, nFeeRequired, nChangePosRet, strFailReason);
+    bool fCreated = pwalletMain->CreateTransaction(vecSend, wtx, keyChange, nFeeRequired, nChangePosRet, strFailReason, &coinControl);
     if (!fCreated)
         throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strFailReason);
+
     if (!pwalletMain->CommitTransaction(wtx, keyChange))
         throw JSONRPCError(RPC_WALLET_ERROR, "Transaction commit failed");
 
