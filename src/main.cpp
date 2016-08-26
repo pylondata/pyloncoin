@@ -3050,40 +3050,44 @@ static bool CheckIndexAgainstCheckpoint(const CBlockIndex* pindexPrev, CValidati
 
 bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& state, CBlockIndex * const pindexPrev, bool fCheckSignatures)
 {
-    //const Consensus::Params& consensusParams = Params().GetConsensus();
-    //TODO: Check proof of cooperation
     LogPrint("cvn", "ContextualCheckBlockHeader : checking # of sigs: Prev: %u, This: %u\n", pindexPrev->vSignatures.size(), block.vSignatures.size());
-    if (fCheckSignatures && pindexPrev->vSignatures.size() > 1 && ((float)pindexPrev->vSignatures.size() / (float)2 >= (float)block.vSignatures.size())) {
-        return state.Invalid(error("%s: not enough signatures available. Prev: %u, This: %u", __func__,
-                pindexPrev->vSignatures.size(), block.vSignatures.size()),
-                                     REJECT_INVALID, "not-enough-sigs");
+
+    // only do advanced checks if we have a decrease in number of signatures
+    if (fCheckSignatures && pindexPrev->vSignatures.size() > block.vSignatures.size()) {
+        // calculate the mean of the number of the signatures from
+        // the last BLOCKS_TO_CONSIDER_FOR_SIG_CHECK blocks
+        CBlockIndex *pindex = pindexPrev;
+        size_t nSignatures = 0;
+        uint32_t nBlocks = 0;
+
+        while (nBlocks++ < BLOCKS_TO_CONSIDER_FOR_SIG_CHECK && pindex != NULL) {
+            nSignatures += pindex->vSignatures.size();
+            pindex = pindex->pprev;
+        }
+
+        float nSignatureMean = nBlocks ? (float) nSignatures / (float) nBlocks : 0.0f;
+
+        // this block requires at least 70% of the number of nSignatureMean
+        if ((float) block.vSignatures.size() < nSignatureMean * 0.7) {
+            LogPrintf("ContextualCheckBlockHeader : past signatures [");
+            CBlockIndex *pindexDebug = pindexPrev;
+            uint8_t i = 0;
+            while (i++ < BLOCKS_TO_CONSIDER_FOR_SIG_CHECK && pindexDebug != NULL) {
+                LogPrintf("%s%02u", i == 1 ? " " : ", ", pindexDebug->vSignatures.size());
+                pindexDebug = pindexDebug->pprev;
+            }
+            LogPrintf(" ], nSignatureMean: %f, nBlock: %u\n", nSignatureMean, nBlocks);
+            return state.Invalid(error("%s: not enough signatures available in this block. Mean: %f, This: %u", __func__,
+                    nSignatureMean, block.vSignatures.size()),
+                             REJECT_INVALID, "not-enough-sigs");
+        }
     }
-//    if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams))
-//        return state.DoS(100, error("%s: incorrect proof of work", __func__),
-//                         REJECT_INVALID, "bad-diffbits");
 
     // Check timestamp against prev
-    if (block.GetBlockTime() <= pindexPrev->GetMedianTimePast())
+    if (block.GetBlockTime() <= pindexPrev->GetBlockTime())
         return state.Invalid(error("%s: block's timestamp is too early", __func__),
                              REJECT_INVALID, "time-too-old");
 
-    // checks do not apply to the FairCoin network
-#if 0
-    // Reject block.nVersion=1 blocks when 95% (75% on testnet) of the network has upgraded:
-    if (block.nVersion < 2 && IsSuperMajority(2, pindexPrev, consensusParams.nMajorityRejectBlockOutdated, consensusParams))
-        return state.Invalid(error("%s: rejected nVersion=1 block", __func__),
-                             REJECT_OBSOLETE, "bad-version");
-
-    // Reject block.nVersion=2 blocks when 95% (75% on testnet) of the network has upgraded:
-    if (block.nVersion < 3 && IsSuperMajority(3, pindexPrev, consensusParams.nMajorityRejectBlockOutdated, consensusParams))
-        return state.Invalid(error("%s: rejected nVersion=2 block", __func__),
-                             REJECT_OBSOLETE, "bad-version");
-
-    // Reject block.nVersion=3 blocks when 95% (75% on testnet) of the network has upgraded:
-    if (block.nVersion < 4 && IsSuperMajority(4, pindexPrev, consensusParams.nMajorityRejectBlockOutdated, consensusParams))
-        return state.Invalid(error("%s : rejected nVersion=3 block", __func__),
-                             REJECT_OBSOLETE, "bad-version");
-#endif
     return true;
 }
 

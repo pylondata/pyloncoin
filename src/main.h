@@ -118,6 +118,9 @@ static const bool DEFAULT_TESTSAFEMODE = false;
 /** Default for -mempoolreplacement */
 static const bool DEFAULT_ENABLE_REPLACEMENT = true;
 
+/** The number of blocks to consider for calculation if the mean number of signature */
+#define BLOCKS_TO_CONSIDER_FOR_SIG_CHECK 10
+
 /** Maximum number of headers to announce when relaying blocks with headers message.*/
 static const unsigned int MAX_BLOCKS_TO_ANNOUNCE = 8;
 
