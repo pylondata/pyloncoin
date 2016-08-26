@@ -79,7 +79,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const u
 
     ///////// TRANSACTIONS
     UniValue txs(UniValue::VARR);
-    BOOST_FOREACH(const CTransaction&tx, block.vtx)
+    BOOST_FOREACH(const CTransaction& tx, block.vtx)
     {
         if (nMode >= 5)
         {
@@ -103,11 +103,11 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const u
 
     ///////// CVN INFO
     UniValue cvns(UniValue::VARR);
-    BOOST_FOREACH(const CCvnInfo&cvn, block.vCvns)
+    BOOST_FOREACH(const CCvnInfo& cvn, block.vCvns)
     {
         UniValue objCvn(UniValue::VOBJ);
         objCvn.push_back(Pair("nodeId", strprintf("0x%08x", cvn.nNodeId)));
-        objCvn.push_back(Pair("heightAdded", (int)cvn.nHeightAdded));
+        objCvn.push_back(Pair("heightAdded", (int) cvn.nHeightAdded));
         if (nMode >= 3)
             objCvn.push_back(Pair("pubKey", HexStr(cvn.vPubKey)));
 
@@ -126,26 +126,27 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const u
 
     ///////// ADMIN INFO
     UniValue admins(UniValue::VARR);
-    BOOST_FOREACH(const CChainAdmin&admin, block.vChainAdmins)
+    BOOST_FOREACH(const CChainAdmin& admin, block.vChainAdmins)
     {
         UniValue objAdmin(UniValue::VOBJ);
         objAdmin.push_back(Pair("adminId", strprintf("0x%08x", admin.nAdminId)));
+        objAdmin.push_back(Pair("heightAdded", (int) admin.nHeightAdded));
         if (nMode >= 3)
             objAdmin.push_back(Pair("pubKey", HexStr(admin.vPubKey)));
 
         admins.push_back(objAdmin);
     }
-    result.push_back(Pair("admins", admins));
+    result.push_back(Pair("chainAdmins", admins));
 
     if (nMode < 4)
         return result;
 
     ///////// CVN SIGNATURES
     UniValue signatures(UniValue::VARR);
-    BOOST_FOREACH(const CCvnSignature&sig, block.vSignatures)
+    BOOST_FOREACH(const CCvnSignature& sig, block.vSignatures)
     {
         UniValue objSignature(UniValue::VOBJ);
-        objSignature.push_back(Pair("version", (int)sig.nVersion));
+        objSignature.push_back(Pair("version", (int) sig.nVersion));
         objSignature.push_back(Pair("signerId", strprintf("0x%08x", sig.nSignerId)));
         objSignature.push_back(Pair("signature", HexStr(sig.vSignature)));
 
@@ -155,10 +156,10 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const u
 
     ///////// ADMIN SIGNATURES
     UniValue adminSignatures(UniValue::VARR);
-    BOOST_FOREACH(const CCvnSignature&sig, block.vAdminSignatures)
+    BOOST_FOREACH(const CCvnSignature& sig, block.vAdminSignatures)
     {
         UniValue objSignature(UniValue::VOBJ);
-        objSignature.push_back(Pair("version", (int)sig.nVersion));
+        objSignature.push_back(Pair("version", (int) sig.nVersion));
         objSignature.push_back(Pair("adminId", strprintf("0x%08x", sig.nSignerId)));
         objSignature.push_back(Pair("signature", HexStr(sig.vSignature)));
 

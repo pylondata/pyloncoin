@@ -86,9 +86,9 @@ public:
         genesis.vCvns[0] = CCvnInfo(GENESIS_NODE_ID, 0, ParseHex("04f69bd29a5e2b8d0f5c185fcc421d11556c071788de07d3d194ded04721afaa652ad75a649a0dac8f576e484392af68f5c31ab0ef5e3432baf8b14b6ad8b1262c"));
 
         genesis.vChainAdmins.resize(3);
-        genesis.vChainAdmins[0] = CChainAdmin(0xad000001, ParseHex("04a1fe3aee6cd4b05d06cd7c686cf45a7820a9e28adb090e6576e8885f1013a829e1bbee64001b22d54825932e7602a04adf1e2511f765c6ab9792482b58063494"));
-        genesis.vChainAdmins[1] = CChainAdmin(0xad000002, ParseHex("045420bd35ada00cee9a194eb4cde20ff6f18b55235ac3ce5cbccbbbe97caa00d610c19d5006bf4193fe45e2c5a380f6a490972bedbda7d875de83478604eb0043"));
-        genesis.vChainAdmins[2] = CChainAdmin(0xad000003, ParseHex("044bf8939429e9f53b8b8f8b5bd07bc72b056bc58414eb319c050a4d7ab4a8de0053a694a1f35e80db4c480f5de25ca8e1a0d5b289138f055b04945e73e964c417"));
+        genesis.vChainAdmins[0] = CChainAdmin(0xad000001, 0, ParseHex("04a1fe3aee6cd4b05d06cd7c686cf45a7820a9e28adb090e6576e8885f1013a829e1bbee64001b22d54825932e7602a04adf1e2511f765c6ab9792482b58063494"));
+        genesis.vChainAdmins[1] = CChainAdmin(0xad000002, 0, ParseHex("045420bd35ada00cee9a194eb4cde20ff6f18b55235ac3ce5cbccbbbe97caa00d610c19d5006bf4193fe45e2c5a380f6a490972bedbda7d875de83478604eb0043"));
+        genesis.vChainAdmins[2] = CChainAdmin(0xad000003, 0, ParseHex("044bf8939429e9f53b8b8f8b5bd07bc72b056bc58414eb319c050a4d7ab4a8de0053a694a1f35e80db4c480f5de25ca8e1a0d5b289138f055b04945e73e964c417"));
 
         genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
 
@@ -172,9 +172,9 @@ public:
         genesis.vCvns[0] = CCvnInfo(GENESIS_NODE_ID, 0, ParseHex("04f69bd29a5e2b8d0f5c185fcc421d11556c071788de07d3d194ded04721afaa652ad75a649a0dac8f576e484392af68f5c31ab0ef5e3432baf8b14b6ad8b1262c"));
 
         genesis.vChainAdmins.resize(3);
-        genesis.vChainAdmins[0] = CChainAdmin(0xad000001, ParseHex("04a1fe3aee6cd4b05d06cd7c686cf45a7820a9e28adb090e6576e8885f1013a829e1bbee64001b22d54825932e7602a04adf1e2511f765c6ab9792482b58063494"));
-        genesis.vChainAdmins[1] = CChainAdmin(0xad000002, ParseHex("045420bd35ada00cee9a194eb4cde20ff6f18b55235ac3ce5cbccbbbe97caa00d610c19d5006bf4193fe45e2c5a380f6a490972bedbda7d875de83478604eb0043"));
-        genesis.vChainAdmins[2] = CChainAdmin(0xad000003, ParseHex("044bf8939429e9f53b8b8f8b5bd07bc72b056bc58414eb319c050a4d7ab4a8de0053a694a1f35e80db4c480f5de25ca8e1a0d5b289138f055b04945e73e964c417"));
+        genesis.vChainAdmins[0] = CChainAdmin(0xad000001, 0, ParseHex("04a1fe3aee6cd4b05d06cd7c686cf45a7820a9e28adb090e6576e8885f1013a829e1bbee64001b22d54825932e7602a04adf1e2511f765c6ab9792482b58063494"));
+        genesis.vChainAdmins[1] = CChainAdmin(0xad000002, 0, ParseHex("045420bd35ada00cee9a194eb4cde20ff6f18b55235ac3ce5cbccbbbe97caa00d610c19d5006bf4193fe45e2c5a380f6a490972bedbda7d875de83478604eb0043"));
+        genesis.vChainAdmins[2] = CChainAdmin(0xad000003, 0, ParseHex("044bf8939429e9f53b8b8f8b5bd07bc72b056bc58414eb319c050a4d7ab4a8de0053a694a1f35e80db4c480f5de25ca8e1a0d5b289138f055b04945e73e964c417"));
 
         genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
 

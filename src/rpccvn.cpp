@@ -73,7 +73,7 @@ static void AddCvnInfoToMsg(CChainDataMsg &msg, const uint32_t nNodeId, const ui
     msg.vCvns[index] = cvn;
 }
 
-static void AddChainAdminToMsg(CChainDataMsg &msg, const uint32_t nAdminId, const vector<unsigned char> vPubKey)
+static void AddChainAdminToMsg(CChainDataMsg &msg, const uint32_t nAdminId, const uint32_t nHeightAdded, const vector<unsigned char> vPubKey)
 {
     msg.nPayload |= CChainDataMsg::CHAIN_ADMINS_PAYLOAD;
     msg.vChainAdmins.resize(mapChainAdmins.size() + 1);
@@ -84,7 +84,7 @@ static void AddChainAdminToMsg(CChainDataMsg &msg, const uint32_t nAdminId, cons
         msg.vChainAdmins[index++] = cvn.second;
     }
 
-    CChainAdmin admin(nAdminId, vPubKey);
+    CChainAdmin admin(nAdminId, nHeightAdded, vPubKey);
     msg.vChainAdmins[index] = admin;
 }
 
@@ -231,7 +231,7 @@ UniValue addcvn(const UniValue& params, bool fHelp)
         if (fAddCvn)
             AddCvnInfoToMsg(msg, nNodeId, chainActive.Tip()->nHeight + 1, vPubKey);
         else
-            AddChainAdminToMsg(msg, nNodeId, vPubKey);
+            AddChainAdminToMsg(msg, nNodeId, chainActive.Tip()->nHeight + 1, vPubKey);
     }
 
     if (params[4].isObject() && !params[4].get_obj().getKeys().empty())

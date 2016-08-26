@@ -154,6 +154,7 @@ class CChainAdmin
 public:
 
     uint32_t nAdminId;
+    uint32_t nHeightAdded;
     vector<unsigned char> vPubKey;
 
     CChainAdmin()
@@ -161,9 +162,10 @@ public:
         SetNull();
     }
 
-    CChainAdmin(const uint32_t nAdminId, const vector<unsigned char> vPubKey)
+    CChainAdmin(const uint32_t nAdminId, const uint32_t nHeightAdded, const vector<unsigned char> vPubKey)
     {
         this->nAdminId = nAdminId;
+        this->nHeightAdded = nHeightAdded;
         this->vPubKey = vPubKey;
     }
 
@@ -172,12 +174,14 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(nAdminId);
+        READWRITE(nHeightAdded);
         READWRITE(vPubKey);
     }
 
     void SetNull()
     {
         nAdminId = 0;
+        nHeightAdded = 0;
         vPubKey.clear();
     }
 

@@ -72,8 +72,8 @@ std::string CCvnInfo::ToString() const
 std::string CChainAdmin::ToString() const
 {
     std::stringstream s;
-    s << strprintf("CChainAdmin(adminId=0x%08x, pubkey=%s)",
-        nAdminId,
+    s << strprintf("CChainAdmin(adminId=0x%08x, heightAdded=%u, pubkey=%s)",
+        nAdminId, nHeightAdded,
         HexStr(vPubKey));
     return s.str();
 }
