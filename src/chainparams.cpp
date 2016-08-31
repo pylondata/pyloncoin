@@ -28,7 +28,7 @@ static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nCreatorId, const CDyn
     txNew.nVersion = 1;
     txNew.vin.resize(1);
     txNew.vout.resize(1);
-    txNew.vin[0].scriptSig = CScript() << GENESIS_NODE_ID;
+    txNew.vin[0].scriptSig = CScript() << 0 << GENESIS_NODE_ID << OP_0; // serialized block height + genesis node ID
     txNew.vout[0].nValue = 0;
     txNew.vout[0].scriptPubKey = CScript() << ParseHex("04e27d35f6f56ab5a1974cc9bd59a9e0a130d5269487a5c061c15ce837e188b8a9f85bab72168c1a1570d5fdffa3c0acc04f4824446919f96be90a007738040c88") << OP_CHECKSIG;
 
