@@ -95,13 +95,15 @@ static void AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
 
     CDynamicChainParams& params = msg.dynamicChainParams;
 
-    params.nBlockSpacing            = dynParams.nBlockSpacing;
-    params.nBlockSpacingGracePeriod = dynParams.nBlockSpacingGracePeriod;
-    params.nTransactionFee          = dynParams.nTransactionFee;
-    params.nDustThreshold           = dynParams.nDustThreshold;
-    params.nMaxAdminSigs            = dynParams.nMaxAdminSigs;
-    params.nMinAdminSigs            = dynParams.nMinAdminSigs;
-    params.nMinSuccessiveSignatures = dynParams.nMinSuccessiveSignatures;
+    params.nBlockSpacing                = dynParams.nBlockSpacing;
+    params.nBlockSpacingGracePeriod     = dynParams.nBlockSpacingGracePeriod;
+    params.nTransactionFee              = dynParams.nTransactionFee;
+    params.nDustThreshold               = dynParams.nDustThreshold;
+    params.nMaxAdminSigs                = dynParams.nMaxAdminSigs;
+    params.nMinAdminSigs                = dynParams.nMinAdminSigs;
+    params.nMinSuccessiveSignatures     = dynParams.nMinSuccessiveSignatures;
+    params.nBlocksToConsiderForSigCheck = dynParams.nBlocksToConsiderForSigCheck;
+    params.nPercentageOfSignaturesMean  = dynParams.nPercentageOfSignaturesMean;
 
     vector<string> paramsList = jsonParams.getKeys();
     BOOST_FOREACH(const string& key, paramsList) {
@@ -120,6 +122,10 @@ static void AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
             params.nMinAdminSigs = jsonParams[key].get_int();
         } else if (key == "nMinSuccessiveSignatures") {
             params.nMinSuccessiveSignatures = jsonParams[key].get_int();
+        } else if (key == "nBlocksToConsiderForSigCheck") {
+            params.nBlocksToConsiderForSigCheck = jsonParams[key].get_int();
+        } else if (key == "nPercentageOfSignaturesMean") {
+            params.nPercentageOfSignaturesMean = jsonParams[key].get_int();
         }
     }
 }
@@ -494,6 +500,8 @@ void DynamicChainparametersToJSON(CDynamicChainParams& cp, UniValue& result)
     result.push_back(Pair("transactionFee", (int)cp.nTransactionFee));
     result.push_back(Pair("dustThreshold", (int)cp.nDustThreshold));
     result.push_back(Pair("minSuccessiveSignatures", (int)cp.nMinSuccessiveSignatures));
+    result.push_back(Pair("nBlocksToConsiderForSigCheck", (int)cp.nBlocksToConsiderForSigCheck));
+    result.push_back(Pair("nPercentageOfSignaturesMean", (int)cp.nPercentageOfSignaturesMean));
 }
 
 UniValue getchainparameters(const UniValue& params, bool fHelp)

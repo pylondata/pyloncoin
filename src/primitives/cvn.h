@@ -196,7 +196,7 @@ public:
     static const uint32_t CURRENT_VERSION = 1;
     uint32_t nVersion;
 
-    // chain admin signatures
+    /** chain admin signatures */
     uint32_t nMinAdminSigs;
     uint32_t nMaxAdminSigs;
 
@@ -205,9 +205,15 @@ public:
 
     CAmount nTransactionFee; // in µFAIR
     CAmount nDustThreshold; // in µFAIR
-    // for a node to create the next block it needs to have co-signed
-    // the last nMinSuccessiveSignatures blocks
+    /** for a node to create the next block it needs to have co-signed
+    /** the last nMinSuccessiveSignatures blocks */
     uint32_t nMinSuccessiveSignatures;
+
+    /** The number of blocks to consider for calculation of the mean number of signature */
+    uint32_t nBlocksToConsiderForSigCheck;
+
+    /** minimum percentage of the number of nSignatureMean that are required to create the next block */
+    uint32_t nPercentageOfSignaturesMean;
 
     CDynamicChainParams()
     {
@@ -227,6 +233,8 @@ public:
         READWRITE(nTransactionFee);
         READWRITE(nDustThreshold);
         READWRITE(nMinSuccessiveSignatures);
+        READWRITE(nBlocksToConsiderForSigCheck);
+        READWRITE(nPercentageOfSignaturesMean);
     }
 
     void SetNull()
@@ -239,6 +247,8 @@ public:
         nTransactionFee = 0;
         nDustThreshold = 0;
         nMinSuccessiveSignatures = 0;
+        nBlocksToConsiderForSigCheck = 0;
+        nPercentageOfSignaturesMean = 0;
     }
 
     uint256 GetHash() const;

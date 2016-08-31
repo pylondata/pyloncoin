@@ -1957,14 +1957,6 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     uint256 hashPrevBlock = pindex->pprev == NULL ? uint256() : pindex->pprev->GetBlockHash();
     assert(hashPrevBlock == view.GetBestBlock());
 
-    // Special case for the genesis block, skipping connection of its transactions
-    // (its coinbase is unspendable)
-    if (block.GetHash() == chainparams.GetConsensus().hashGenesisBlock) {
-        if (!fJustCheck)
-            view.SetBestBlock(pindex->GetBlockHash());
-        return true;
-    }
-
     bool fScriptChecks = true;
     if (fCheckpointsEnabled) {
         CBlockIndex *pindexLastCheckpoint = Checkpoints::GetLastCheckpoint(chainparams.Checkpoints());
@@ -3055,24 +3047,24 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
     // only do advanced checks if we have a decrease in number of signatures
     if (fCheckSignatures && pindexPrev->vSignatures.size() > block.vSignatures.size()) {
         // calculate the mean of the number of the signatures from
-        // the last BLOCKS_TO_CONSIDER_FOR_SIG_CHECK blocks
+        // the last dynParams.nBlocksToConsiderForSigCheck blocks
         CBlockIndex *pindex = pindexPrev;
         size_t nSignatures = 0;
         uint32_t nBlocks = 0;
 
-        while (nBlocks++ < BLOCKS_TO_CONSIDER_FOR_SIG_CHECK && pindex != NULL) {
+        while (nBlocks++ < dynParams.nBlocksToConsiderForSigCheck && pindex != NULL) {
             nSignatures += pindex->vSignatures.size();
             pindex = pindex->pprev;
         }
 
-        float nSignatureMean = nBlocks ? (float) nSignatures / (float) nBlocks : 0.0f;
+        float nSignatureMean = nBlocks ? (float) nSignatures / (float) nBlocks : 0f;
 
-        // this block requires at least 70% of the number of nSignatureMean
-        if ((float) block.vSignatures.size() < nSignatureMean * 0.7) {
+        // this block requires at least dynParams.nPercentageOfSignatureMean of the number of nSignatureMean
+        if ((float) block.vSignatures.size() < nSignatureMean * ((float)dynParams.nPercentageOfSignaturesMean / 100f)) {
             LogPrintf("ContextualCheckBlockHeader : past signatures [");
             CBlockIndex *pindexDebug = pindexPrev;
             uint8_t i = 0;
-            while (i++ < BLOCKS_TO_CONSIDER_FOR_SIG_CHECK && pindexDebug != NULL) {
+            while (i++ < dynParams.nBlocksToConsiderForSigCheck && pindexDebug != NULL) {
                 LogPrintf("%s%02u", i == 1 ? " " : ", ", pindexDebug->vSignatures.size());
                 pindexDebug = pindexDebug->pprev;
             }

@@ -36,6 +36,10 @@ typedef map<uint32_t, uint32_t> BannedCVNMapType; // nCreatorID/nHeight at which
 #define MIN_DUST_THRESHOLD 1000
 #define MAX_TX_FEE_THRESHOLD 1 * COIN
 #define MIN_TX_FEE_THRESHOLD 1000
+#define MIN_BLOCKS_TO_CONSIDER_FOR_SIG_CHECK 1
+#define MAX_BLOCKS_TO_CONSIDER_FOR_SIG_CHECK 100
+#define MIN_PERCENTAGE_OF_SIGNATURES_MEAN 33
+#define MAX_PERCENTAGE_OF_SIGNATURES_MEAN 100
 
 #define __DBG_ LogPrintf("DEBUG: In file %s in function %s in line %d\n", __FILE__, __func__, __LINE__);
 

@@ -79,6 +79,8 @@ public:
         dynParams.nTransactionFee          = 10 * CENT; // 0.1 FAIR per Kb
         dynParams.nDustThreshold           = 10 * CENT; // 0.1 FAIR
         dynParams.nMinSuccessiveSignatures = 1;
+        dynParams.nBlocksToConsiderForSigCheck = 1;
+        dynParams.nPercentageOfSignaturesMean = 70; // 70%
 
         genesis = CreateGenesisBlock(1472220949, GENESIS_NODE_ID, dynParams);
 
@@ -161,6 +163,8 @@ public:
         dynParams.nTransactionFee          = 10 * CENT; // 0.1 FAIR
         dynParams.nDustThreshold           = 10 * CENT; // 0.1 FAIR
         dynParams.nMinSuccessiveSignatures = 1;
+        dynParams.nBlocksToConsiderForSigCheck = 1;
+        dynParams.nPercentageOfSignaturesMean = 70; // 70%
 
         genesis = CreateGenesisBlock(1472220950, GENESIS_NODE_ID, dynParams);
 
@@ -244,6 +248,8 @@ public:
         dynParams.nTransactionFee          = 10 * CENT; // 0.1 FAIR
         dynParams.nDustThreshold           = 10 * CENT; // 0.1 FAIR
         dynParams.nMinSuccessiveSignatures = 1;
+        dynParams.nBlocksToConsiderForSigCheck = 1;
+        dynParams.nPercentageOfSignaturesMean = 70; // 70%
 
         genesis = CreateGenesisBlock(1472220951, GENESIS_NODE_ID, dynParams);
 

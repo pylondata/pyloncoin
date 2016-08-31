@@ -391,22 +391,32 @@ void UpdateChainAdmins(const CBlock* pblock)
 bool CheckDynamicChainParameters(const CDynamicChainParams& params)
 {
     if (params.nBlockSpacing > MAX_BLOCK_SPACING || params.nBlockSpacing < MIN_BLOCK_SPACING) {
-        LogPrintf("CheckChainParameters : ERROR, block spacing %u exceeds limit\n", params.nBlockSpacing);
+        LogPrintf("CheckDynamicChainParameters : ERROR, block spacing %u exceeds limit\n", params.nBlockSpacing);
         return false;
     }
 
     if (params.nTransactionFee > MAX_TX_FEE_THRESHOLD || params.nDustThreshold < MIN_TX_FEE_THRESHOLD) {
-        LogPrintf("CheckChainParameters : ERROR, tx fee threshold %u exceeds limit\n", params.nTransactionFee);
+        LogPrintf("CheckDynamicChainParameters : ERROR, tx fee threshold %u exceeds limit\n", params.nTransactionFee);
         return false;
     }
 
     if (params.nDustThreshold > MAX_DUST_THRESHOLD || params.nDustThreshold < MIN_DUST_THRESHOLD) {
-        LogPrintf("CheckChainParameters : ERROR, dust threshold %u exceeds limit\n", params.nDustThreshold);
+        LogPrintf("CheckDynamicChainParameters : ERROR, dust threshold %u exceeds limit\n", params.nDustThreshold);
         return false;
     }
 
     if (!params.nMinAdminSigs || params.nMinAdminSigs > params.nMaxAdminSigs) {
-        LogPrintf("CheckChainParameters : ERROR, number of CVN signers %u/%u exceeds limit\n", params.nMinAdminSigs, params.nMaxAdminSigs);
+        LogPrintf("CheckDynamicChainParameters : ERROR, number of CVN signers %u/%u exceeds limit\n", params.nMinAdminSigs, params.nMaxAdminSigs);
+        return false;
+    }
+
+    if (params.nBlocksToConsiderForSigCheck < MIN_BLOCKS_TO_CONSIDER_FOR_SIG_CHECK || params.nBlocksToConsiderForSigCheck > MAX_BLOCKS_TO_CONSIDER_FOR_SIG_CHECK) {
+        LogPrintf("CheckDynamicChainParameters : ERROR, %u blocksToConsiderForSigCheck is out of bounds\n", params.nBlocksToConsiderForSigCheck);
+        return false;
+    }
+
+    if (params.nPercentageOfSignaturesMean < MIN_PERCENTAGE_OF_SIGNATURES_MEAN || params.nPercentageOfSignaturesMean > MAX_PERCENTAGE_OF_SIGNATURES_MEAN) {
+        LogPrintf("CheckDynamicChainParameters : ERROR, %u nPercentageOfSignatureMean is out of bounds\n", params.nPercentageOfSignaturesMean);
         return false;
     }
 
