@@ -129,21 +129,4 @@ If you are interested in setup a CVN, write us at cvn@fair-coin.org. Around the 
 
 We will be able to begin when at least 15 CVN are ready. After that, the open process will continue to welcome more CVNs to secure the network further.
 
-More info and discussions in: https://fair.coop/groups/faircoop-community/faircoin/faircoin2/
-
--------------------------------
-
-To join as a CVN the following information is needed:
-
-- Nickname of individual or name of collective / NGO / company
-- Contact person name
-- Main E-mail address
-- Backup person name
-- Backup person E-Mail address
-- City/Region where you are based and will run the CVN
-- Are you participating in the FairCoop ecosystem? How?
-- Experience in other activities with the same principles as FairCoop.
-- Active Participation in other projects connected to FairCoin.
-- Can you prove online presence related your profile? (fair.coop bitcointalk, twitter, facebook, etc...)
-
-After that, we are going to contact you and confirm if your application will be discussed by the global CVN working group or by a local node close to your location.
+More information and discussion is avaiable here: https://fair.coop/groups/faircoop-community/faircoin/faircoin2/
