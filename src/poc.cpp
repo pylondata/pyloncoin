@@ -420,6 +420,11 @@ bool CheckDynamicChainParameters(const CDynamicChainParams& params)
         return false;
     }
 
+    if (params.nMaxBlockSize < MIN_SIZE_OF_BLOCK || params.nMaxBlockSize > MAX_SIZE_OF_BLOCK) {
+        LogPrintf("CheckDynamicChainParameters : ERROR, %u nMaxBlockSize is out of bounds\n", params.nMaxBlockSize);
+        return false;
+    }
+
     return true;
 }
 
@@ -434,13 +439,16 @@ void UpdateChainParameters(const CBlock* pblock)
 
     CheckDynamicChainParameters(pblock->dynamicChainParams);
 
-    dynParams.nBlockSpacing              = pblock->dynamicChainParams.nBlockSpacing;
-    dynParams.nBlockSpacingGracePeriod   = pblock->dynamicChainParams.nBlockSpacingGracePeriod;
-    dynParams.nTransactionFee            = pblock->dynamicChainParams.nTransactionFee;
-    dynParams.nDustThreshold             = pblock->dynamicChainParams.nDustThreshold;
-    dynParams.nMaxAdminSigs              = pblock->dynamicChainParams.nMaxAdminSigs;
-    dynParams.nMinAdminSigs              = pblock->dynamicChainParams.nMinAdminSigs;
-    dynParams.nMinSuccessiveSignatures   = pblock->dynamicChainParams.nMinSuccessiveSignatures;
+    dynParams.nBlockSpacing                = pblock->dynamicChainParams.nBlockSpacing;
+    dynParams.nBlockSpacingGracePeriod     = pblock->dynamicChainParams.nBlockSpacingGracePeriod;
+    dynParams.nTransactionFee              = pblock->dynamicChainParams.nTransactionFee;
+    dynParams.nDustThreshold               = pblock->dynamicChainParams.nDustThreshold;
+    dynParams.nMaxAdminSigs                = pblock->dynamicChainParams.nMaxAdminSigs;
+    dynParams.nMinAdminSigs                = pblock->dynamicChainParams.nMinAdminSigs;
+    dynParams.nMinSuccessiveSignatures     = pblock->dynamicChainParams.nMinSuccessiveSignatures;
+    dynParams.nBlocksToConsiderForSigCheck = pblock->dynamicChainParams.nBlocksToConsiderForSigCheck;
+    dynParams.nPercentageOfSignaturesMean  = pblock->dynamicChainParams.nPercentageOfSignaturesMean;
+    dynParams.nMaxBlockSize                = pblock->dynamicChainParams.nMaxBlockSize;
 
     ::minRelayTxFee = CFeeRate(dynParams.nTransactionFee);
 }

@@ -205,7 +205,8 @@ public:
 
     CAmount nTransactionFee; // in µFAIR
     CAmount nDustThreshold; // in µFAIR
-    /** for a node to create the next block it needs to have co-signed
+
+    /** for a node to create the next block it needs to have co-signed */
     /** the last nMinSuccessiveSignatures blocks */
     uint32_t nMinSuccessiveSignatures;
 
@@ -214,6 +215,9 @@ public:
 
     /** minimum percentage of the number of nSignatureMean that are required to create the next block */
     uint32_t nPercentageOfSignaturesMean;
+
+    /** The maximum allowed size for a serialized block */
+    uint32_t nMaxBlockSize;
 
     CDynamicChainParams()
     {
@@ -235,6 +239,7 @@ public:
         READWRITE(nMinSuccessiveSignatures);
         READWRITE(nBlocksToConsiderForSigCheck);
         READWRITE(nPercentageOfSignaturesMean);
+        READWRITE(nMaxBlockSize);
     }
 
     void SetNull()
@@ -249,6 +254,7 @@ public:
         nMinSuccessiveSignatures = 0;
         nBlocksToConsiderForSigCheck = 0;
         nPercentageOfSignaturesMean = 0;
+        nMaxBlockSize = 0;
     }
 
     uint256 GetHash() const;

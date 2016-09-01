@@ -93,8 +93,8 @@ static void PopulateBlock(const CChainParams& chainparams, CBlockTemplate& block
 
     // Largest block you're willing to create:
     unsigned int nBlockMaxSize = GetArg("-blockmaxsize", DEFAULT_BLOCK_MAX_SIZE);
-    // Limit to between 1K and MAX_BLOCK_SIZE-7K for sanity:
-    nBlockMaxSize = std::max((unsigned int)1000, std::min((unsigned int)(MAX_BLOCK_SIZE-7000), nBlockMaxSize));
+    // Limit to between 1K and dynParams.nMaxBlockSize-7K for sanity:
+    nBlockMaxSize = std::max((unsigned int)1000, std::min((unsigned int)(dynParams.nMaxBlockSize-7000), nBlockMaxSize));
 
     // How much of the block should be dedicated to high-priority transactions,
     // included regardless of the fees they pay

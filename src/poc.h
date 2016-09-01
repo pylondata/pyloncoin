@@ -30,6 +30,7 @@ typedef std::vector<uint32_t>::reverse_iterator CandidateIterator;
 typedef map<uint256, const CBlockIndex *> BlockIndexByPrevHashType;
 typedef map<uint32_t, uint32_t> BannedCVNMapType; // nCreatorID/nHeight at which it has been banned
 
+/** dynamic chain parameters range checks */
 #define MAX_BLOCK_SPACING 3600
 #define MIN_BLOCK_SPACING 30
 #define MAX_DUST_THRESHOLD 1 * COIN
@@ -40,6 +41,8 @@ typedef map<uint32_t, uint32_t> BannedCVNMapType; // nCreatorID/nHeight at which
 #define MAX_BLOCKS_TO_CONSIDER_FOR_SIG_CHECK 100
 #define MIN_PERCENTAGE_OF_SIGNATURES_MEAN 33
 #define MAX_PERCENTAGE_OF_SIGNATURES_MEAN 100
+#define MIN_SIZE_OF_BLOCK 100000
+#define MAX_SIZE_OF_BLOCK 5000000
 
 #define __DBG_ LogPrintf("DEBUG: In file %s in function %s in line %d\n", __FILE__, __func__, __LINE__);
 

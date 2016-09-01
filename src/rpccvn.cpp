@@ -104,6 +104,7 @@ static void AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
     params.nMinSuccessiveSignatures     = dynParams.nMinSuccessiveSignatures;
     params.nBlocksToConsiderForSigCheck = dynParams.nBlocksToConsiderForSigCheck;
     params.nPercentageOfSignaturesMean  = dynParams.nPercentageOfSignaturesMean;
+    params.nMaxBlockSize                = dynParams.nMaxBlockSize;
 
     vector<string> paramsList = jsonParams.getKeys();
     BOOST_FOREACH(const string& key, paramsList) {
@@ -126,6 +127,8 @@ static void AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
             params.nBlocksToConsiderForSigCheck = jsonParams[key].get_int();
         } else if (key == "nPercentageOfSignaturesMean") {
             params.nPercentageOfSignaturesMean = jsonParams[key].get_int();
+        } else if (key == "nMaxBlockSize") {
+            params.nMaxBlockSize = jsonParams[key].get_int();
         }
     }
 }

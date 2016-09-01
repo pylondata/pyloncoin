@@ -769,7 +769,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state)
     if (tx.vout.empty())
         return state.DoS(10, false, REJECT_INVALID, "bad-txns-vout-empty");
     // Size limits
-    if (::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION) > MAX_BLOCK_SIZE)
+    if (::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION) > dynParams.nMaxBlockSize)
         return state.DoS(100, false, REJECT_INVALID, "bad-txns-oversize");
 
     // Check for negative or overflow output values
@@ -2093,7 +2093,8 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
             CDiskBlockPos pos;
             if (!FindUndoPos(state, pindex->nFile, pos, ::GetSerializeSize(blockundo, SER_DISK, CLIENT_VERSION) + 40))
                 return error("ConnectBlock(): FindUndoPos failed");
-            if (!UndoWriteToDisk(blockundo, pos, pindex->pprev->GetBlockHash(), chainparams.MessageStart()))
+            if (!UndoWriteToDisk(blockundo, pos,
+                    block.GetHash() == chainparams.GetConsensus().hashGenesisBlock ? uint256() : pindex->pprev->GetBlockHash(), chainparams.MessageStart()))
                 return AbortNode(state, "Failed to write undo data");
 
             // update nUndoPos in block index
@@ -2989,9 +2990,11 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOC, bo
 
     if (block.HasTx()) {
         // Size limits
-        if (block.vtx.empty() || block.vtx.size() > MAX_BLOCK_SIZE || ::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION) > MAX_BLOCK_SIZE)
+        if (block.vtx.empty() || block.vtx.size() > MAX_TX_PER_BLOCK || ::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION) > dynParams.nMaxBlockSize) {
+            LogPrintf("TEST: %u/%u\n", ::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION), dynParams.nMaxBlockSize);
             return state.DoS(100, error("CheckBlock(): size limits failed"),
                              REJECT_INVALID, "bad-blk-length");
+        }
 
         // First transaction must be coinbase, the rest must not be
         if (block.vtx.empty() || !block.vtx[0].IsCoinBase())
@@ -3057,10 +3060,10 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
             pindex = pindex->pprev;
         }
 
-        float nSignatureMean = nBlocks ? (float) nSignatures / (float) nBlocks : 0f;
+        float nSignatureMean = nBlocks ? (float) nSignatures / (float) nBlocks : 0.0f;
 
         // this block requires at least dynParams.nPercentageOfSignatureMean of the number of nSignatureMean
-        if ((float) block.vSignatures.size() < nSignatureMean * ((float)dynParams.nPercentageOfSignaturesMean / 100f)) {
+        if ((float) block.vSignatures.size() < nSignatureMean * ((float)dynParams.nPercentageOfSignaturesMean / 100.0f)) {
             LogPrintf("ContextualCheckBlockHeader : past signatures [");
             CBlockIndex *pindexDebug = pindexPrev;
             uint8_t i = 0;
@@ -3864,7 +3867,7 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
     int nLoaded = 0;
     try {
         // This takes over fileIn and calls fclose() on it in the CBufferedFile destructor
-        CBufferedFile blkdat(fileIn, 2*MAX_BLOCK_SIZE, MAX_BLOCK_SIZE+8, SER_DISK, CLIENT_VERSION);
+        CBufferedFile blkdat(fileIn, 2*MAX_SIZE_OF_BLOCK, MAX_SIZE_OF_BLOCK+8, SER_DISK, CLIENT_VERSION);
         uint64_t nRewind = blkdat.GetPos();
         while (!blkdat.eof()) {
             boost::this_thread::interruption_point();
@@ -3883,7 +3886,7 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
                     continue;
                 // read size
                 blkdat >> nSize;
-                if (nSize < 80 || nSize > MAX_BLOCK_SIZE)
+                if (nSize < 80 || nSize > MAX_SIZE_OF_BLOCK)
                     continue;
             } catch (const std::exception&) {
                 // no valid block header found; don't complain
