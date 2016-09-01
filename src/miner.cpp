@@ -468,6 +468,9 @@ void static CertifiedValidationNode(const CChainParams& chainparams, const uint3
     if (mapArgs.count("-cvnfeeaddress")) {
         CBitcoinAddress feeAddress(GetArg("-cvnfeeaddress", ""));
         if (feeAddress.IsValid()) {
+            if (!coinbaseScript) {
+                coinbaseScript = new CReserveScript();
+            }
             coinbaseScript->reserveScript = GetScriptForDestination(feeAddress.Get());
             LogPrintf("CVN fee address: %s\n", feeAddress.ToString());
         } else {
