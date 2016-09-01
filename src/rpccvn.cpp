@@ -505,6 +505,7 @@ void DynamicChainparametersToJSON(CDynamicChainParams& cp, UniValue& result)
     result.push_back(Pair("minSuccessiveSignatures", (int)cp.nMinSuccessiveSignatures));
     result.push_back(Pair("nBlocksToConsiderForSigCheck", (int)cp.nBlocksToConsiderForSigCheck));
     result.push_back(Pair("nPercentageOfSignaturesMean", (int)cp.nPercentageOfSignaturesMean));
+    result.push_back(Pair("nMaxBlockSize", (int)cp.nMaxBlockSize));
 }
 
 UniValue getchainparameters(const UniValue& params, bool fHelp)

@@ -395,7 +395,7 @@ bool CheckDynamicChainParameters(const CDynamicChainParams& params)
         return false;
     }
 
-    if (params.nTransactionFee > MAX_TX_FEE_THRESHOLD || params.nDustThreshold < MIN_TX_FEE_THRESHOLD) {
+    if (params.nTransactionFee > MAX_TX_FEE_THRESHOLD || params.nTransactionFee < MIN_TX_FEE_THRESHOLD) {
         LogPrintf("CheckDynamicChainParameters : ERROR, tx fee threshold %u exceeds limit\n", params.nTransactionFee);
         return false;
     }
