@@ -465,6 +465,15 @@ void static CertifiedValidationNode(const CChainParams& chainparams, const uint3
     GetMainSignals().ScriptForMining(&coinbaseScript);
 
     LogPrintf("Certified validation node started for node ID 0x%08x\n", nNodeId);
+    if (mapArgs.count("-cvnfeeaddress")) {
+        CBitcoinAddress feeAddress(GetArg("-cvnfeeaddress", ""));
+        if (feeAddress.IsValid()) {
+            coinbaseScript->reserveScript = GetScriptForDestination(feeAddress.Get());
+            LogPrintf("CVN fee address: %s\n", feeAddress.ToString());
+        } else {
+            LogPrintf("CVN ERROR: the fee address %s is invalid. Falling back to standard wallet address.\n", feeAddress.ToString());
+        }
+    }
 
     uint32_t nExtraNonce = 0;
     try {
