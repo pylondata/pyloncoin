@@ -1,6 +1,6 @@
 # CVN operators guide
 
-This document describes the requirements for setting up and operate a CVN (certified validation node) for the FairCoin network.
+This document describes the requirements for setting up and operating a CVN (certified validation node) for the FairCoin network.
 
 For online discussion and support please join the FairCoin CVN Operators telegram group here: https://telegram.me/joinchat/Bumu8gbZmAhnXoxCBr3WHg
 
@@ -18,7 +18,7 @@ A secure and stable operating system is crucial for reliably running a CVN. Ther
 4. The system must be connected to the Internet all the time (24/7) and the TCP port 40404 must be reachable by all remote nodes from the Internet. Avoid using a wireless connection if possible as this would result in additional network latency and potential unstable internet connection.
 5. The system must use a public NTP server to synchronize its system time to, e.g. pool.ntp.org to ensure that the system time is always correct. NTP means Networking Time Protocol and is intended to synchronize all participating computers to within a few milliseconds of Coordinated Universal Time (UTC).
 6. The hardware must provide a USB 2.0 port which takes up the USB card reader. Please avoid using a USB-hub for the reader.
-7. Although not absolutely necessary, an UPS (uninterruptible power supply) would be appreciated. Note that all network related equipment should also be hooked up to the UPS to keep the network connection up in the event of a power outage.
+7. Although not absolutely necessary, a UPS (uninterruptible power supply) would be appreciated. Note that all network related equipment should also be hooked up to the UPS to keep the network connection up in the event of a power outage.
 
 ### 2.2 Preparing your system
 To build the FairCoin wallet software you need to install some software packages on your system. Do this by executing the following commands in a terminal:
@@ -50,7 +50,7 @@ Slot 0 (0x0): ACS ACR 38U-CCID 02 00
 ```
 
 ### 2.3 The first start of your node
-Create a configuration file in the data directory of FairCoin copy-and-paste the following command sequence in your terminal:
+Create a configuration file in the data directory of FairCoin and copy-and-paste the following command sequence in your terminal:
 
 ```
 mkdir ~/.faircoin2
@@ -107,7 +107,7 @@ Positive criteria for CVN acceptance could be:
 ### 4.2 Procedure
 The certification process will be developed in a decentralized way by the various FairCoop groups.
 
-1. One global procedure will be led by the CVN working group of the FairCoop assembly which will receive applications, support the creation of CVNs worldwide, and will present the applicants to the general FairCoop assembly. In general FairCoop assemblies will finally be decided about the approval of a CVN. Alternatively, specific assemblies could be convened for approving new CVNs if the CVN working group if there are any urgent conditions.
+1. One global procedure will be led by the CVN working group of the FairCoop assembly which will receive applications, support the creation of CVNs worldwide, and will present the applicants to the general FairCoop assembly. In general FairCoop assemblies will finally be decided about the approval of a CVN. Alternatively, specific assemblies could be convened for approving new CVNs to the CVN working group if there are any urgent conditions.
 
 2. There will be regional procedures in areas where a FairCoop local node is available. FairCoop local nodes will receive the CVN applications in their area and will confirm that the goals of the applicants are aligned with proof of cooperation needs. The FairCoop local nodes should be able to make decisions about this in their open assemblies.
 
@@ -125,7 +125,7 @@ CVN operators can request removal if they are no longer willing or able to run a
 The removal of a CVN will be performed by the chain administrators.
 
 ### 4.6 How to join
-If you are interested in setup a CVN, write us at cvn@fair-coin.org. Around the 7th to the 8th of September 2016 we are going to publish a form to officialy begin the process of CVN acceptance, and we will notify you to fill in the application form as it comes available.
+If you are interested in setting up a CVN, write us at cvn@fair-coin.org. Around the 7th to the 8th of September 2016 we are going to publish a form to officialy begin the process of CVN acceptance, and we will notify you to fill in the application form as it comes available.
 
 We will be able to begin when at least 15 CVN are ready. After that, the open process will continue to welcome more CVNs to secure the network further.
 
