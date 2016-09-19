@@ -673,7 +673,7 @@ void CTxMemPool::check(const CCoinsViewCache *pcoins) const
         innerUsage += memusage::DynamicUsage(links.parents) + memusage::DynamicUsage(links.children);
         bool fDependsWait = false;
         setEntries setParentCheck;
-        int64_t parentSizes = 0;
+        uint64_t parentSizes = 0;
         unsigned int parentSigOpCount = 0;
         BOOST_FOREACH(const CTxIn &txin, tx.vin) {
             // Check that every mempool transaction's inputs refer to available coins, or other mempool tx's.
@@ -705,7 +705,7 @@ void CTxMemPool::check(const CCoinsViewCache *pcoins) const
         // Check children against mapNextTx
         CTxMemPool::setEntries setChildrenCheck;
         std::map<COutPoint, CInPoint>::const_iterator iter = mapNextTx.lower_bound(COutPoint(it->GetTx().GetHash(), 0));
-        int64_t childSizes = 0;
+        uint64_t childSizes = 0;
         for (; iter != mapNextTx.end() && iter->first.hash == it->GetTx().GetHash(); ++iter) {
             txiter childit = mapTx.find(iter->second.ptx->GetHash());
             assert(childit != mapTx.end()); // mapNextTx points to in-mempool transactions
