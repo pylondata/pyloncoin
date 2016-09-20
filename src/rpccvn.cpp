@@ -108,15 +108,15 @@ static void AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
 
     vector<string> paramsList = jsonParams.getKeys();
     BOOST_FOREACH(const string& key, paramsList) {
-        LogPrintf("AddDynParamsToMsg : adding %s: %u\n", key, jsonParams[key].get_int());
+        LogPrintf("AddDynParamsToMsg : adding %s: %u\n", key, jsonParams[key].getValStr());
         if (key == "nBlockSpacing") {
             params.nBlockSpacing = jsonParams[key].get_int();
         } else if (key == "nBlockSpacingGracePeriod") {
             params.nBlockSpacingGracePeriod = jsonParams[key].get_int();
         } else if (key == "nTransactionFee") {
-            params.nTransactionFee = jsonParams[key].get_int();
+            params.nTransactionFee = AmountFromValue(jsonParams[key]);
         } else if (key == "nDustThreshold") {
-            params.nDustThreshold = jsonParams[key].get_int();
+            params.nDustThreshold = AmountFromValue(jsonParams[key]);
         } else if (key == "nMaxAdminSigs") {
             params.nMaxAdminSigs = jsonParams[key].get_int();
         } else if (key == "nMinAdminSigs") {
