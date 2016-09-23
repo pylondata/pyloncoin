@@ -23,10 +23,10 @@ A secure and stable operating system is crucial for reliably running a CVN. Ther
 ### 2.2 Preparing your system
 To build the FairCoin wallet software you need to install some software packages on your system. Do this by executing the following commands in a terminal:
 
-```sudo apt-get update
-sudo apt-get install -y build-essential libtool autotools-dev autoconf pkg-config libssl-dev libboost-all-dev git libdb5.3-dev libdb5.3++-dev libqt4-core libqt4-gui libqt4-dev libqrencode-dev libprotobuf-dev protobuf-compiler libevent-dev libpcsclite-dev pcscd```
+```sudo apt-get update```
+```sudo apt-get install -y build-essential libtool autotools-dev autoconf pkg-config libssl-dev libboost-all-dev git libdb5.3-dev libdb5.3++-dev libqt4-core libqt4-gui libqt4-dev libqrencode-dev libprotobuf-dev protobuf-compiler libevent-dev libpcsclite-dev pcscd```
 
-Please note that your system might provide a different version of libdb. If it doesn't find version 5.3 try version 5.1.
+Please note that the package names and/or versions can differ depending on your operatin system. E. g. your system might provide a different version of libdb. If it doesn't find version 5.3 try version 5.1.
 After package installation has completed successfully proceed by following the instructions provided here:
 https://github.com/faircoin/faircoin2/blob/faircoin2/doc/build-CVN.md
 
