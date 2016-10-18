@@ -26,7 +26,9 @@ make -j`nproc`
 ```
 
 Note: if compiling on a Raspberry PI execute a plain make else it will run out of mempory:  
-```make```
+```
+make
+```
 
 ## 3 Run the FairCoin2 wallet in CVN mode
 Please make sure to start your FairCoin wallet in normal mode first and let it download the complete block chain before restaring it as a CVN.
