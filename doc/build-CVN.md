@@ -25,7 +25,7 @@ cd faircoin2
 make -j`nproc`
 ```
 
-Note: if compiling on a Raspberry PI execute a plain make else it will run out of mempory:  
+Note: if compiling on a Raspberry PI execute a plain make else it will run out of memory:  
 ```
 make
 ```
