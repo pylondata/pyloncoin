@@ -35,6 +35,7 @@ const char *FILTERADD="filteradd";
 const char *FILTERCLEAR="filterclear";
 const char *REJECT="reject";
 const char *SENDHEADERS="sendheaders";
+const char *PUBNONCE="pubnonce";
 const char *SIG="sig";
 const char *GETSIGLIST="getsiglist";
 const char *SIGLIST="siglist";
@@ -47,6 +48,7 @@ static const char* ppszTypeName[] =
     NetMsgType::TX,
     NetMsgType::BLOCK,
     "filtered block", // Should never occur
+    NetMsgType::PUBNONCE,
     NetMsgType::SIG,
     NetMsgType::CHAINDATA
 };
@@ -77,6 +79,7 @@ const static std::string allNetMessageTypes[] = {
     NetMsgType::FILTERCLEAR,
     NetMsgType::REJECT,
     NetMsgType::SENDHEADERS,
+    NetMsgType::PUBNONCE,
     NetMsgType::SIG,
     NetMsgType::GETSIGLIST,
     NetMsgType::SIGLIST,

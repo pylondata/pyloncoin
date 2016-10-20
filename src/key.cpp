@@ -12,6 +12,7 @@
 
 #include <secp256k1.h>
 #include <secp256k1_recovery.h>
+#include <secp256k1_schnorr.h>
 
 static secp256k1_context* secp256k1_context_sign = NULL;
 
@@ -177,6 +178,36 @@ bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_
     assert(ret);
     secp256k1_ecdsa_signature_serialize_der(secp256k1_context_sign, (unsigned char*)&vchSig[0], &nSigLen, &sig);
     vchSig.resize(nSigLen);
+    return true;
+}
+
+bool CKey::SchnorrSign(const uint256 &hash, std::vector<unsigned char>& vchSig) const {
+    if (!fValid)
+        return false;
+    vchSig.resize(64);
+
+    int ret = secp256k1_schnorr_sign(secp256k1_context_sign, (unsigned char*)&vchSig[0], hash.begin(), begin(), secp256k1_nonce_function_rfc6979, NULL);
+    assert(ret);
+    return true;
+}
+
+bool CKey::SchnorrSignParial(const uint256 &hash, const secp256k1_pubkey& sumPublicKeysOthers, std::vector<unsigned char>& vchPrivateNonce, std::vector<unsigned char>& vchSig) const {
+    if (!fValid)
+        return false;
+    vchSig.resize(64);
+
+    int ret = secp256k1_schnorr_partial_sign(secp256k1_context_sign, (unsigned char*)&vchSig[0], hash.begin(), begin(), &sumPublicKeysOthers, (unsigned char*)&vchPrivateNonce[0]);
+    assert(ret);
+    return true;
+}
+
+bool CKey::SchnorrCreateNoncePair(const uint256 &hash, std::vector<unsigned char>& vchNoncePub, std::vector<unsigned char>& vchNoncePriv) const {
+    if (!fValid)
+        return false;
+    vchNoncePriv.resize(32);
+    vchNoncePub.resize(64);
+    int ret = secp256k1_schnorr_generate_nonce_pair(secp256k1_context_sign, (secp256k1_pubkey *)&vchNoncePub[0], (unsigned char*)&vchNoncePriv[0], begin(), hash.begin(), secp256k1_nonce_function_rfc6979, NULL);
+    assert(ret);
     return true;
 }
 

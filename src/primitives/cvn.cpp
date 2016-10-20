@@ -47,6 +47,21 @@ std::string CCoinSupply::ToString() const
     return s.str();
 }
 
+uint256 CCvnPubNonceMsg::GetHash() const
+{
+    return SerializeHash(*this);
+}
+
+std::string CCvnPubNonce::ToString() const
+{
+    std::stringstream s;
+    s << strprintf("CCvnPubNonce(signerId=0x%08x, ver=%d, sig=%s)",
+        nSignerId,
+        nVersion,
+        HexStr(vPubNonce)); //TODO: limit again .substr(0, 30));
+    return s.str();
+}
+
 uint256 CCvnSignatureMsg::GetHash() const
 {
     return SerializeHash(*this);

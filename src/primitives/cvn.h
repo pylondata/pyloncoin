@@ -12,6 +12,129 @@
 
 using namespace std;
 
+class CCvnPrivNonce
+{
+public:
+    uint32_t nSignerId;
+    vector<unsigned char> vPrivNonce;
+
+    CCvnPrivNonce()
+    {
+        SetNull();
+    }
+
+    CCvnPrivNonce(const uint32_t nSignerId)
+    {
+        this->nSignerId = nSignerId;
+        this->vPrivNonce.clear();
+    }
+
+    CCvnPrivNonce(const uint32_t nSignerId, const vector<unsigned char>& vPrivNonce)
+    {
+        this->nSignerId  = nSignerId;
+        this->vPrivNonce = vPrivNonce;
+    }
+
+    void SetNull()
+    {
+        nSignerId = 0;
+        this->vPrivNonce.clear();
+    }
+
+    string ToString() const;
+};
+
+class CCvnPubNonce
+{
+public:
+    static const int32_t CURRENT_VERSION = 1;
+    int32_t nVersion;
+    uint32_t nSignerId;
+    vector<unsigned char> vPubNonce;
+
+    CCvnPubNonce()
+    {
+        SetNull();
+    }
+
+    CCvnPubNonce(const uint32_t nSignerId, const int32_t nVersion = CCvnPubNonce::CURRENT_VERSION)
+    {
+        this->nVersion  = nVersion;
+        this->nSignerId = nSignerId;
+        this->vPubNonce.clear();
+    }
+
+    CCvnPubNonce(const uint32_t nSignerId, const vector<unsigned char>& vPubNonce, const int32_t nVersion = CCvnPubNonce::CURRENT_VERSION)
+    {
+        this->nVersion  = nVersion;
+        this->nSignerId = nSignerId;
+        this->vPubNonce = vPubNonce;
+    }
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(this->nVersion);
+        nVersion = this->nVersion;
+        READWRITE(nSignerId);
+        READWRITE(vPubNonce);
+    }
+
+    void SetNull()
+    {
+        nVersion = CCvnPubNonce::CURRENT_VERSION;
+        nSignerId = 0;
+        this->vPubNonce.clear();
+    }
+
+    string ToString() const;
+};
+
+class CCvnPubNonceMsg : public CCvnPubNonce
+{
+public:
+    uint256 hashPrevBlock;
+    uint32_t nCreatorId; // the CVN node ID of the creator of the next block
+
+    CCvnPubNonceMsg()
+    {
+        SetNull();
+    }
+
+    CCvnPubNonceMsg(const CCvnPubNonce nonce, const uint256 hashPrevBlock, const uint32_t nCreatorId)
+        : CCvnPubNonce(nonce.nSignerId, nonce.vPubNonce, nonce.nVersion)
+    {
+        this->hashPrevBlock = hashPrevBlock;
+        this->nCreatorId = nCreatorId;
+    }
+
+    void SetNull()
+    {
+        CCvnPubNonce::SetNull();
+        hashPrevBlock.SetNull();
+        nCreatorId = 0;
+    }
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(*(CCvnPubNonce*)this);
+        READWRITE(hashPrevBlock);
+        READWRITE(nCreatorId);
+    }
+
+    CCvnPubNonce GetPubNonce() const
+    {
+        CCvnPubNonce nonce(nSignerId, vPubNonce, nVersion);
+        return nonce;
+    }
+
+    uint256 GetHash() const;
+};
+
+
 /** CVNs send this signature to the creator of the next block
  * to proof consensus about the block.
  */

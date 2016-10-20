@@ -2419,7 +2419,7 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
         UpdateChainAdmins(pblock);
 
     if (pindexNew->pprev)
-        RemoveCvnSignatures(pindexNew->pprev->GetBlockHash());
+        RemoveCvnSigsAndNonces(pindexNew->pprev->GetBlockHash());
 
     return true;
 }
@@ -4245,6 +4245,8 @@ bool static AlreadyHave(const CInv& inv) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
         }
     case MSG_BLOCK:
         return mapBlockIndex.count(inv.hash);
+    case MSG_CVN_PUB_NONCE:
+        return mapRelayNonces.count(inv.hash);
     case MSG_CVN_SIGNATURE:
         return mapRelaySigs.count(inv.hash);
     case MSG_POC_CHAIN_DATA:
@@ -4368,6 +4370,13 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
                     CTransaction tx;
                     if (mempool.lookup(inv.hash, tx)) {
                         pfrom->PushMessage(NetMsgType::TX, tx);
+                        pushed = true;
+                    }
+                }
+                if (!pushed && inv.type == MSG_CVN_PUB_NONCE) {
+                    if (mapRelayNonces.count(inv.hash)) {
+                        CCvnPubNonceMsg msg = mapRelayNonces[inv.hash];
+                        pfrom->PushMessage(NetMsgType::PUBNONCE, msg);
                         pushed = true;
                     }
                 }
@@ -4724,7 +4733,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                     LogPrint("net", "getheaders (%d) %s to peer=%d\n", pindexBestHeader->nHeight, inv.hash.ToString(), pfrom->id);
                 }
             }
-            else if (inv.type == MSG_CVN_SIGNATURE || inv.type == MSG_POC_CHAIN_DATA) {
+            else if (inv.type == MSG_CVN_PUB_NONCE || inv.type == MSG_CVN_SIGNATURE || inv.type == MSG_POC_CHAIN_DATA) {
                 if (!fAlreadyHave && !fImporting && !fReindex)
                     pfrom->AskFor(inv);
             }
@@ -4887,6 +4896,34 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                 LogPrintf("received invalid chain data %s\n", msg.ToString());
         } else
             LogPrint("net", "AlreadyHave chain data %s\n", hashData.ToString());
+    }
+
+
+    else if (strCommand == NetMsgType::PUBNONCE)
+    {
+        CCvnPubNonceMsg msg;
+        vRecv >> msg;
+
+        CInv inv(MSG_CVN_PUB_NONCE, msg.GetHash());
+        pfrom->AddInventoryKnown(inv);
+
+        LOCK(cs_main);
+
+        pfrom->setAskFor.erase(inv.hash);
+        mapAlreadyAskedFor.erase(inv.hash);
+
+        if (!AlreadyHave(inv)) {
+            if (msg.hashPrevBlock != chainActive.Tip()->GetBlockHash())
+                LogPrintf("received outdated CVN public nonce from peer %d for tip %s created by 0x%08x\n", pfrom->id, msg.hashPrevBlock.ToString(), msg.nSignerId);
+            else {
+                LogPrint("net", "received public nonce %s for tip %s\n", msg.GetHash().ToString(), msg.hashPrevBlock.ToString());
+                if (AddCvnPubNonce(msg.GetPubNonce(), msg.hashPrevBlock, msg.nCreatorId))
+                    RelayCvnPubNonce(msg);
+                else
+                    LogPrintf("received invalid public nonce %s\n", msg.ToString());
+            }
+        } else
+            LogPrint("net", "AlreadyHave nonce %s\n", msg.hashPrevBlock.ToString());
     }
 
 
@@ -5950,10 +5987,33 @@ bool SendMessages(CNode* pto)
             }
 
             //
-            // Handle: PoC chain signatures
+            // Handle: PoC public nonces
             //
 
             const uint256& hashTip = chainActive.Tip()->GetBlockHash();
+            BOOST_FOREACH(const uint256& hash, pto->vInventoryPublicNoncesToSend) {
+                if (mapRelayNonces.count(hash)) {
+                    CCvnPubNonceMsg& msg = mapRelayNonces[hash];
+
+                    // we only relay public nonces for the active chain tip
+                    if (msg.hashPrevBlock == hashTip) {
+                        CInv inv(MSG_CVN_PUB_NONCE, hash);
+                        vInv.push_back(inv);
+                        if (vInv.size() == MAX_INV_SZ) {
+                            pto->PushMessage(NetMsgType::INV, vInv);
+                            vInv.clear();
+                        }
+                    }
+                }
+
+            }
+            pto->vInventoryPublicNoncesToSend.clear();
+
+
+            //
+            // Handle: PoC chain signatures
+            //
+
             BOOST_FOREACH(const uint256& hash, pto->vInventoryChainSignaturesToSend) {
                 if (mapRelaySigs.count(hash)) {
                     CCvnSignatureMsg& msg = mapRelaySigs[hash];

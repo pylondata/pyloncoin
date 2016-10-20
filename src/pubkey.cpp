@@ -6,6 +6,7 @@
 
 #include <secp256k1.h>
 #include <secp256k1_recovery.h>
+#include <secp256k1_schnorr.h>
 
 namespace
 {
@@ -182,6 +183,10 @@ bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchS
      * not historically been enforced in Bitcoin, so normalize them first. */
     secp256k1_ecdsa_signature_normalize(secp256k1_context_verify, &sig, &sig);
     return secp256k1_ecdsa_verify(secp256k1_context_verify, &sig, hash.begin(), &pubkey);
+}
+
+/* static */ bool CPubKey::VerifySchnorr(const uint256 &hash, const std::vector<unsigned char>& vchSig, const secp256k1_pubkey* pPubKey) {
+    return secp256k1_schnorr_verify(secp256k1_context_verify, &vchSig[0], hash.begin(), pPubKey);
 }
 
 bool CPubKey::RecoverCompact(const uint256 &hash, const std::vector<unsigned char>& vchSig) {

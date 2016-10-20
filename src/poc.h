@@ -23,6 +23,10 @@ typedef std::map<uint32_t, CCvnSignature> CvnSigSignerType;
 typedef std::map<uint32_t, CvnSigSignerType> CvnSigCreatorType;
 typedef std::map<uint256, CvnSigCreatorType> CvnSigMapType;
 
+typedef std::map<uint32_t, CCvnPubNonce> CvnNonceSignerType;
+typedef std::map<uint32_t, CvnNonceSignerType> CvnNonceCreatorType;
+typedef std::map<uint256, CvnNonceCreatorType> CvnNonceMapType;
+
 typedef std::map<uint256, CChainDataMsg> ChainDataMapType;
 
 typedef boost::unordered_set<uint32_t> TimeWeightSetType;
@@ -50,6 +54,8 @@ extern CCriticalSection cs_mapCVNs;
 extern CvnMapType mapCVNs;
 extern CCriticalSection cs_mapChainAdmins;
 extern ChainAdminMapType mapChainAdmins;
+extern CCriticalSection cs_mapCvnNonces;
+extern CvnNonceMapType mapCvnNonces;
 extern CCriticalSection cs_mapCvnSigs;
 extern CvnSigMapType mapCvnSigs;
 extern CCriticalSection cs_mapChainData;
@@ -59,8 +65,9 @@ extern BlockIndexByPrevHashType mapBlockIndexByPrevHash;
 extern CCriticalSection cs_mapBannedCVNs;
 extern BannedCVNMapType mapBannedCVNs;
 
-bool CvnSign(const uint256& hashUnsignedBlock, CCvnSignature& signature, const uint32_t& nNextCreator, const uint32_t& nNodeId);
+bool CvnSignPartial(const uint256& hashUnsignedBlock, CCvnSignature& signature, const uint32_t& nNextCreator, const uint32_t& nNodeId);
 bool CvnSignBlock(CBlock& block);
+bool CvnVerifySignature(const uint256 &hash, const CCvnSignature &sig, const vector<unsigned char> &vPubKey);
 bool CvnVerifySignature(const uint256 &hash, const CCvnSignature &sig);
 bool CvnVerifyAdminSignature(const uint256 &hash, const CCvnSignature &sig);
 bool CheckForDuplicateCvns(const CBlock& block);
@@ -68,11 +75,16 @@ bool CheckForDuplicateChainAdmins(const CBlock& block);
 void SendCVNSignature(const CBlockIndex *pindexNew);
 bool AddCvnSignature(const CCvnSignature& signature, const uint256& hashPrevBlock, const uint32_t nCreatorId);
 bool AddChainData(const CChainDataMsg& msg);
-void RemoveCvnSignatures(const uint256& hashPrevBlock);
+void RemoveCvnSigsAndNonces(const uint256& hashPrevBlock);
 bool CvnValidateSignature(const CCvnSignature& signature, const uint256& hashPrevBlock, const uint32_t nCreatorId);
 bool CheckAdminSignatures(const uint256 hashAdminData, const vector<CCvnSignature> vAdminSignatures, const bool fCoinSupply);
 void RelayChainData(const CChainDataMsg& msg);
 void RelayCvnSignature(const CCvnSignatureMsg& msg);
+
+bool AddCvnPubNonce(const CCvnPubNonce& nonce, const uint256& hashPrevBlock, const uint32_t nCreatorId);
+void SendCVNNonce(const CBlockIndex *pindexNew);
+void RelayCvnPubNonce(const CCvnPubNonceMsg& msg);
+void RemoveCvnPubNonces(const uint256& hashPrevBlock);
 
 uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTimeToTest, CCvnStatus* state = NULL);
 

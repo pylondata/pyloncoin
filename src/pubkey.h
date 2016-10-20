@@ -10,6 +10,7 @@
 #include "serialize.h"
 #include "uint256.h"
 
+#include <secp256k1.h>
 #include <stdexcept>
 #include <vector>
 
@@ -176,6 +177,11 @@ public:
      * If this public key is not fully valid, the return value will be false.
      */
     bool Verify(const uint256& hash, const std::vector<unsigned char>& vchSig) const;
+
+    /**
+      * Verify a schnorr signature (64 bytes).
+      */
+    static bool VerifySchnorr(const uint256 &hash, const std::vector<unsigned char>& vchSig, const secp256k1_pubkey* pPubKey);
 
     /**
      * Check whether a signature is normalized (lower-S).

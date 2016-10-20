@@ -11,6 +11,7 @@
 #include "support/allocators/secure.h"
 #include "uint256.h"
 
+#include <secp256k1.h>
 #include <stdexcept>
 #include <vector>
 
@@ -125,6 +126,21 @@ public:
      * The test_case parameter tweaks the deterministic nonce.
      */
     bool Sign(const uint256& hash, std::vector<unsigned char>& vchSig, uint32_t test_case = 0) const;
+
+    /**
+     * Create a schnorr signature.
+     */
+    bool SchnorrSign(const uint256 &hash, std::vector<unsigned char>& vchSig) const;
+
+    /**
+     * Create a partial schnorr signature.
+     */
+    bool SchnorrSignParial(const uint256 &hash, const secp256k1_pubkey& sumPublicKeysOthers, std::vector<unsigned char>& vchPrivateNonce, std::vector<unsigned char>& vchSig) const;
+
+    /**
+     * Create a schnorr nonce pair for creating threshold signatures
+     */
+    bool SchnorrCreateNoncePair(const uint256 &hash, std::vector<unsigned char>& vchNoncePub, std::vector<unsigned char>& vchNoncePriv) const;
 
     /**
      * Create a compact signature (65 bytes), which allows reconstructing the used public key.

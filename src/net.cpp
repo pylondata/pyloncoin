@@ -93,6 +93,9 @@ deque<pair<int64_t, uint256> > vRelayExpiration;
 CCriticalSection cs_mapRelay;
 limitedmap<uint256, int64_t> mapAlreadyAskedFor(MAX_INV_SZ);
 
+CCriticalSection cs_mapRelayNonces;
+map<uint256, CCvnPubNonceMsg> mapRelayNonces;
+
 CCriticalSection cs_mapRelaySigs;
 map<uint256, CCvnSignatureMsg> mapRelaySigs;
 
@@ -2415,7 +2418,7 @@ void CNode::AskFor(const CInv& inv)
 
     // Each retry is 2 minutes after the last
     int64_t nRetryInterval = 2 * 60;
-    if (inv.type == MSG_CVN_SIGNATURE || inv.type == MSG_POC_CHAIN_DATA)
+    if (inv.type == MSG_CVN_PUB_NONCE || inv.type == MSG_CVN_SIGNATURE || inv.type == MSG_POC_CHAIN_DATA)
         nRetryInterval = 10;
     nRequestTime = std::max(nRequestTime + nRetryInterval * 1000000, nNow);
     if (it != mapAlreadyAskedFor.end())

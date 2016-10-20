@@ -149,11 +149,6 @@ bool CvnSignWithSmartCard(const uint256& hashUnsignedBlock, CCvnSignature& signa
 
     signature.vSignature.resize(nSigLenDER);
 
-    if (!CvnVerifySignature(hashUnsignedBlock, signature)) {
-        LogPrintf("CvnSignWithSmartCard : ERROR: created invalid signature\n");
-        return false;
-    }
-
 #ifdef SMARTCARD_DEBUG
     LogPrintf("CvnSignWithSmartCard : OK\n  Hash: %s\n  node: 0x%08x\n  pubk: %s\n   sig: %s\n",
             hashUnsignedBlock.ToString(), signature.nSignerId,
