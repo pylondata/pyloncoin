@@ -12,6 +12,7 @@
 #include "consensus/consensus.h"
 #include "consensus/merkle.h"
 #include "consensus/validation.h"
+#include "primitives/cvn.h"
 #include "hash.h"
 #include "main.h"
 #include "net.h"
@@ -34,6 +35,9 @@
 #ifdef USE_OPENSC
 #include "smartcard.h"
 #endif
+
+#include <secp256k1.h>
+#include <secp256k1_schnorr.h>
 
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
@@ -327,7 +331,7 @@ static bool AddChainDataToBlock(CBlock *pblock, const CChainDataMsg& msg)
 {
     LogPrintf("adding chain admin data to block #%u: %s\n", chainActive.Tip()->nHeight + 1, msg.ToString());
 
-    if (msg.vAdminSignatures.empty() || !msg.nPayload) {
+    if (msg.vAdminIds.empty() || msg.adminMultiSig.IsNull() || !msg.nPayload) {
         LogPrintf("ERROR: no signatures available, payload: %u\n", msg.nPayload);
         return false;
     }
@@ -355,7 +359,8 @@ static bool AddChainDataToBlock(CBlock *pblock, const CChainDataMsg& msg)
         pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
     }
 
-    pblock->vAdminSignatures = msg.vAdminSignatures;
+    pblock->vAdminIds     = msg.vAdminIds;
+    pblock->adminMultiSig = msg.adminMultiSig;
 
     return true;
 }
@@ -393,17 +398,41 @@ static bool CreateNewBlock(const CChainParams& chainparams, CBlockTemplate& bloc
             return false;
         }
 
-        BOOST_FOREACH(CvnSigSignerType::value_type& cvn, mapSigsBySigners)
-        {
-            if (!CvnValidateSignature(cvn.second, pblock->hashPrevBlock, blockTemplate.nNodeId))
-                LogPrintf("ERROR: could not add signature to block: %s\n", cvn.second.ToString());
-            else
-                pblock->vSignatures.push_back(cvn.second);
+        if (mapCVNs.size() == 1) {
+            /* if we only have one CVN available (e.g. during bootstrap) we create a plain signature */
+
+            pblock->chainMultiSig = mapSigsBySigners[mapCVNs.begin()->first].signature;
+        } else {
+            int count = 0;
+            vector<uint32_t> vMissingCreatorIds;
+            uint8_t *sigs[MAX_NUMBER_OF_CVNS];
+
+            // TODO: we should really cache this somehow...
+            BOOST_FOREACH(const CvnMapType::value_type& cvn, mapCVNs)
+            {
+                if (!mapSigsBySigners.count(cvn.first)) {
+                    vMissingCreatorIds.push_back(cvn.first);
+                    continue;
+                }
+
+                sigs[count++] = &mapSigsBySigners[cvn.first].signature.begin()[0];
+            }
+
+            if (count < 2)
+                return error("not enough signatures to create block");
+
+            CSchnorrSig allsig;
+            int ret = CombinePartialSignatures(allsig, sigs, count);
+            if (ret != 1)
+                return error("could not combine schnorr signatures: %d", ret);
+
+            pblock->chainMultiSig = allsig;
+            pblock->vMissingCreatorIds = vMissingCreatorIds;
         }
 
-        if (blockTemplate.pindexPrev->vSignatures.size() > 1 && ((float)blockTemplate.pindexPrev->vSignatures.size() / (float)2 >= (float)pblock->vSignatures.size())) {
+        if (blockTemplate.pindexPrev->GetNumChainSigs() > 1 && ((float)blockTemplate.pindexPrev->GetNumChainSigs() / (float)2 >= (float)pblock->GetNumChainSigs())) {
             LogPrintf("ERROR: can not create block. Not enough signatures available. Prev: %u, This: %u\n",
-                    blockTemplate.pindexPrev->vSignatures.size(), pblock->vSignatures.size());
+                    blockTemplate.pindexPrev->GetNumChainSigs(), pblock->GetNumChainSigs());
             return false;
         }
     }
@@ -425,7 +454,7 @@ static bool CreateNewBlock(const CChainParams& chainparams, CBlockTemplate& bloc
 
     LogPrintf("creating new block with %u transactions, %u CvnInfo, %u signatures, %u bytes\n",
             pblock->vtx.size(), pblock->vCvns.size(),
-            pblock->vSignatures.size(),
+            pblock->GetNumChainSigs(),
             ::GetSerializeSize(*pblock, SER_NETWORK, PROTOCOL_VERSION));
 
     // final tests
@@ -446,6 +475,38 @@ static bool CreateNewBlock(const CChainParams& chainparams, CBlockTemplate& bloc
     return true;
 }
 
+static CReserveScript* GetCoinbaseScript()
+{
+    CReserveScript *coinbaseScript = NULL;
+#ifdef ENABLE_WALLET
+    GetMainSignals().ScriptForMining(&coinbaseScript);
+#else
+    if (!mapArgs.count("-cvnfeeaddress")) {
+        LogPrintf("Option -cvnfeeaddress must be given if wallet support is not compiled in.\n");
+        return NULL;
+    }
+#endif
+    if (mapArgs.count("-cvnfeeaddress")) {
+        CBitcoinAddress feeAddress(GetArg("-cvnfeeaddress", ""));
+        if (feeAddress.IsValid()) {
+            if (!coinbaseScript) {
+                coinbaseScript = new CReserveScript();
+            }
+            coinbaseScript->reserveScript = GetScriptForDestination(feeAddress.Get());
+            LogPrintf("CVN fee address: %s\n", feeAddress.ToString());
+        } else {
+#ifdef ENABLE_WALLET
+            LogPrintf("CVN ERROR: the fee address %s is invalid. Falling back to standard wallet address.\n", feeAddress.ToString());
+#else
+            LogPrintf("CVN ERROR: the fee address %s is invalid. Can not start CVN.\n", feeAddress.ToString());
+            return NULL;
+#endif
+        }
+    }
+
+    return coinbaseScript;
+}
+
 void static CertifiedValidationNode(const CChainParams& chainparams, const uint32_t& nNodeId)
 {
     SetThreadPriority(THREAD_PRIORITY_NORMAL);
@@ -461,22 +522,10 @@ void static CertifiedValidationNode(const CChainParams& chainparams, const uint3
     while (IsInitialBlockDownload() && !ShutdownRequested())
         MilliSleep(1000);
 
-    CReserveScript *coinbaseScript = NULL;
-    GetMainSignals().ScriptForMining(&coinbaseScript);
+    CReserveScript *coinbaseScript = GetCoinbaseScript();
 
+    MilliSleep(10000);
     LogPrintf("Certified validation node started for node ID 0x%08x\n", nNodeId);
-    if (mapArgs.count("-cvnfeeaddress")) {
-        CBitcoinAddress feeAddress(GetArg("-cvnfeeaddress", ""));
-        if (feeAddress.IsValid()) {
-            if (!coinbaseScript) {
-                coinbaseScript = new CReserveScript();
-            }
-            coinbaseScript->reserveScript = GetScriptForDestination(feeAddress.Get());
-            LogPrintf("CVN fee address: %s\n", feeAddress.ToString());
-        } else {
-            LogPrintf("CVN ERROR: the fee address %s is invalid. Falling back to standard wallet address.\n", feeAddress.ToString());
-        }
-    }
 
     uint32_t nExtraNonce = 0;
     try {
@@ -484,7 +533,7 @@ void static CertifiedValidationNode(const CChainParams& chainparams, const uint3
         // due to some internal error but also if the keypool is empty.
         // In the latter case, already the pointer is NULL.
         if (!coinbaseScript || coinbaseScript->reserveScript.empty())
-            throw std::runtime_error("No coinbase script available (PoC requires a wallet)");
+            throw std::runtime_error("No coinbase script available. Can not start CVN.");
 
         while (!ShutdownRequested()) {
             if (chainparams.MiningRequiresPeers()) {
@@ -522,7 +571,7 @@ void static CertifiedValidationNode(const CChainParams& chainparams, const uint3
                 continue;
             }
 
-            nExtraNonce += rand() % 10 + 1; // create some 'randomness' for the coinbase, we need a unique merkle hash
+            nExtraNonce += rand() % 1000000 + 1; // create some 'randomness' for the coinbase, we need a unique merkle hash
 
             //
             // This node is potentially the next to advance the chain

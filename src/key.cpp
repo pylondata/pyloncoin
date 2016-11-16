@@ -166,6 +166,15 @@ CPubKey CKey::GetPubKey() const {
     return result;
 }
 
+CSchnorrPubKey CKey::GetRawPubKey() const {
+    assert(fValid);
+    secp256k1_pubkey pubkey;
+    int ret = secp256k1_ec_pubkey_create(secp256k1_context_sign, &pubkey, begin());
+    assert(ret);
+    CSchnorrPubKey result(pubkey.data);
+    return result;
+}
+
 bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_t test_case) const {
     if (!fValid)
         return false;
@@ -181,32 +190,28 @@ bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_
     return true;
 }
 
-bool CKey::SchnorrSign(const uint256 &hash, std::vector<unsigned char>& vchSig) const {
+bool CKey::SchnorrSign(const uint256 &hash, CSchnorrSig& sig) const {
     if (!fValid)
         return false;
-    vchSig.resize(64);
 
-    int ret = secp256k1_schnorr_sign(secp256k1_context_sign, (unsigned char*)&vchSig[0], hash.begin(), begin(), secp256k1_nonce_function_rfc6979, NULL);
+    int ret = secp256k1_schnorr_sign(secp256k1_context_sign, (unsigned char*)&sig.begin()[0], hash.begin(), begin(), secp256k1_nonce_function_rfc6979, NULL);
     assert(ret);
     return true;
 }
 
-bool CKey::SchnorrSignParial(const uint256 &hash, const secp256k1_pubkey& sumPublicKeysOthers, std::vector<unsigned char>& vchPrivateNonce, std::vector<unsigned char>& vchSig) const {
+bool CKey::SchnorrSignParial(const uint256 &hash, const secp256k1_pubkey& sumPublicKeysOthers, const CSchnorrPrivNonce& privNonce, CSchnorrSig& sig) const {
     if (!fValid)
         return false;
-    vchSig.resize(64);
 
-    int ret = secp256k1_schnorr_partial_sign(secp256k1_context_sign, (unsigned char*)&vchSig[0], hash.begin(), begin(), &sumPublicKeysOthers, (unsigned char*)&vchPrivateNonce[0]);
+    int ret = secp256k1_schnorr_partial_sign(secp256k1_context_sign, sig.begin(), hash.begin(), begin(), &sumPublicKeysOthers, privNonce.begin());
     assert(ret);
     return true;
 }
 
-bool CKey::SchnorrCreateNoncePair(const uint256 &hash, std::vector<unsigned char>& vchNoncePub, std::vector<unsigned char>& vchNoncePriv) const {
+bool CKey::SchnorrCreateNoncePair(const uint256 &hash, CSchnorrNonce& noncePub, CSchnorrPrivNonce& noncePriv) const {
     if (!fValid)
         return false;
-    vchNoncePriv.resize(32);
-    vchNoncePub.resize(64);
-    int ret = secp256k1_schnorr_generate_nonce_pair(secp256k1_context_sign, (secp256k1_pubkey *)&vchNoncePub[0], (unsigned char*)&vchNoncePriv[0], begin(), hash.begin(), secp256k1_nonce_function_rfc6979, NULL);
+    int ret = secp256k1_schnorr_generate_nonce_pair(secp256k1_context_sign, (secp256k1_pubkey *)&noncePub.begin()[0], noncePriv.begin(), begin(), hash.begin(), secp256k1_nonce_function_rfc6979, NULL);
     assert(ret);
     return true;
 }
@@ -216,7 +221,7 @@ bool CKey::VerifyPubKey(const CPubKey& pubkey) const {
         return false;
     }
     unsigned char rnd[8];
-    std::string str = "Bitcoin key verification\n";
+    std::string str = "FairCoin key verification\n";
     GetRandBytes(rnd, sizeof(rnd));
     uint256 hash;
     CHash256().Write((unsigned char*)str.data(), str.size()).Write(rnd, sizeof(rnd)).Finalize(hash.begin());

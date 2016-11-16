@@ -40,6 +40,8 @@ const char *SIG="sig";
 const char *GETSIGLIST="getsiglist";
 const char *SIGLIST="siglist";
 const char *CHAINDATA="chaindata";
+const char *GETNONCES="getnonces";
+const char *NONCESLIST="nonceslist";
 };
 
 static const char* ppszTypeName[] =
@@ -84,6 +86,8 @@ const static std::string allNetMessageTypes[] = {
     NetMsgType::GETSIGLIST,
     NetMsgType::SIGLIST,
     NetMsgType::CHAINDATA,
+    NetMsgType::GETNONCES,
+    NetMsgType::NONCESLIST,
 };
 const static std::vector<std::string> allNetMessageTypesVec(allNetMessageTypes, allNetMessageTypes+ARRAYLEN(allNetMessageTypes));
 

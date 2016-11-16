@@ -1400,9 +1400,7 @@ bool IsInitialBlockDownload()
 
 arith_uint256 GetBlockProof(const CBlockIndex& block)
 {
-    arith_uint256 bnSignatures;
-
-    bnSignatures = block.vSignatures.size() + block.vAdminSignatures.size() * 10; // admin sigs count 10 fold
+    arith_uint256 bnSignatures(block.GetNumChainSigs());
 
     return bnSignatures;
 }
@@ -1930,7 +1928,7 @@ bool FindUndoPos(CValidationState &state, int nFile, CDiskBlockPos &pos, unsigne
 static CCheckQueue<CScriptCheck> scriptcheckqueue(128);
 
 void ThreadScriptCheck() {
-    RenameThread("bitcoin-scriptch");
+    RenameThread("faircoin-scriptch");
     scriptcheckqueue.Thread();
 }
 
@@ -1990,7 +1988,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     CAmount nFees = 0;
     int nInputs = 0;
     unsigned int nSigOps = 0;
-    CDiskTxPos pos(pindex->GetBlockPos(), GetSizeOfCompactSize(block.vtx.size()) + GetSerializeSize(block.vCreatorSignature, SER_DISK, CLIENT_VERSION));
+    CDiskTxPos pos(pindex->GetBlockPos(), GetSizeOfCompactSize(block.vtx.size()) + GetSerializeSize(block.creatorSignature, SER_DISK, CLIENT_VERSION));
     std::vector<std::pair<uint256, CDiskTxPos> > vPos;
     vPos.reserve(block.vtx.size());
     if (block.HasTx())
@@ -2260,12 +2258,12 @@ void static UpdateTip(CBlockIndex *pindexNew)
     nTimeBestReceived = GetTime();
     mempool.AddTransactionsUpdated(1);
 
-    LogPrintf("%s: new best=%s height=%d creator=%08x pl=%s log2_work=%.8g tx=%lu ate=%s progress=%f cache=%.1fMiB(%utx) sigs=%u\n", __func__,
+    LogPrintf("%s: new best=%s height=%d creator=%08x pl=%s work=%.8g tx=%lu date=%s progress=%f cache=%.1fMiB(%utx) sigs=%u admSigs=%u\n", __func__,
       chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(), pindexNew->nCreatorId, pindexNew->GetPayloadString(),
       log(chainActive.Tip()->nChainWork.getdouble())/log(2.0), (unsigned long)chainActive.Tip()->nChainTx,
-      DateTimeStrFormat("%Y-%m-%d %H:%M:%S", chainActive.Tip()->GetBlockTime()),
+      DateTimeStrFormat("%Y-%m-%d %H:%M:%S", pindexNew->nTime),
       Checkpoints::GuessVerificationProgress(chainParams.Checkpoints(), chainActive.Tip()), pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)),
-      pcoinsTip->GetCacheSize(), pindexNew->vSignatures.size());
+      pcoinsTip->GetCacheSize(), pindexNew->GetNumChainSigs(), pindexNew->vAdminIds.size());
 
     cvBlockChange.notify_all();
 
@@ -2934,12 +2932,11 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOC, bo
 
     if (fCheckPOC) {
         // check for correct signature of the block hash by the creator
-        CCvnSignature creatorSignature(block.nCreatorId, block.vCreatorSignature);
-        if (!CvnVerifySignature(block.GetHash(), creatorSignature))
+        if (!CvnVerifySignature(block.GetHash(), block.creatorSignature, block.nCreatorId))
             return state.DoS(100, error("CheckBlock(): invalid creator signature"),
                                          REJECT_INVALID, "bad-creator-sig", true);
 
-        if (block.HasAdminPayload() && !CheckAdminSignatures(block.GetChainAdminDataHash(), block.vAdminSignatures, block.HasCoinSupplyPayload()))
+        if (block.HasAdminPayload() && !CheckAdminSignature(block.vAdminIds, block.GetChainAdminDataHash(), block.adminMultiSig, block.HasCoinSupplyPayload()))
             return state.DoS(100, error("CheckBlock(): invalid chain admin signature"),
                                                      REJECT_INVALID, "bad-admin-sig", true);
     }
@@ -3045,10 +3042,10 @@ static bool CheckIndexAgainstCheckpoint(const CBlockIndex* pindexPrev, CValidati
 
 bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& state, CBlockIndex * const pindexPrev, bool fCheckSignatures)
 {
-    LogPrint("cvn", "ContextualCheckBlockHeader : checking # of sigs: Prev: %u, This: %u\n", pindexPrev->vSignatures.size(), block.vSignatures.size());
+    LogPrint("cvn", "ContextualCheckBlockHeader : checking # of sigs: Prev: %u, This: %u\n", pindexPrev->GetNumChainSigs(), block.GetNumChainSigs());
 
     // only do advanced checks if we have a decrease in number of signatures
-    if (fCheckSignatures && pindexPrev->vSignatures.size() > block.vSignatures.size()) {
+    if (fCheckSignatures && pindexPrev->GetNumChainSigs() > block.GetNumChainSigs()) {
         // calculate the mean of the number of the signatures from
         // the last dynParams.nBlocksToConsiderForSigCheck blocks
         CBlockIndex *pindex = pindexPrev;
@@ -3056,24 +3053,24 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
         uint32_t nBlocks = 0;
 
         while (nBlocks++ < dynParams.nBlocksToConsiderForSigCheck && pindex != NULL) {
-            nSignatures += pindex->vSignatures.size();
+            nSignatures += pindex->GetNumChainSigs();
             pindex = pindex->pprev;
         }
 
         float nSignatureMean = nBlocks ? (float) nSignatures / (float) nBlocks : 0.0f;
 
         // this block requires at least dynParams.nPercentageOfSignatureMean of the number of nSignatureMean
-        if ((float) block.vSignatures.size() < nSignatureMean * ((float)dynParams.nPercentageOfSignaturesMean / 100.0f)) {
+        if ((float) block.GetNumChainSigs() < nSignatureMean * ((float)dynParams.nPercentageOfSignaturesMean / 100.0f)) {
             LogPrintf("ContextualCheckBlockHeader : past signatures [");
             CBlockIndex *pindexDebug = pindexPrev;
             uint8_t i = 0;
             while (i++ < dynParams.nBlocksToConsiderForSigCheck && pindexDebug != NULL) {
-                LogPrintf("%s%02u", i == 1 ? " " : ", ", pindexDebug->vSignatures.size());
+                LogPrintf("%s%02u", i == 1 ? " " : ", ", pindexDebug->GetNumChainSigs());
                 pindexDebug = pindexDebug->pprev;
             }
             LogPrintf(" ], nSignatureMean: %f, nBlock: %u\n", nSignatureMean, nBlocks);
             return state.Invalid(error("%s: not enough signatures available in this block. Mean: %f, This: %u", __func__,
-                    nSignatureMean, block.vSignatures.size()),
+                    nSignatureMean, block.GetNumChainSigs()),
                              REJECT_INVALID, "not-enough-sigs");
         }
     }
@@ -3528,7 +3525,7 @@ bool static LoadBlockIndexDB()
 #if 0
         LogPrintf("LoadBlockIndexDB : nVersion: 0x%08x, nHeight: %u, nChainwork: %s, nStatus: %u, blockHash: %s, sigs: %u, adminSigs: %u\n",
                 pindex->nVersion, pindex->nHeight, pindex->nChainWork.ToString(), pindex->nStatus, pindex->GetBlockHash().ToString(),
-                pindex->vSignatures.size(), pindex->vAdminSignatures.size());
+                pindex->GetNumChainSigs(), pindex->vAdminIds.size());
 #endif
         // We can link the chain of blocks for which we've received transactions at some point.
         // Pruned nodes may have deleted the block.
@@ -4382,7 +4379,7 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
                 }
                 if (!pushed && inv.type == MSG_CVN_SIGNATURE) {
                     if (mapRelaySigs.count(inv.hash)) {
-                        CCvnSignatureMsg msg = mapRelaySigs[inv.hash];
+                        CCvnPartialSignatureMsg msg = mapRelaySigs[inv.hash];
                         pfrom->PushMessage(NetMsgType::SIG, msg);
                         pushed = true;
                     }
@@ -4525,18 +4522,20 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                 CAddress addr = GetLocalAddress(&pfrom->addr);
                 if (addr.IsRoutable())
                 {
-                    LogPrint("net", "ProcessMessages: advertizing address %s\n", addr.ToString());
+                    LogPrint("net", "ProcessMessages: advertising address %s\n", addr.ToString());
                     pfrom->PushAddress(addr);
                 } else if (IsPeerAddrLocalGood(pfrom)) {
                     addr.SetIP(pfrom->addrLocal);
-                    LogPrint("net", "ProcessMessages: advertizing address %s\n", addr.ToString());
+                    LogPrint("net", "ProcessMessages: advertising address %s\n", addr.ToString());
                     pfrom->PushAddress(addr);
                 }
 
-                // request peers CVN info list
+                // request peers chain signatures
                 uint32_t nNextCreator = CheckNextBlockCreator(chainActive.Tip(), GetAdjustedTime());
-                if (nNextCreator)
+                if (nNextCreator) {
+                    pfrom->PushMessage(NetMsgType::GETNONCES, chainActive.Tip()->GetBlockHash(), nNextCreator);
                     pfrom->PushMessage(NetMsgType::GETSIGLIST, chainActive.Tip()->GetBlockHash(), nNextCreator);
+                }
             }
 
             // Get recent addresses
@@ -4917,7 +4916,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                 LogPrintf("received outdated CVN public nonce from peer %d for tip %s created by 0x%08x\n", pfrom->id, msg.hashPrevBlock.ToString(), msg.nSignerId);
             else {
                 LogPrint("net", "received public nonce %s for tip %s\n", msg.GetHash().ToString(), msg.hashPrevBlock.ToString());
-                if (AddCvnPubNonce(msg.GetPubNonce(), msg.hashPrevBlock, msg.nCreatorId))
+                if (AddCvnPubNonce(msg))
                     RelayCvnPubNonce(msg);
                 else
                     LogPrintf("received invalid public nonce %s\n", msg.ToString());
@@ -4929,7 +4928,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
     else if (strCommand == NetMsgType::SIG)
     {
-        CCvnSignatureMsg msg;
+        CCvnPartialSignatureMsg msg;
         vRecv >> msg;
 
         CInv inv(MSG_CVN_SIGNATURE, msg.GetHash());
@@ -4942,7 +4941,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
         if (!AlreadyHave(inv)) {
             if (msg.hashPrevBlock != chainActive.Tip()->GetBlockHash())
-                LogPrintf("received outdated CVN signature from peer %d for tip %s signed by 0x%08x\n", pfrom->id, msg.hashPrevBlock.ToString(), msg.nSignerId);
+                LogPrintf("received outdated CVN signature from peer %d for tip %s signed by 0x%08x\n", pfrom->id, msg.hashPrevBlock.ToString(), msg.nCreatorId);
             else {
                 LogPrint("net", "received chain signature %s for tip %s\n", msg.GetHash().ToString(), msg.hashPrevBlock.ToString());
                 if (AddCvnSignature(msg.GetCvnSignature(), msg.hashPrevBlock, msg.nCreatorId))
@@ -4952,6 +4951,69 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             }
         } else
             LogPrint("net", "AlreadyHave sig %s\n", msg.hashPrevBlock.ToString());
+    }
+
+
+    else if (strCommand == NetMsgType::GETNONCES)
+    {
+        uint256 hashPeersTip;
+        uint32_t nNextCreator;
+
+        vRecv >> hashPeersTip >> nNextCreator;
+
+        LogPrint("net", "peer %d requests CVN nonces list for 0x%08x tip: %s\n", pfrom->id, nNextCreator, hashPeersTip.ToString());
+
+        if (mapCvnNonces.count(hashPeersTip)) {
+            LOCK(cs_mapCvnNonces);
+            CvnNonceCreatorType mapNoncesByNextCreator = mapCvnNonces[hashPeersTip];
+
+            if (mapNoncesByNextCreator.count(nNextCreator)) {
+                CvnNonceSignerType mapNoncesBySigner = mapNoncesByNextCreator[nNextCreator];
+                vector<CCvnPubNonceMsg> vNoncesList(mapNoncesBySigner.size());
+
+                int i = 0;
+                BOOST_FOREACH(CvnNonceSignerType::value_type& nonce, mapNoncesBySigner) {
+                    vNoncesList[i++] = nonce.second;
+                }
+
+                if (vNoncesList.size())
+                    pfrom->PushMessage(NetMsgType::NONCESLIST, hashPeersTip, nNextCreator, vNoncesList);
+            }
+        }
+    }
+
+
+    else if (strCommand == NetMsgType::NONCESLIST)
+    {
+        vector<CCvnPubNonceMsg> vNoncesList;
+        uint256 hashPeersTip;
+        uint32_t nNextCreator;
+
+        vRecv >> hashPeersTip;
+        vRecv >> nNextCreator;
+        vRecv >> vNoncesList;
+
+        LogPrint("net", "received %u CVN nonces for hash %s from peer %d\n", vNoncesList.size(), hashPeersTip.ToString(), pfrom->id);
+
+        if (hashPeersTip != chainActive.Tip()->GetBlockHash())
+            LogPrintf("received outdated CVN nonces list from peer %d for block %s\n", pfrom->id, hashPeersTip.ToString());
+        else {
+            if (vNoncesList.size()) {
+                LOCK(cs_mapCvnNonces);
+                CvnNonceCreatorType mapNoncesByCreator = mapCvnNonces[hashPeersTip];
+                CvnNonceSignerType mapNoncesBySigner = mapNoncesByCreator[nNextCreator]; // it's OK to add an element here
+
+                for (uint32_t i = 0; i < vNoncesList.size() ; i++) {
+                    if (!mapNoncesBySigner.count(vNoncesList[i].nSignerId)) {
+                        if (!AddCvnPubNonce(vNoncesList[i]))
+                            Misbehaving(pfrom->GetId(), 50);
+                    }
+                }
+            } else {
+                // received empty list
+                Misbehaving(pfrom->GetId(), 20);
+            }
+        }
     }
 
 
@@ -4970,7 +5032,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
             if (mapSigsByNextCreator.count(nNextCreator)) {
                 CvnSigSignerType mapSigsBySigner = mapSigsByNextCreator[nNextCreator];
-                vector<CCvnSignature> vSigList(mapSigsBySigner.size());
+                vector<CCvnPartialSignature> vSigList(mapSigsBySigner.size());
 
                 int i = 0;
                 BOOST_FOREACH(CvnSigSignerType::value_type& sig, mapSigsBySigner) {
@@ -4986,7 +5048,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
     else if (strCommand == NetMsgType::SIGLIST)
     {
-        vector<CCvnSignature> vSigList;
+        vector<CCvnPartialSignature> vSigList;
         uint256 hashPeersTip;
         uint32_t nNextCreator;
 
@@ -5182,7 +5244,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             CValidationState state;
             if (pindexLast != NULL && header.hashPrevBlock != pindexLast->GetBlockHash()) {
                 Misbehaving(pfrom->GetId(), 20);
-                return error("non-continuous headers sequence");
+                return error("non-continuous headers sequence: %s != %s", header.hashPrevBlock.ToString(), pindexLast->GetBlockHash().ToString());
             }
             if (!AcceptBlockHeader(header, state, chainparams, &pindexLast)) {
                 int nDoS;
@@ -6016,7 +6078,7 @@ bool SendMessages(CNode* pto)
 
             BOOST_FOREACH(const uint256& hash, pto->vInventoryChainSignaturesToSend) {
                 if (mapRelaySigs.count(hash)) {
-                    CCvnSignatureMsg& msg = mapRelaySigs[hash];
+                    CCvnPartialSignatureMsg& msg = mapRelaySigs[hash];
 
                     // we only relay signatures for the active chain tip
                     if (msg.hashPrevBlock == hashTip) {
@@ -6130,11 +6192,9 @@ bool SendMessages(CNode* pto)
     return true;
 }
 
- std::string CBlockFileInfo::ToString() const {
-     return strprintf("CBlockFileInfo(blocks=%u, size=%u, heights=%u...%u, time=%s...%s)", nBlocks, nSize, nHeightFirst, nHeightLast, DateTimeStrFormat("%Y-%m-%d", nTimeFirst), DateTimeStrFormat("%Y-%m-%d", nTimeLast));
- }
-
-
+std::string CBlockFileInfo::ToString() const {
+    return strprintf("CBlockFileInfo(blocks=%u, size=%u, heights=%u...%u, time=%s...%s)", nBlocks, nSize, nHeightFirst, nHeightLast, DateTimeStrFormat("%Y-%m-%d", nTimeFirst), DateTimeStrFormat("%Y-%m-%d", nTimeLast));
+}
 
 class CMainCleanup
 {

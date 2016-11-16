@@ -9,6 +9,7 @@
 #include "hash.h"
 #include "serialize.h"
 #include "uint256.h"
+#include "primitives/cvn.h"
 
 #include <secp256k1.h>
 #include <stdexcept>
@@ -181,8 +182,8 @@ public:
     /**
       * Verify a schnorr signature (64 bytes).
       */
-    static bool VerifySchnorr(const uint256 &hash, const std::vector<unsigned char>& vchSig, const secp256k1_pubkey* pPubKey);
-
+    static bool VerifySchnorr(const uint256 &hash, const CSchnorrSig& schnorrSig, const std::vector<unsigned char>& vchPubKey);
+    static bool VerifySchnorr(const uint256 &hash, const CSchnorrSig& schnorrSig, const CSchnorrPubKey& pubKey);
     /**
      * Check whether a signature is normalized (lower-S).
      */

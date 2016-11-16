@@ -260,6 +260,7 @@ void Shutdown()
 #endif
     globalVerifyHandle.reset();
     ECC_Stop();
+    POC_destroy_secp256k1_context();
     LogPrintf("%s: done\n", __func__);
 }
 
@@ -364,13 +365,13 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-banscore=<n>", strprintf(_("Threshold for disconnecting misbehaving peers (default: %u)"), DEFAULT_BANSCORE_THRESHOLD));
     strUsage += HelpMessageOpt("-bantime=<n>", strprintf(_("Number of seconds to keep misbehaving peers from reconnecting (default: %u)"), DEFAULT_MISBEHAVING_BANTIME));
     strUsage += HelpMessageOpt("-bind=<addr>", _("Bind to given address and always listen on it. Use [host]:port notation for IPv6"));
-    strUsage += HelpMessageOpt("-connect=<ip>", _("Connect only to the specified node(s)"));
+    strUsage += HelpMessageOpt("-connect=<ip>", _("Connect only to the specified node(s); -noconnect or -connect=0 alone to disable automatic connections"));
     strUsage += HelpMessageOpt("-discover", _("Discover own IP addresses (default: 1 when listening and no -externalip or -proxy)"));
     strUsage += HelpMessageOpt("-dns", _("Allow DNS lookups for -addnode, -seednode and -connect") + " " + strprintf(_("(default: %u)"), DEFAULT_NAME_LOOKUP));
-    strUsage += HelpMessageOpt("-dnsseed", _("Query for peer addresses via DNS lookup, if low on addresses (default: 1 unless -connect)"));
+    strUsage += HelpMessageOpt("-dnsseed", _("Query for peer addresses via DNS lookup, if low on addresses (default: 1 unless -connect/-noconnect)"));
     strUsage += HelpMessageOpt("-externalip=<ip>", _("Specify your own public address"));
     strUsage += HelpMessageOpt("-forcednsseed", strprintf(_("Always query for peer addresses via DNS lookup (default: %u)"), DEFAULT_FORCEDNSSEED));
-    strUsage += HelpMessageOpt("-listen", _("Accept connections from outside (default: 1 if no -proxy or -connect)"));
+    strUsage += HelpMessageOpt("-listen", _("Accept connections from outside (default: 1 if no -proxy or -connect/-noconnect)"));
     strUsage += HelpMessageOpt("-listenonion", strprintf(_("Automatically create Tor hidden service (default: %d)"), DEFAULT_LISTEN_ONION));
     strUsage += HelpMessageOpt("-maxconnections=<n>", strprintf(_("Maintain at most <n> connections to peers (default: %u)"), DEFAULT_MAX_PEER_CONNECTIONS));
     strUsage += HelpMessageOpt("-maxreceivebuffer=<n>", strprintf(_("Maximum per-connection receive buffer, <n>*1000 bytes (default: %u)"), DEFAULT_MAXRECEIVEBUFFER));
@@ -1061,6 +1062,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     // Initialize elliptic curve code
     ECC_Start();
+    POC_create_secp256k1_context();
     globalVerifyHandle.reset(new ECCVerifyHandle());
 
     // Sanity check
@@ -1128,25 +1130,51 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
             return InitError(_("Unable to start HTTP server. See debug log for details."));
     }
 
+    if (mapArgs.count("-admin")) {
+        X509 *x509ADMINCertificate = NULL;
+        if (GetArg("-admin", "") == "fasito") {
+#ifdef USE_OPENSC
+            LogPrintf("Initializing fasito\n");
+            uiInterface.InitMessage(_("Initializing fasito..."));
+            x509ADMINCertificate = InitChainAdminWithSmartCard();
+#else
+            LogPrintf("ERROR: invalid parameter -cvn=fasito. This wallet version was not compiled with fasito support\n");
+#endif
+        } else if (GetArg("-admin", "") == "file") {
+            x509ADMINCertificate = InitChainAdminWithCertificate();
+        } else
+            return InitError("-admin configuration invalid. Parameter must be 'fasito' or 'file'\n");
+
+        if (!x509ADMINCertificate)
+            return InitError("could not find a vaild chain admin certificate\n");
+
+        nChainAdminId = ExtractIdFromCertificate(x509ADMINCertificate, true);
+
+        if (!nChainAdminId)
+            return InitError("could not find a vaild chain admin ID\n");
+
+        LogPrintf("Configuring node with chain admin ID 0x%08x\n", nChainAdminId);
+    }
+
     if (mapArgs.count("-cvn")) {
         X509 *x509CVNCertificate = NULL;
-        if (GetArg("-cvn", "") == "card") {
+        if (GetArg("-cvn", "") == "fasito") {
 #ifdef USE_OPENSC
-            LogPrintf("Initializing smartcard\n");
-            uiInterface.InitMessage(_("Initializing smartcard..."));
+            LogPrintf("Initializing fasito\n");
+            uiInterface.InitMessage(_("Initializing fasito..."));
             x509CVNCertificate = InitCVNWithSmartCard();
 #else
-            LogPrintf("ERROR: invalid parameter -cvn=card. This wallet version was not compiled with smart card support\n");
+            LogPrintf("ERROR: invalid parameter -cvn=fasito. This wallet version was not compiled with fasito support\n");
 #endif
         } else if (GetArg("-cvn", "") == "file") {
             x509CVNCertificate = InitCVNWithCertificate();
         } else
-            return InitError("-cvn configuration invalid. Parameter must be 'card' or 'file'\n");
+            return InitError("-cvn configuration invalid. Parameter must be 'fasito' or 'file'\n");
 
         if (!x509CVNCertificate)
             return InitError("could not find a vaild CVN node certificate\n");
 
-        nCvnNodeId = SetupCVN(x509CVNCertificate);
+        nCvnNodeId = ExtractIdFromCertificate(x509CVNCertificate, false);
 
         if (!nCvnNodeId)
             return InitError("could not find a vaild CVN node ID\n");
@@ -1158,14 +1186,22 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         CBlock genesis = chainparams.GenesisBlock();
         UpdateCvnInfo(&genesis);
         UpdateChainAdmins(&genesis);
-        LogPrintf("Genesis chain admin data hash : %s\n", genesis.GetChainAdminDataHash().ToString());
 
-        CCvnSignature blockSig;
-        CvnSign(genesis.hashPrevBlock, blockSig, GENESIS_NODE_ID, GENESIS_NODE_ID);
-        LogPrintf("Genesis chain signature       : %s\n", HexStr(blockSig.vSignature));
+        CSchnorrSig chainAdminSig;
+        if (!adminPrivKey.SchnorrSign(genesis.GetChainAdminDataHash(), chainAdminSig))
+            return InitError("could not create chain admin signature");
+
+        LogPrintf("Genesis admin data signature  : %s\n", chainAdminSig.ToString());
+        if (!CPubKey::VerifySchnorr(genesis.GetChainAdminDataHash(), chainAdminSig, adminPubKey)) {
+            return InitError("could not verify chain admin signature");
+        }
+
+        CCvnPartialSignature chainSig;
+        CvnSignPartial(genesis.hashPrevBlock, chainSig, GENESIS_NODE_ID, GENESIS_NODE_ID);
+        LogPrintf("Genesis chain signature       : %s\n", chainSig.signature.ToString());
 
         CvnSignBlock(genesis);
-        LogPrintf("Genesis block signature       : %s\n", HexStr(genesis.vCreatorSignature));
+        LogPrintf("Genesis block signature       : %s\n", genesis.creatorSignature.ToString());
 #endif
     }
 

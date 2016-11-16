@@ -176,7 +176,7 @@ extern CCriticalSection cs_mapRelayNonces;
 extern std::map<uint256, CCvnPubNonceMsg> mapRelayNonces;
 
 extern CCriticalSection cs_mapRelaySigs;
-extern std::map<uint256, CCvnSignatureMsg> mapRelaySigs;
+extern std::map<uint256, CCvnPartialSignatureMsg> mapRelaySigs;
 
 extern CCriticalSection cs_mapRelayChainData;
 extern std::map<uint256, CChainDataMsg> mapRelayChainData;

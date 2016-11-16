@@ -20,9 +20,9 @@
 
 using namespace std;
 
-static bool AddAdminSignatures(CChainDataMsg &msg, const UniValue& sigs)
+static bool AddAdminSignatures(CChainDataMsg &msg, const UniValue& adminIds, const UniValue& multiSig)
 {
-    const uint32_t nSigs = (uint32_t)sigs.size();
+    const uint32_t nSigs = (uint32_t)adminIds.size();
     if (nSigs < dynParams.nMinAdminSigs)
         throw runtime_error(
             strprintf("not enough signatures supplied "
@@ -36,29 +36,22 @@ static bool AddAdminSignatures(CChainDataMsg &msg, const UniValue& sigs)
                 strprintf("not enough signatures supplied "
                        "(got %u signatures, but need at least %u to sign for coin supply)", nSigs, dynParams.nMaxAdminSigs));
 
-    msg.vAdminSignatures.resize(nSigs);
+    msg.adminMultiSig.SetHex(multiSig.get_str());
 
     for (uint32_t i = 0 ; i < nSigs ; i++)
     {
-        const string& strSig = sigs[i].get_str();
-        vector<string> vTokens;
-        boost::split(vTokens, strSig, boost::is_any_of(":"));
-
-        if (vTokens.size() != 2)
-            throw runtime_error(strprintf("signature %u is of invalid format", i + 1));
-
         uint32_t signerId;
         stringstream ss;
-        ss << hex << vTokens[0].c_str();
+        ss << hex << adminIds[i].get_str().c_str();
         ss >> signerId;
 
-        msg.vAdminSignatures[i] = CCvnSignature(signerId, ParseHex(vTokens[1]));
+        msg.vAdminIds.push_back(signerId);
     }
 
-    return CheckAdminSignatures(msg.GetHash(), msg.vAdminSignatures, msg.HasCoinSupplyPayload());
+    return CheckAdminSignature(msg.vAdminIds, msg.GetHash(), msg.adminMultiSig, msg.HasCoinSupplyPayload());
 }
 
-static void AddCvnInfoToMsg(CChainDataMsg &msg, const uint32_t nNodeId, const uint32_t nHeightAdded, const vector<unsigned char> vPubKey)
+static void AddCvnInfoToMsg(CChainDataMsg &msg, const uint32_t nNodeId, const uint32_t nHeightAdded, const CSchnorrPubKey &pubKey)
 {
     msg.nPayload |= CChainDataMsg::CVN_PAYLOAD;
     msg.vCvns.resize(mapCVNs.size() + 1);
@@ -69,11 +62,11 @@ static void AddCvnInfoToMsg(CChainDataMsg &msg, const uint32_t nNodeId, const ui
         msg.vCvns[index++] = cvn.second;
     }
 
-    CCvnInfo cvn(nNodeId, nHeightAdded, vPubKey);
+    CCvnInfo cvn(nNodeId, nHeightAdded, pubKey);
     msg.vCvns[index] = cvn;
 }
 
-static void AddChainAdminToMsg(CChainDataMsg &msg, const uint32_t nAdminId, const uint32_t nHeightAdded, const vector<unsigned char> vPubKey)
+static void AddChainAdminToMsg(CChainDataMsg &msg, const uint32_t nAdminId, const uint32_t nHeightAdded, const CSchnorrPubKey &pubKey)
 {
     msg.nPayload |= CChainDataMsg::CHAIN_ADMINS_PAYLOAD;
     msg.vChainAdmins.resize(mapChainAdmins.size() + 1);
@@ -84,7 +77,7 @@ static void AddChainAdminToMsg(CChainDataMsg &msg, const uint32_t nAdminId, cons
         msg.vChainAdmins[index++] = cvn.second;
     }
 
-    CChainAdmin admin(nAdminId, nHeightAdded, vPubKey);
+    CChainAdmin admin(nAdminId, nHeightAdded, pubKey);
     msg.vChainAdmins[index] = admin;
 }
 
@@ -197,8 +190,9 @@ UniValue addcvn(const UniValue& params, bool fHelp)
             "1. \"type\"               (string, required) c=CVNInfo, a=ChainAdmin\n"
             "2. \"Id\"                 (string, required) The ID (in hex) of the new CVN or admin.\n"
             "3. \"pubkey\"             (string, required but can be empty) The public key of the new CVN or Chain Admin (in hex).\n"
-            "4. \"[n:sigs]\"           (string, required) The admin signatures prefixed by the signer ID (n)\n"
-            "5. \"{\"key\":\"val\"}]\" (string, optional) The dynamic chain parameters to set)\n"
+            "4. \"[nAdminIds]\"        (string, required) The adminIds that created the multi signature\n"
+            "5. \"adminMultiSig\"      (string, required) The combined admin signature\n"
+            "6. \"{\"key\":\"val\"}]\" (string, optional) The dynamic chain parameters to set)\n"
             "\nResult:\n"
             "{\n"
                 "  \"type\":\"type of added info\",             (string) The type of the added info (c=CVNInfo, a=ChainAdmin)\n"
@@ -226,42 +220,43 @@ UniValue addcvn(const UniValue& params, bool fHelp)
     ss >> nNodeId;
 
     vector<unsigned char> vPubKey = ParseHex(params[2].get_str());
-    CPubKey pubKey(vPubKey);
 
-    if (!pubKey.IsFullyValid() && params[4].isNull())
+    if (vPubKey.size() != 65 && params[5].isNull())
         throw runtime_error(" Invalid public key: " + params[2].get_str());
 
-    const UniValue& sigs = params[3].get_array();
+    CSchnorrPubKey pubKey;
+    const UniValue& adminIds = params[3].get_array();
 
     CChainDataMsg msg;
     msg.hashPrevBlock = chainActive.Tip()->GetBlockHash();
 
-    if (pubKey.IsFullyValid()) {
+    if (vPubKey.size() == 65) {
+    	pubKey = CSchnorrPubKeyDER(params[2].get_str());
         if (fAddCvn)
-            AddCvnInfoToMsg(msg, nNodeId, chainActive.Tip()->nHeight + 1, vPubKey);
+            AddCvnInfoToMsg(msg, nNodeId, chainActive.Tip()->nHeight + 1, pubKey);
         else
-            AddChainAdminToMsg(msg, nNodeId, chainActive.Tip()->nHeight + 1, vPubKey);
+            AddChainAdminToMsg(msg, nNodeId, chainActive.Tip()->nHeight + 1, pubKey);
     }
 
-    if (params[4].isObject() && !params[4].get_obj().getKeys().empty())
-        AddDynParamsToMsg(msg, params[4].get_obj());
+    if (!params[5].isNull() && params[5].isObject() && !params[5].get_obj().getKeys().empty())
+        AddDynParamsToMsg(msg, params[5].get_obj());
 
     // if no signatures are supplied we print out the CChainDataMsg's hash to sign
-    if (sigs.empty())
+    if (params[4].isNull())
         return msg.GetHash().ToString();
 
-    if (!AddAdminSignatures(msg, sigs))
+    if (!AddAdminSignatures(msg, adminIds, params[4].get_str()))
         return "error in signatures";
 
     result.push_back(Pair("nodeId", strprintf("0x%08x", nNodeId)));
 
     if (msg.HasCvnInfo()) {
-        CKeyID keyID = pubKey.GetID();
+        CKeyID keyID = CKeyID(pubKey.GetHash160());
         CBitcoinAddress address;
         address.Set(keyID);
 
-        LogPrintf("about to add CVN 0x%08x with pubKey %s (%s) to the network\n", nNodeId, HexStr(vPubKey), address.ToString());
-        result.push_back(Pair("pubKey", HexStr(vPubKey)));
+        LogPrintf("about to add CVN 0x%08x with pubKey %s (%s) to the network\n", nNodeId, pubKey.ToString(), address.ToString());
+        result.push_back(Pair("pubKey", pubKey.ToString()));
         result.push_back(Pair("address", address.ToString()));
     }
 
@@ -295,7 +290,8 @@ UniValue removecvn(const UniValue& params, bool fHelp)
             "\nArguments:\n"
             "1. \"type\"         (string, required) c=CVNInfo, a=ChainAdmin\n"
             "2. \"Id\"           (string, required) The ID (in hex) of the CVN or admin to remove.\n"
-            "3. \"n:sigs\"       (string, required) The admin signatures prefixed by the signer ID (n)\n"
+            "3. \"[adminIds]\"   (array, required) The admin signatures prefixed by the signer ID (n)\n"
+            "4. \"adminMultiSig\" (string, required) The admin signatures prefixed by the signer ID (n)\n"
             "\nResult:\n"
             "{\n"
                 "  \"type\":\"type of info\",                   (string) The type of the info (c=CVNInfo, a=ChainAdmin)\n"
@@ -317,7 +313,7 @@ UniValue removecvn(const UniValue& params, bool fHelp)
     ss << hex << params[1].get_str();
     ss >> nNodeId;
 
-    const UniValue& sigs = params[2].get_array();
+    const UniValue& adminIds = params[2].get_array();
 
     CChainDataMsg msg;
     msg.nPayload      |= (fRemoveCvn ? CChainDataMsg::CVN_PAYLOAD : CChainDataMsg::CHAIN_ADMINS_PAYLOAD);
@@ -355,10 +351,10 @@ UniValue removecvn(const UniValue& params, bool fHelp)
         return "wait for block chain download to finish";
 
     // if no signatures are supplied we print out the CChainDataMsg's hash to sign
-    if (sigs.empty())
+    if (adminIds.empty())
         return msg.GetHash().ToString();
 
-    AddAdminSignatures(msg, sigs);
+    AddAdminSignatures(msg, adminIds, params[3].get_str());
     LogPrintf("about remove %s 0x%08x from the network\n", fRemoveCvn ? "CVN" : "Admin", nNodeId);;
 
     if (AddChainData(msg)) {
@@ -373,44 +369,41 @@ UniValue removecvn(const UniValue& params, bool fHelp)
 
 UniValue signchaindata(const UniValue& params, bool fHelp)
 {
-    if (fHelp || params.size() != 3)
+    if (fHelp || params.size() < 1 || params.size() > 2)
         throw runtime_error(
             "signchaindata \"signchaindata\"\n"
             "\nCreates a signature of chain data\n"
             "\nArguments:\n"
             "1. \"hashChainData\"   (string, required) The hash of the chain data.\n"
-            "2. \"adminId\"         (string, required) The admin ID (hex)\n"
-            "3. \"privKey\"         (string, required) The private key of the chain admin\n"
+            "2. \"PIN\"             (string, optional) The PIN for the fasito private admin key\n"
             "\nExamples:\n"
             "\nCreate a signature\n"
-            + HelpExampleCli("signchaindata", "a1b5..9093")
+            + HelpExampleCli("signchaindata", "a1b5..9093 123456")
         );
 
     LOCK(cs_main);
 
+    if (!mapArgs.count("-admin") || !nChainAdminId || !adminPrivKey.IsValid())
+    	return "ERROR: wallet not configured for chain administration";
+
     uint256 hashChainData = uint256S(params[0].get_str());
 
-    uint32_t nAdminId;
-    stringstream ss;
-    ss << hex << params[1].get_str();
-    ss >> nAdminId;
+    /********************************
+     * THIS IS ALL WRONG
+     * and needs to be implemented and
+     * adopted for schnorr k-of-k sigs
+     */
 
-    vector<unsigned char> vSignature;
+    CSchnorrSig signature;
 
-    CBitcoinSecret secret;
-    if (!secret.SetString(params[2].get_str()))
-        return "private key is invalid";
+    if (params.size() == 2)  {
+        // TODO: do fasito stuff
+    } else {
+        if (!adminPrivKey.SchnorrSign(hashChainData, signature))
+            return "error, could not create signature";
+    }
 
-    CKey key = secret.GetKey();
-    if (!key.Sign(hashChainData, vSignature))
-        return "CvnSignWithKey : could not create block signature";
-
-    CCvnSignature sig(nAdminId, vSignature);
-
-    if (!CvnVerifyAdminSignature(hashChainData, sig))
-        return "error signing chain data";
-
-    return "\"" + params[1].get_str() + ":" + HexStr(vSignature) + "\"";
+    return signature.ToString();
 }
 
 UniValue getcvninfo(const UniValue& params, bool fHelp)
@@ -477,7 +470,7 @@ UniValue getactivecvns(const UniValue& params, bool fHelp)
 
         UniValue cvnEntry(UniValue::VOBJ);
         cvnEntry.push_back(Pair("nodeId", strprintf("0x%08x", c.nNodeId)));
-        cvnEntry.push_back(Pair("pubKey", HexStr(c.vPubKey)));
+        cvnEntry.push_back(Pair("pubKey", c.pubKey.ToString()));
         cvnEntry.push_back(Pair("heightAdded", (int)c.nHeightAdded));
 
         CCvnStatus status(c.nNodeId);
@@ -633,7 +626,7 @@ UniValue submitblock(const UniValue& params, bool fHelp)
 #ifdef ENABLE_COINSUPPLY
 UniValue addcoinsupply(const UniValue& params, bool fHelp)
 {
-	if (fHelp || params.size() != 4)
+    if (fHelp || params.size() != 4)
         throw runtime_error(
             "addcoinsupply \"faircoinaddress\" \"amount\"  \"comment\" \"admin sigs\"\n"
             "\nAdd instructions to increase the coin supply to the FairCoin network\n"

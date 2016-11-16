@@ -97,7 +97,7 @@ CCriticalSection cs_mapRelayNonces;
 map<uint256, CCvnPubNonceMsg> mapRelayNonces;
 
 CCriticalSection cs_mapRelaySigs;
-map<uint256, CCvnSignatureMsg> mapRelaySigs;
+map<uint256, CCvnPartialSignatureMsg> mapRelaySigs;
 
 CCriticalSection cs_mapRelayChainData;
 map<uint256, CChainDataMsg> mapRelayChainData;
@@ -1977,8 +1977,9 @@ void StartNode(boost::thread_group& threadGroup, CScheduler& scheduler)
     // Initiate outbound connections from -addnode
     threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "addcon", &ThreadOpenAddedConnections));
 
-    // Initiate outbound connections
-    threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "opencon", &ThreadOpenConnections));
+    // Initiate outbound connections unless connect=0
+    if (!mapArgs.count("-connect") || mapMultiArgs["-connect"].size() != 1 || mapMultiArgs["-connect"][0] != "0")
+        threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "opencon", &ThreadOpenConnections));
 
     // Process messages
     threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "msghand", &ThreadMessageHandler));

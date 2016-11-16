@@ -103,7 +103,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "setban", 2 },
     { "setban", 3 },
     { "addcvn", 3 },
-    { "addcvn", 4 },
     { "removecvn", 2 },
     { "addcoinsupply", 3 },
 };

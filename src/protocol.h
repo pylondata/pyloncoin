@@ -240,6 +240,14 @@ extern const char *SIGLIST;
  * The chaindata sends chain data that a chain admin compiled
  */
 extern const char *CHAINDATA;
+/**
+ * The getnonces requests the complete cvn nonces list for the given Tip()
+ */
+extern const char *GETNONCES;
+/**
+ * The nonceslist sends the complete cvn nonces list for the given Tip()
+ */
+extern const char *NONCESLIST;
 };
 
 /* Get a vector of all valid message types (see above) */

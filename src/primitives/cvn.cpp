@@ -2,6 +2,9 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <stdio.h>
+#include <string.h>
+
 #include "primitives/cvn.h"
 
 #include "hash.h"
@@ -49,7 +52,21 @@ std::string CCoinSupply::ToString() const
 
 uint256 CCvnPubNonceMsg::GetHash() const
 {
-    return SerializeHash(*this);
+    CHashWriter hasher(SER_GETHASH, 0);
+
+    hasher << GetPubNonce() << hashPrevBlock << nCreatorId;
+
+    return hasher.GetHash();
+}
+
+std::string CCvnPubNonceMsg::ToString() const
+{
+    std::stringstream s;
+    s << strprintf("CCvnPubNonceMsg(creatorId=0x%08x, hashPrev=%s, msgSig=%s) : %s",
+        nCreatorId,
+        hashPrevBlock.ToString(),
+        msgSig.ToString(), CCvnPubNonce::ToString());
+    return s.str();
 }
 
 std::string CCvnPubNonce::ToString() const
@@ -58,22 +75,22 @@ std::string CCvnPubNonce::ToString() const
     s << strprintf("CCvnPubNonce(signerId=0x%08x, ver=%d, sig=%s)",
         nSignerId,
         nVersion,
-        HexStr(vPubNonce)); //TODO: limit again .substr(0, 30));
+        pubNonce.ToString());
     return s.str();
 }
 
-uint256 CCvnSignatureMsg::GetHash() const
+uint256 CCvnPartialSignatureMsg::GetHash() const
 {
     return SerializeHash(*this);
 }
 
-std::string CCvnSignature::ToString() const
+std::string CCvnPartialSignature::ToString() const
 {
     std::stringstream s;
     s << strprintf("CCvnSignature(signerId=0x%08x, ver=%d, sig=%s)",
         nSignerId,
         nVersion,
-        HexStr(vSignature)); //TODO: limit again .substr(0, 30));
+        signature.ToString()); //TODO: limit again .substr(0, 30));
     return s.str();
 }
 
@@ -82,7 +99,7 @@ std::string CCvnInfo::ToString() const
     std::stringstream s;
     s << strprintf("CCvnInfo(nodeId=0x%08x, heightAdded=%u, pubkey=%s)",
         nNodeId, nHeightAdded,
-        HexStr(vPubKey));
+        pubKey.ToString());
     return s.str();
 }
 
@@ -91,7 +108,7 @@ std::string CChainAdmin::ToString() const
     std::stringstream s;
     s << strprintf("CChainAdmin(adminId=0x%08x, heightAdded=%u, pubkey=%s)",
         nAdminId, nHeightAdded,
-        HexStr(vPubKey));
+        pubKey.ToString());
     return s.str();
 }
 
@@ -107,20 +124,20 @@ uint256 CChainDataMsg::HashCVNs() const
 
 uint256 CChainDataMsg::GetHash() const
 {
-    std::vector<uint256> hashes;
+    CHashWriter hasher(SER_GETHASH, 0);
 
-    hashes.push_back(hashPrevBlock);
+    hasher << hashPrevBlock;
 
     if (HasCvnInfo())
-        hashes.push_back(HashCVNs());
+        hasher << HashCVNs();
     if (HasChainAdmins())
-        hashes.push_back(HashChainAdmins());
+        hasher << HashChainAdmins();
     if (HasChainParameters())
-        hashes.push_back(dynamicChainParams.GetHash());
+        hasher << dynamicChainParams.GetHash();
     if (HasCoinSupplyPayload())
-        hashes.push_back(coinSupply.GetHash());
+        hasher << coinSupply.GetHash();
 
-    return Hash(hashes.begin(), hashes.end());
+    return hasher.GetHash();
 }
 
 std::string CChainDataMsg::ToString() const
@@ -139,7 +156,66 @@ std::string CChainDataMsg::ToString() const
     s << strprintf("CChainDataMsg(payload(%02x)=%s, hashPrevBlock=%s, signers=%u)",
         nPayload, payload.str(),
         hashPrevBlock.ToString(),
-        vAdminSignatures.size()); //TODO: add more
+        vAdminIds.size()); //TODO: add more
 
     return s.str();
 }
+
+template <unsigned int BYTES>
+poc_storage<BYTES>::poc_storage(const std::vector<unsigned char>& vch)
+{
+    assert(vch.size() == WIDTH);
+    memcpy(data, &vch[0], WIDTH);
+}
+
+template <unsigned int BYTES>
+std::string poc_storage<BYTES>::GetHex() const
+{
+    char psz[WIDTH * 2 + 1];
+    for (unsigned int i = 0; i < sizeof(data); i++)
+        sprintf(psz + i * 2, "%02x", data[i]);
+    return std::string(psz, psz + WIDTH * 2);
+}
+
+template <unsigned int BYTES>
+void poc_storage<BYTES>::SetHex(const char* psz)
+{
+    vector<unsigned char> vchHex = ParseHex(psz);
+    memcpy(data, &vchHex.begin()[0], WIDTH);
+}
+
+template <unsigned int BYTES>
+void poc_storage<BYTES>::SetHex(const std::string& str)
+{
+    SetHex(str.c_str());
+}
+
+template <unsigned int BYTES>
+std::string poc_storage<BYTES>::ToString() const
+{
+    return (GetHex());
+}
+
+template <unsigned int BYTES>
+void poc_storage<BYTES>::SetHexDER(const std::string& str)
+{
+    vector<unsigned char> vchHex = ParseHex(str);
+    reverse(vchHex.begin(), vchHex.end());
+    memcpy(data, &vchHex.begin()[WIDTH / 2], WIDTH / 2);
+    memcpy(&data[WIDTH / 2], &vchHex.begin()[0], WIDTH / 2);
+}
+
+// Explicit instantiations for poc_storage<32>
+template poc_storage<32>::poc_storage(const std::vector<unsigned char>&);
+template std::string poc_storage<32>::GetHex() const;
+template std::string poc_storage<32>::ToString() const;
+template void poc_storage<32>::SetHex(const char*);
+template void poc_storage<32>::SetHex(const std::string&);
+
+// Explicit instantiations for poc_storage<64>
+template poc_storage<64>::poc_storage(const std::vector<unsigned char>&);
+template std::string poc_storage<64>::GetHex() const;
+template std::string poc_storage<64>::ToString() const;
+template void poc_storage<64>::SetHex(const char*);
+template void poc_storage<64>::SetHex(const std::string&);
+template void poc_storage<64>::SetHexDER(const std::string&);

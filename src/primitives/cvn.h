@@ -9,39 +9,157 @@
 #include "uint256.h"
 #include "script/script.h"
 #include "amount.h"
+#include "hash.h"
 
 using namespace std;
 
-class CCvnPrivNonce
+template <unsigned int BYTES>
+class poc_storage
 {
+protected:
+    enum { WIDTH = BYTES };
+    uint8_t data[WIDTH];
 public:
-    uint32_t nSignerId;
-    vector<unsigned char> vPrivNonce;
-
-    CCvnPrivNonce()
+    poc_storage()
     {
         SetNull();
     }
 
-    CCvnPrivNonce(const uint32_t nSignerId)
+    explicit poc_storage(const std::vector<unsigned char>& vch);
+
+    poc_storage(const unsigned char *pch)
     {
-        this->nSignerId = nSignerId;
-        this->vPrivNonce.clear();
+        memcpy(data, pch, WIDTH);
     }
 
-    CCvnPrivNonce(const uint32_t nSignerId, const vector<unsigned char>& vPrivNonce)
+    bool IsNull() const
     {
-        this->nSignerId  = nSignerId;
-        this->vPrivNonce = vPrivNonce;
+        for (int i = 0; i < WIDTH; i++)
+            if (data[i] != 0)
+                return false;
+        return true;
     }
 
     void SetNull()
     {
-        nSignerId = 0;
-        this->vPrivNonce.clear();
+        memset(data, 0, WIDTH);
     }
 
-    string ToString() const;
+    friend inline bool operator==(const poc_storage& a, const poc_storage& b) { return memcmp(a.data, b.data, sizeof(a.data)) == 0; }
+    friend inline bool operator!=(const poc_storage& a, const poc_storage& b) { return memcmp(a.data, b.data, sizeof(a.data)) != 0; }
+    friend inline bool operator<(const poc_storage& a, const poc_storage& b) { return memcmp(a.data, b.data, sizeof(a.data)) < 0; }
+
+    std::string GetHex() const;
+    void SetHex(const char* psz);
+    void SetHex(const std::string& str);
+    void SetHexDER(const std::string& str);
+    std::string ToString() const;
+
+    unsigned char* begin()
+    {
+        return &data[0];
+    }
+
+    unsigned char* end()
+    {
+        return &data[WIDTH];
+    }
+
+    const unsigned char* begin() const
+    {
+        return &data[0];
+    }
+
+    const unsigned char* end() const
+    {
+        return &data[WIDTH];
+    }
+
+    unsigned int size() const
+    {
+        return sizeof(data);
+    }
+
+    unsigned int GetSerializeSize(int nType, int nVersion) const
+    {
+        return sizeof(data);
+    }
+
+    template<typename Stream>
+    void Serialize(Stream& s, int nType, int nVersion) const
+    {
+        s.write((char*)data, WIDTH);
+    }
+
+    template<typename Stream>
+    void Unserialize(Stream& s, int nType, int nVersion)
+    {
+        s.read((char*)data, WIDTH);
+    }
+};
+
+class CSchnorrSig : public poc_storage<64> {
+public:
+    CSchnorrSig() {}
+    CSchnorrSig(const poc_storage<64>& b) : poc_storage<64>(b) {}
+    explicit CSchnorrSig(const std::vector<unsigned char>& vch) : poc_storage<64>(vch) {}
+};
+
+class CSchnorrNonce : public poc_storage<64> {
+public:
+    CSchnorrNonce() {}
+    CSchnorrNonce(const poc_storage<64>& b) : poc_storage<64>(b) {}
+    explicit CSchnorrNonce(const std::vector<unsigned char>& vch) : poc_storage<64>(vch) {}
+};
+
+inline CSchnorrSig CSchnorrSigS(const std::string& str)
+{
+    CSchnorrSig rv;
+    rv.SetHex(str);
+    return rv;
+}
+
+class CSchnorrPubKey : public poc_storage<64> {
+public:
+    CSchnorrPubKey() {}
+    CSchnorrPubKey(const poc_storage<64>& b) : poc_storage<64>(b) {}
+    CSchnorrPubKey(const unsigned char *pch) : poc_storage<64>(pch) {}
+    explicit CSchnorrPubKey(const std::vector<unsigned char>& vch) : poc_storage<64>(vch) {}
+    uint160 GetHash160() const
+    {
+        vector<unsigned char> vData;
+        vData.insert(vData.begin(), 0x04);
+        vData.insert(vData.begin(), data, data + WIDTH); // TODO: reverse data and &data[32]
+        return Hash160(vData);
+    }
+};
+
+inline CSchnorrPubKey CSchnorrPubKeyS(const std::string& str)
+{
+    CSchnorrPubKey rv;
+    if (str.length() != 64 * 2)
+           return NULL;
+    rv.SetHex(str);
+    return rv;
+}
+
+inline CSchnorrPubKey CSchnorrPubKeyDER(const std::string& str)
+{
+    CSchnorrPubKey rv;
+
+    if (str.length() != 65 * 2 || (str[0] != '0' && str[1] != '4'))
+        return NULL;
+    rv.SetHexDER(str);
+    return rv;
+}
+
+/* only used for test network (-cvn=file)
+ * and type safety */
+class CSchnorrPrivNonce : public poc_storage<32> {
+public:
+    CSchnorrPrivNonce() {}
+    CSchnorrPrivNonce(const poc_storage<32>& b) : poc_storage<32>(b) {}
+    explicit CSchnorrPrivNonce(const std::vector<unsigned char>& vch) : poc_storage<32>(vch) {}
 };
 
 class CCvnPubNonce
@@ -50,7 +168,7 @@ public:
     static const int32_t CURRENT_VERSION = 1;
     int32_t nVersion;
     uint32_t nSignerId;
-    vector<unsigned char> vPubNonce;
+    CSchnorrNonce pubNonce;
 
     CCvnPubNonce()
     {
@@ -61,14 +179,14 @@ public:
     {
         this->nVersion  = nVersion;
         this->nSignerId = nSignerId;
-        this->vPubNonce.clear();
+        this->pubNonce.SetNull();
     }
 
-    CCvnPubNonce(const uint32_t nSignerId, const vector<unsigned char>& vPubNonce, const int32_t nVersion = CCvnPubNonce::CURRENT_VERSION)
+    CCvnPubNonce(const uint32_t nSignerId, const CSchnorrNonce& pubNonce, const int32_t nVersion = CCvnPubNonce::CURRENT_VERSION)
     {
         this->nVersion  = nVersion;
         this->nSignerId = nSignerId;
-        this->vPubNonce = vPubNonce;
+        this->pubNonce  = pubNonce;
     }
 
     ADD_SERIALIZE_METHODS;
@@ -78,14 +196,14 @@ public:
         READWRITE(this->nVersion);
         nVersion = this->nVersion;
         READWRITE(nSignerId);
-        READWRITE(vPubNonce);
+        READWRITE(pubNonce);
     }
 
     void SetNull()
     {
         nVersion = CCvnPubNonce::CURRENT_VERSION;
         nSignerId = 0;
-        this->vPubNonce.clear();
+        this->pubNonce.SetNull();
     }
 
     string ToString() const;
@@ -95,7 +213,8 @@ class CCvnPubNonceMsg : public CCvnPubNonce
 {
 public:
     uint256 hashPrevBlock;
-    uint32_t nCreatorId; // the CVN node ID of the creator of the next block
+    uint32_t nCreatorId; // the CVN ID of the creator of the next block
+    CSchnorrSig msgSig;
 
     CCvnPubNonceMsg()
     {
@@ -103,10 +222,11 @@ public:
     }
 
     CCvnPubNonceMsg(const CCvnPubNonce nonce, const uint256 hashPrevBlock, const uint32_t nCreatorId)
-        : CCvnPubNonce(nonce.nSignerId, nonce.vPubNonce, nonce.nVersion)
+        : CCvnPubNonce(nonce.nSignerId, nonce.pubNonce, nonce.nVersion)
     {
         this->hashPrevBlock = hashPrevBlock;
-        this->nCreatorId = nCreatorId;
+        this->nCreatorId    = nCreatorId;
+        this->msgSig.SetNull();
     }
 
     void SetNull()
@@ -114,6 +234,7 @@ public:
         CCvnPubNonce::SetNull();
         hashPrevBlock.SetNull();
         nCreatorId = 0;
+        this->msgSig.SetNull();
     }
 
     ADD_SERIALIZE_METHODS;
@@ -123,46 +244,52 @@ public:
         READWRITE(*(CCvnPubNonce*)this);
         READWRITE(hashPrevBlock);
         READWRITE(nCreatorId);
+        READWRITE(msgSig);
     }
 
     CCvnPubNonce GetPubNonce() const
     {
-        CCvnPubNonce nonce(nSignerId, vPubNonce, nVersion);
+        CCvnPubNonce nonce(nSignerId, pubNonce, nVersion);
         return nonce;
     }
 
     uint256 GetHash() const;
+
+    string ToString() const;
 };
 
 
 /** CVNs send this signature to the creator of the next block
  * to proof consensus about the block.
  */
-class CCvnSignature
+class CCvnPartialSignature
 {
 public:
     static const int32_t CURRENT_VERSION=1;
     int32_t nVersion;
     uint32_t nSignerId;
-    vector<unsigned char> vSignature;
+    CSchnorrSig signature;
+    vector<uint32_t> vMissingPubNonces; // contains the CVN IDs of those that we didn't receive pubnonces from
 
-    CCvnSignature()
+    CCvnPartialSignature()
     {
         SetNull();
     }
 
-    CCvnSignature(const uint32_t nSignerNodeId, const int32_t nVersion = CCvnSignature::CURRENT_VERSION)
+    CCvnPartialSignature(const uint32_t nSignerId, const vector<uint32_t> vMissingPubNonces, const int32_t nVersion = CCvnPartialSignature::CURRENT_VERSION)
     {
-        this->nVersion = nVersion;
-        this->nSignerId = nSignerNodeId;
-        this->vSignature.clear();
+        this->nVersion          = nVersion;
+        this->nSignerId         = nSignerId;
+        this->signature.SetNull();
+        this->vMissingPubNonces = vMissingPubNonces;
     }
 
-    CCvnSignature(const uint32_t nSignerNodeId, vector<unsigned char> vSignature, const int32_t nVersion = CCvnSignature::CURRENT_VERSION)
+    CCvnPartialSignature(const uint32_t nSignerId, const vector<uint32_t> vMissingPubNonces, const CSchnorrSig& signature, const int32_t nVersion = CCvnPartialSignature::CURRENT_VERSION)
     {
-        this->nVersion = nVersion;
-        this->nSignerId = nSignerNodeId;
-        this->vSignature = vSignature;
+        this->nVersion          = nVersion;
+        this->nSignerId         = nSignerId;
+        this->signature         = signature;
+        this->vMissingPubNonces = vMissingPubNonces;
     }
 
     ADD_SERIALIZE_METHODS;
@@ -172,42 +299,42 @@ public:
         READWRITE(this->nVersion);
         nVersion = this->nVersion;
         READWRITE(nSignerId);
-        READWRITE(vSignature);
+        READWRITE(signature);
+        READWRITE(vMissingPubNonces);
     }
 
     void SetNull()
     {
-        nVersion = CCvnSignature::CURRENT_VERSION;
+        nVersion = CCvnPartialSignature::CURRENT_VERSION;
         nSignerId = 0;
-        vSignature.clear();
+        signature.SetNull();
+        vMissingPubNonces.clear();
     }
 
     string ToString() const;
 };
 
-class CCvnSignatureMsg : public CCvnSignature
+class CCvnPartialSignatureMsg : public CCvnPartialSignature
 {
 public:
     uint256 hashPrevBlock;
     uint32_t nCreatorId; // the CVN node ID of the creator of the next block
 
-    CCvnSignatureMsg()
+    CCvnPartialSignatureMsg()
     {
         SetNull();
     }
 
-    CCvnSignatureMsg(const CCvnSignature signature, const uint256 hashPrevBlock, const uint32_t nCreatorId)
+    CCvnPartialSignatureMsg(const CCvnPartialSignature& signature, const uint256& hashPrevBlock, const uint32_t nCreatorId)
+        : CCvnPartialSignature(signature.nSignerId, signature.vMissingPubNonces, signature.signature, signature.nVersion)
     {
-        nVersion   = signature.nVersion;
-        nSignerId  = signature.nSignerId;
-        vSignature = signature.vSignature;
         this->hashPrevBlock = hashPrevBlock;
-        this->nCreatorId = nCreatorId;
+        this->nCreatorId    = nCreatorId;
     }
 
     void SetNull()
     {
-        CCvnSignature::SetNull();
+        CCvnPartialSignature::SetNull();
         hashPrevBlock.SetNull();
         nCreatorId = 0;
     }
@@ -216,18 +343,15 @@ public:
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
-        READWRITE(*(CCvnSignature*)this);
+        READWRITE(*(CCvnPartialSignature*)this);
         READWRITE(hashPrevBlock);
         READWRITE(nCreatorId);
     }
 
-    CCvnSignature GetCvnSignature() const
+    CCvnPartialSignature GetCvnSignature() const
     {
-        CCvnSignature msg;
-        msg.nVersion   = nVersion;
-        msg.nSignerId  = nSignerId;
-        msg.vSignature = vSignature;
-        return msg;
+        CCvnPartialSignature sig(nSignerId, vMissingPubNonces, signature, nVersion);
+        return sig;
     }
 
     uint256 GetHash() const;
@@ -239,18 +363,18 @@ public:
 
     uint32_t nNodeId;
     uint32_t nHeightAdded;
-    vector<unsigned char> vPubKey;
+    CSchnorrPubKey pubKey;
 
     CCvnInfo()
     {
         SetNull();
     }
 
-    CCvnInfo(const uint32_t nNodeId, const uint32_t nHeightAdded, const vector<unsigned char> vPubKey)
+    CCvnInfo(const uint32_t nNodeId, const uint32_t nHeightAdded, const CSchnorrPubKey& pubKey)
     {
-        this->nNodeId = nNodeId;
+        this->nNodeId      = nNodeId;
         this->nHeightAdded = nHeightAdded;
-        this->vPubKey = vPubKey;
+        this->pubKey       = pubKey;
     }
 
     ADD_SERIALIZE_METHODS;
@@ -259,14 +383,14 @@ public:
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(nNodeId);
         READWRITE(nHeightAdded);
-        READWRITE(vPubKey);
+        READWRITE(pubKey);
     }
 
     void SetNull()
     {
         nNodeId = 0;
         nHeightAdded = 0;
-        vPubKey.clear();
+        pubKey.SetNull();
     }
 
     string ToString() const;
@@ -278,18 +402,18 @@ public:
 
     uint32_t nAdminId;
     uint32_t nHeightAdded;
-    vector<unsigned char> vPubKey;
+    CSchnorrPubKey pubKey;
 
     CChainAdmin()
     {
         SetNull();
     }
 
-    CChainAdmin(const uint32_t nAdminId, const uint32_t nHeightAdded, const vector<unsigned char> vPubKey)
+    CChainAdmin(const uint32_t nAdminId, const uint32_t nHeightAdded, const CSchnorrPubKey& pubKey)
     {
-        this->nAdminId = nAdminId;
+        this->nAdminId     = nAdminId;
         this->nHeightAdded = nHeightAdded;
-        this->vPubKey = vPubKey;
+        this->pubKey       = pubKey;
     }
 
     ADD_SERIALIZE_METHODS;
@@ -298,14 +422,14 @@ public:
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(nAdminId);
         READWRITE(nHeightAdded);
-        READWRITE(vPubKey);
+        READWRITE(pubKey);
     }
 
     void SetNull()
     {
         nAdminId = 0;
         nHeightAdded = 0;
-        vPubKey.clear();
+        pubKey.SetNull();
     }
 
     uint256 GetHash() const;
@@ -437,8 +561,10 @@ public:
     vector<CChainAdmin> vChainAdmins;
     CDynamicChainParams dynamicChainParams;
 
-    // these are the administrator signatures of the payload hash
-    vector<CCvnSignature> vAdminSignatures;
+    // this is the multi sig of the chain administrators of the payload hash
+    CSchnorrSig adminMultiSig;
+    vector<uint32_t> vAdminIds;
+
     CCoinSupply coinSupply;
     string strComment; // currently only used with coinSupply
 
@@ -453,7 +579,8 @@ public:
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(nPayload);
         READWRITE(hashPrevBlock);
-        READWRITE(vAdminSignatures);
+        READWRITE(adminMultiSig);
+        READWRITE(vAdminIds);
 
         if (HasCvnInfo())
             READWRITE(vCvns);
@@ -471,7 +598,8 @@ public:
     {
         nPayload = 0;
         hashPrevBlock.SetNull();
-        vAdminSignatures.clear();
+        adminMultiSig.SetNull();
+        vAdminIds.clear();
         vCvns.clear();
         vChainAdmins.clear();
         dynamicChainParams.SetNull();

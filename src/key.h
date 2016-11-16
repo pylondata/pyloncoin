@@ -122,6 +122,12 @@ public:
     CPubKey GetPubKey() const;
 
     /**
+     * Compute the public key from a private key.
+     * This is expensive. Return the raw point.
+     */
+    CSchnorrPubKey GetRawPubKey() const;
+
+    /**
      * Create a DER-serialized signature.
      * The test_case parameter tweaks the deterministic nonce.
      */
@@ -130,17 +136,17 @@ public:
     /**
      * Create a schnorr signature.
      */
-    bool SchnorrSign(const uint256 &hash, std::vector<unsigned char>& vchSig) const;
+    bool SchnorrSign(const uint256 &hash, CSchnorrSig& sig) const;
 
     /**
      * Create a partial schnorr signature.
      */
-    bool SchnorrSignParial(const uint256 &hash, const secp256k1_pubkey& sumPublicKeysOthers, std::vector<unsigned char>& vchPrivateNonce, std::vector<unsigned char>& vchSig) const;
+    bool SchnorrSignParial(const uint256 &hash, const secp256k1_pubkey& sumPublicKeysOthers, const CSchnorrPrivNonce& privateNonce, CSchnorrSig& vchSig) const;
 
     /**
      * Create a schnorr nonce pair for creating threshold signatures
      */
-    bool SchnorrCreateNoncePair(const uint256 &hash, std::vector<unsigned char>& vchNoncePub, std::vector<unsigned char>& vchNoncePriv) const;
+    bool SchnorrCreateNoncePair(const uint256 &hash, CSchnorrNonce& noncePub, CSchnorrPrivNonce& noncePriv) const;
 
     /**
      * Create a compact signature (65 bytes), which allows reconstructing the used public key.

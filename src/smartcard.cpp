@@ -113,7 +113,7 @@ done:
     return count;
 }
 
-bool CvnSignWithSmartCard(const uint256& hashUnsignedBlock, CCvnSignature& signature, const CCvnInfo& cvnInfo)
+bool CvnSignWithSmartCard(const uint256& hashUnsignedBlock, CCvnPartialSignature& signature, const CCvnInfo& cvnInfo)
 {
     CK_ULONG nSigLen = 64;
     secp256k1_ecdsa_signature sig;

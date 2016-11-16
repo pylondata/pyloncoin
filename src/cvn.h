@@ -10,10 +10,15 @@
 class CKey;
 
 extern uint32_t nCvnNodeId;
+extern uint32_t nChainAdminId;
+
 extern CKey cvnPrivKey;
-extern CPubKey cvnPubKey;
+extern CSchnorrPubKey cvnPubKey;
+extern CKey adminPrivKey;
+extern CSchnorrPubKey adminPubKey;
 
 X509* InitCVNWithCertificate();
-uint32_t SetupCVN(X509 *x509Cert);
+X509* InitChainAdminWithCertificate();
+uint32_t ExtractIdFromCertificate(X509 *x509Cert, const bool fChainAdmin);
 
 #endif // BITCOIN_CVN_H
