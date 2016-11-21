@@ -198,6 +198,7 @@ bool CBlockTreeDB::LoadBlockIndexGuts()
                 pindexNew->hashMerkleRoot     = diskindex.hashMerkleRoot;
                 pindexNew->nTime              = diskindex.nTime;
                 pindexNew->nCreatorId         = diskindex.nCreatorId;
+                pindexNew->vMissingCreatorIds = diskindex.vMissingCreatorIds;
                 pindexNew->chainMultiSig      = diskindex.chainMultiSig;
                 pindexNew->vAdminIds          = diskindex.vAdminIds;
                 pindexNew->adminMultiSig      = diskindex.adminMultiSig;
