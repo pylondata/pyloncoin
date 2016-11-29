@@ -67,7 +67,21 @@ int secp256k1_schnorr_verify(const secp256k1_context* ctx, const unsigned char *
     ARG_CHECK(pubkey != NULL);
 
     secp256k1_pubkey_load(ctx, &q, pubkey);
-    return secp256k1_schnorr_sig_verify(&ctx->ecmult_ctx, sig64, &q, secp256k1_schnorr_msghash_sha256, msg32);
+    return secp256k1_schnorr_sig_verify(&ctx->ecmult_ctx, sig64, &q, secp256k1_schnorr_msghash_sha256, msg32, NULL);
+}
+
+int secp256k1_schnorr_partial_verify(const secp256k1_context* ctx, const unsigned char *sig64, const unsigned char *msg32, const secp256k1_pubkey *pubkey, const secp256k1_pubkey *sumOthers) {
+    secp256k1_ge q, o;
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(secp256k1_ecmult_context_is_built(&ctx->ecmult_ctx));
+    ARG_CHECK(msg32 != NULL);
+    ARG_CHECK(sig64 != NULL);
+    ARG_CHECK(pubkey != NULL);
+    ARG_CHECK(sumOthers != NULL);
+
+    secp256k1_pubkey_load(ctx, &q, pubkey);
+    secp256k1_pubkey_load(ctx, &o, sumOthers);
+    return secp256k1_schnorr_sig_verify(&ctx->ecmult_ctx, sig64, &q, secp256k1_schnorr_msghash_sha256, msg32, &o);
 }
 
 int secp256k1_schnorr_recover(const secp256k1_context* ctx, secp256k1_pubkey *pubkey, const unsigned char *sig64, const unsigned char *msg32) {

@@ -348,7 +348,7 @@ bool CvnVerifyChainSignature(const CBlockHeader& block)
 
     uint256 hash = hasher.GetHash();
 
-    /* special case when bootstrapping the blockchain we have one CVN ID only */
+    /* special case when bootstrapping the blockchain we only have one CVN ID */
     if (mapCVNs.size() == 1) {
         if (!mapCVNs.count(block.nCreatorId)) {
             LogPrintf("CvnVerifyChainSignature : could not find CvnInfo for signer ID 0x%08x\n", block.nCreatorId);
