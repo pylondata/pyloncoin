@@ -103,9 +103,21 @@ static int secp256k1_schnorr_sig_sign(const secp256k1_ecmult_gen_context* ctx, u
     return 1;
 }
 
+static int checkR(secp256k1_gej *Rj, secp256k1_fe *Rx) {
+    secp256k1_ge Ra;
+    if (secp256k1_gej_is_infinity(Rj)) {
+        return 0;
+    }
+    secp256k1_ge_set_gej_var(&Ra, Rj);
+    secp256k1_fe_normalize_var(&Ra.y);
+    if (secp256k1_fe_is_odd(&Ra.y)) {
+        return 0;
+    }
+    return secp256k1_fe_equal_var(Rx, &Ra.x);
+}
+
 static int secp256k1_schnorr_sig_verify(const secp256k1_ecmult_context* ctx, const unsigned char *sig64, const secp256k1_ge *pubkey, secp256k1_schnorr_msghash hash, const unsigned char *msg32, const secp256k1_ge *sumOthers) {
     secp256k1_gej Qj, Rj;
-    secp256k1_ge Ra;
     secp256k1_fe Rx;
     secp256k1_scalar h, s;
     unsigned char hh[32];
@@ -131,30 +143,22 @@ static int secp256k1_schnorr_sig_verify(const secp256k1_ecmult_context* ctx, con
     secp256k1_gej_set_ge(&Qj, pubkey);
     secp256k1_ecmult(ctx, &Rj, &Qj, &h, &s);
 
-    if (sumOthers != NULL) {
-        secp256k1_gej Vj;
-        secp256k1_ge Va;
-        secp256k1_gej_add_ge(&Vj, &Rj, sumOthers);
-        secp256k1_ge_set_gej_var(&Va, &Vj);
-        secp256k1_fe_normalize_var(&Va.y);
-        if (secp256k1_fe_is_odd(&Va.y)) {
-            secp256k1_gej_set_ge(&Vj, sumOthers);
-            secp256k1_gej_neg(&Vj, &Vj);
-            secp256k1_gej_add_var(&Rj, &Rj, &Vj, NULL);
-        } else {
-            secp256k1_gej_add_ge(&Rj, &Rj, sumOthers);
-        }
-    }
+    if (sumOthers == NULL)
+        return checkR(&Rj, &Rx);
 
-    if (secp256k1_gej_is_infinity(&Rj)) {
-        return 0;
-    }
-    secp256k1_ge_set_gej_var(&Ra, &Rj);
-    secp256k1_fe_normalize_var(&Ra.y);
-    if (secp256k1_fe_is_odd(&Ra.y)) {
-        return 0;
-    }
-    return secp256k1_fe_equal_var(&Rx, &Ra.x);
+    /* Q = R + O */
+    secp256k1_gej_set_ge(&Qj, sumOthers);
+    secp256k1_gej_add_var(&Qj, &Qj, &Rj, NULL);
+
+    if (checkR(&Qj, &Rx))
+        return 1;
+
+    /* y was probably flipped so: Q = R - O */
+    secp256k1_gej_set_ge(&Qj, sumOthers);
+    secp256k1_gej_neg(&Qj, &Qj);
+    secp256k1_gej_add_var(&Qj, &Qj, &Rj, NULL);
+
+    return checkR(&Qj, &Rx);
 }
 
 static int secp256k1_schnorr_sig_recover(const secp256k1_ecmult_context* ctx, const unsigned char *sig64, secp256k1_ge *pubkey, secp256k1_schnorr_msghash hash, const unsigned char *msg32) {
