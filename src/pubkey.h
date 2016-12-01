@@ -182,8 +182,14 @@ public:
     /**
       * Verify a schnorr signature (64 bytes).
       */
-    static bool VerifySchnorr(const uint256 &hash, const CSchnorrSig& schnorrSig, const std::vector<unsigned char>& vchPubKey);
-    static bool VerifySchnorr(const uint256 &hash, const CSchnorrSig& schnorrSig, const CSchnorrPubKey& pubKey);
+    static bool VerifySchnorr(const uint256 &hash, const CSchnorrSig &schnorrSig, const std::vector<unsigned char> &vchPubKey);
+    static bool VerifySchnorr(const uint256 &hash, const CSchnorrSig &schnorrSig, const CSchnorrPubKey &pubKey);
+
+    /**
+      * Verify a partial schnorr signature (64 bytes).
+      */
+    static bool VerifyPartialSchnorr(const uint256 &hash, const CSchnorrSig &schnorrSig, const CSchnorrPubKey &pubKey, const CSchnorrPubKey &sumPubNoncesOthers);
+
     /**
      * Check whether a signature is normalized (lower-S).
      */

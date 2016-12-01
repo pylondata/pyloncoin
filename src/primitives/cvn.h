@@ -319,6 +319,7 @@ class CCvnPartialSignatureMsg : public CCvnPartialSignature
 public:
     uint256 hashPrevBlock;
     uint32_t nCreatorId; // the CVN node ID of the creator of the next block
+    CSchnorrSig msgSig;
 
     CCvnPartialSignatureMsg()
     {
@@ -330,6 +331,7 @@ public:
     {
         this->hashPrevBlock = hashPrevBlock;
         this->nCreatorId    = nCreatorId;
+        this->msgSig.SetNull();
     }
 
     void SetNull()
@@ -337,6 +339,7 @@ public:
         CCvnPartialSignature::SetNull();
         hashPrevBlock.SetNull();
         nCreatorId = 0;
+        this->msgSig.SetNull();
     }
 
     ADD_SERIALIZE_METHODS;
@@ -346,6 +349,7 @@ public:
         READWRITE(*(CCvnPartialSignature*)this);
         READWRITE(hashPrevBlock);
         READWRITE(nCreatorId);
+        READWRITE(msgSig);
     }
 
     CCvnPartialSignature GetCvnSignature() const
@@ -355,6 +359,8 @@ public:
     }
 
     uint256 GetHash() const;
+
+    string ToString() const;
 };
 
 class CCvnInfo

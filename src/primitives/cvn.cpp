@@ -59,16 +59,6 @@ uint256 CCvnPubNonceMsg::GetHash() const
     return hasher.GetHash();
 }
 
-std::string CCvnPubNonceMsg::ToString() const
-{
-    std::stringstream s;
-    s << strprintf("CCvnPubNonceMsg(creatorId=0x%08x, hashPrev=%s, msgSig=%s) : %s",
-        nCreatorId,
-        hashPrevBlock.ToString(),
-        msgSig.ToString(), CCvnPubNonce::ToString());
-    return s.str();
-}
-
 std::string CCvnPubNonce::ToString() const
 {
     std::stringstream s;
@@ -79,18 +69,42 @@ std::string CCvnPubNonce::ToString() const
     return s.str();
 }
 
+std::string CCvnPubNonceMsg::ToString() const
+{
+    std::stringstream s;
+    s << strprintf("CCvnPubNonceMsg(creatorId=0x%08x, hashPrev=%s, msgSig=%s) : %s",
+        nCreatorId,
+        hashPrevBlock.ToString(),
+        msgSig.ToString(), CCvnPubNonce::ToString());
+    return s.str();
+}
+
 uint256 CCvnPartialSignatureMsg::GetHash() const
 {
-    return SerializeHash(*this);
+    CHashWriter hasher(SER_GETHASH, 0);
+
+    hasher << GetCvnSignature() << hashPrevBlock << nCreatorId;
+
+    return hasher.GetHash();
 }
 
 std::string CCvnPartialSignature::ToString() const
 {
     std::stringstream s;
-    s << strprintf("CCvnSignature(signerId=0x%08x, ver=%d, sig=%s)",
+    s << strprintf("CCvnSignature(signerId=0x%08x, ver=%d, sig=%s, missing=%d)",
         nSignerId,
         nVersion,
-        signature.ToString()); //TODO: limit again .substr(0, 30));
+        signature.ToString(), vMissingPubNonces.size()); //TODO: limit again .substr(0, 30));
+    return s.str();
+}
+
+std::string CCvnPartialSignatureMsg::ToString() const
+{
+    std::stringstream s;
+    s << strprintf("CCvnPartialSignatureMsg(creatorId=0x%08x, hashPrev=%s, msgSig=%s) : %s",
+        nCreatorId,
+        hashPrevBlock.ToString(),
+        msgSig.ToString(), CCvnPartialSignature::ToString());
     return s.str();
 }
 

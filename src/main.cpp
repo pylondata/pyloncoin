@@ -4944,7 +4944,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                 LogPrintf("received outdated CVN signature from peer %d for tip %s signed by 0x%08x\n", pfrom->id, msg.hashPrevBlock.ToString(), msg.nCreatorId);
             else {
                 LogPrint("net", "received chain signature %s for tip %s\n", msg.GetHash().ToString(), msg.hashPrevBlock.ToString());
-                if (AddCvnSignature(msg.GetCvnSignature(), msg.hashPrevBlock, msg.nCreatorId))
+                if (AddCvnSignature(msg))
                     RelayCvnSignature(msg);
                 else
                     LogPrintf("received invalid signature data %s\n", msg.ToString());
@@ -5032,7 +5032,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
             if (mapSigsByNextCreator.count(nNextCreator)) {
                 CvnSigSignerType mapSigsBySigner = mapSigsByNextCreator[nNextCreator];
-                vector<CCvnPartialSignature> vSigList(mapSigsBySigner.size());
+                vector<CCvnPartialSignatureMsg> vSigList(mapSigsBySigner.size());
 
                 int i = 0;
                 BOOST_FOREACH(CvnSigSignerType::value_type& sig, mapSigsBySigner) {
@@ -5048,7 +5048,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
     else if (strCommand == NetMsgType::SIGLIST)
     {
-        vector<CCvnPartialSignature> vSigList;
+        vector<CCvnPartialSignatureMsg> vSigList;
         uint256 hashPeersTip;
         uint32_t nNextCreator;
 
@@ -5068,8 +5068,10 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
                 for (uint32_t i = 0; i < vSigList.size() ; i++) {
                     if (!mapSigsBySigner.count(vSigList[i].nSignerId)) {
-                        if (!AddCvnSignature(vSigList[i], hashPeersTip, nNextCreator))
+                        if (!AddCvnSignature(vSigList[i])) {
+                            LogPrintf("ERROR: %s\n", vSigList[i].ToString());
                             Misbehaving(pfrom->GetId(), 50);
+                        }
                     }
                 }
             } else {

@@ -20,7 +20,7 @@
 typedef std::map<uint32_t, CCvnInfo> CvnMapType;
 typedef std::map<uint32_t, CChainAdmin> ChainAdminMapType;
 
-typedef std::map<uint32_t, CCvnPartialSignature> CvnSigSignerType;
+typedef std::map<uint32_t, CCvnPartialSignatureMsg> CvnSigSignerType;
 typedef std::map<uint32_t, CvnSigSignerType> CvnSigCreatorType;
 typedef std::map<uint256, CvnSigCreatorType> CvnSigMapType;
 
@@ -77,10 +77,11 @@ extern bool CvnVerifyAdminSignature(const vector<uint32_t> &nAdminIds, const uin
 extern bool CheckForDuplicateCvns(const CBlock& block);
 extern bool CheckForDuplicateChainAdmins(const CBlock& block);
 extern void SendCVNSignature(const CBlockIndex *pindexNew);
-extern bool AddCvnSignature(const CCvnPartialSignature& signature, const uint256& hashPrevBlock, const uint32_t nCreatorId);
+extern bool AddCvnSignature(const CCvnPartialSignatureMsg& msg);
 extern bool AddChainData(const CChainDataMsg& msg);
 extern void RemoveCvnSigsAndNonces(const uint256& hashPrevBlock);
-extern bool CvnVerifyPartialSignature(const CCvnPartialSignature& signature, const uint256& hashPrevBlock, const uint32_t nCreatorId);
+extern bool CvnVerifyPartialSignature(const CCvnPartialSignature &signature, const uint256 &hashPrevBlock, const uint32_t nCreatorId);
+extern bool CvnVerifyPartialSignature(const uint256 &hash, const CSchnorrSig &sig, const CSchnorrPubKey &pubKey, const CSchnorrPubKey &sumPublicNoncesOthers);
 extern bool CheckAdminSignature(const vector<uint32_t> &vAdminIds, const uint256 &hashAdmin, const CSchnorrSig &sig, const bool fCoinSupply);
 extern void RelayChainData(const CChainDataMsg& msg);
 extern void RelayCvnSignature(const CCvnPartialSignatureMsg& msg);

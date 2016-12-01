@@ -404,8 +404,36 @@ static bool CreateNewBlock(const CChainParams& chainparams, CBlockTemplate& bloc
             pblock->chainMultiSig = mapSigsBySigners[mapCVNs.begin()->first].signature;
         } else {
             int count = 0;
+            bool fAllSigsValid = true;
             vector<uint32_t> vMissingCreatorIds;
             uint8_t *sigs[MAX_NUMBER_OF_CVNS];
+
+            BOOST_FOREACH(const CvnSigSignerType::value_type& ps, mapSigsBySigners)
+            {
+                const CCvnPartialSignatureMsg &sig = ps.second;
+
+                if (hashBlock != sig.hashPrevBlock) {
+                    LogPrintf("ERROR: signature for wrong tip: %s\n%s\n", hashBlock.ToString(), sig.ToString());
+                    fAllSigsValid = false;
+                    continue;
+                }
+
+                if (blockTemplate.nNodeId != sig.nCreatorId) {
+                    LogPrintf("ERROR: signature for wrong next creator: 0x%08x\n%s\n", blockTemplate.nNodeId, sig.ToString());
+                    fAllSigsValid = false;
+                    continue;
+                }
+
+                if (!CvnVerifyPartialSignature(sig.GetCvnSignature(), sig.hashPrevBlock, sig.nCreatorId)) {
+                    LogPrintf("ERROR: invalid signature found: %s\n", sig.ToString());
+                    fAllSigsValid = false;
+                }
+            }
+
+            if (!fAllSigsValid)
+                return false;
+            else
+                LogPrint("cvnsig", "all partial chain signatures found valid.\n");
 
             // TODO: we should really cache this somehow...
             BOOST_FOREACH(const CvnMapType::value_type& cvn, mapCVNs)

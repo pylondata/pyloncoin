@@ -199,11 +199,11 @@ bool CKey::SchnorrSign(const uint256 &hash, CSchnorrSig& sig) const {
     return true;
 }
 
-bool CKey::SchnorrSignParial(const uint256 &hash, const secp256k1_pubkey& sumPublicKeysOthers, const CSchnorrPrivNonce& privNonce, CSchnorrSig& sig) const {
+bool CKey::SchnorrSignParial(const uint256 &hash, const CSchnorrPubKey& sumPublicNoncesOthers, const CSchnorrPrivNonce& privNonce, CSchnorrSig& sig) const {
     if (!fValid)
         return false;
 
-    int ret = secp256k1_schnorr_partial_sign(secp256k1_context_sign, sig.begin(), hash.begin(), begin(), &sumPublicKeysOthers, privNonce.begin());
+    int ret = secp256k1_schnorr_partial_sign(secp256k1_context_sign, sig.begin(), hash.begin(), begin(), (secp256k1_pubkey *)&sumPublicNoncesOthers.begin()[0], privNonce.begin());
     assert(ret);
     return true;
 }

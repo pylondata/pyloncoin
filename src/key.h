@@ -141,7 +141,7 @@ public:
     /**
      * Create a partial schnorr signature.
      */
-    bool SchnorrSignParial(const uint256 &hash, const secp256k1_pubkey& sumPublicKeysOthers, const CSchnorrPrivNonce& privateNonce, CSchnorrSig& vchSig) const;
+    bool SchnorrSignParial(const uint256 &hash, const CSchnorrPubKey& sumPublicNoncesOthers, const CSchnorrPrivNonce& privateNonce, CSchnorrSig& vchSig) const;
 
     /**
      * Create a schnorr nonce pair for creating threshold signatures
