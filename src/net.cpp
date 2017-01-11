@@ -93,8 +93,11 @@ deque<pair<int64_t, uint256> > vRelayExpiration;
 CCriticalSection cs_mapRelay;
 limitedmap<uint256, int64_t> mapAlreadyAskedFor(MAX_INV_SZ);
 
+CCriticalSection cs_mapRelayNonces;
+map<uint256, CNoncePool> mapRelayNonces;
+
 CCriticalSection cs_mapRelaySigs;
-map<uint256, CCvnSignatureMsg> mapRelaySigs;
+map<uint256, CCvnPartialSignature> mapRelaySigs;
 
 CCriticalSection cs_mapRelayChainData;
 map<uint256, CChainDataMsg> mapRelayChainData;
@@ -1974,8 +1977,9 @@ void StartNode(boost::thread_group& threadGroup, CScheduler& scheduler)
     // Initiate outbound connections from -addnode
     threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "addcon", &ThreadOpenAddedConnections));
 
-    // Initiate outbound connections
-    threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "opencon", &ThreadOpenConnections));
+    // Initiate outbound connections unless connect=0
+    if (!mapArgs.count("-connect") || mapMultiArgs["-connect"].size() != 1 || mapMultiArgs["-connect"][0] != "0")
+        threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "opencon", &ThreadOpenConnections));
 
     // Process messages
     threadGroup.create_thread(boost::bind(&TraceThread<void (*)()>, "msghand", &ThreadMessageHandler));
@@ -1997,6 +2001,8 @@ bool StopNode()
         DumpData();
         fAddressesInitialized = false;
     }
+
+    SaveNoncesPool();
 
     return true;
 }
@@ -2415,7 +2421,7 @@ void CNode::AskFor(const CInv& inv)
 
     // Each retry is 2 minutes after the last
     int64_t nRetryInterval = 2 * 60;
-    if (inv.type == MSG_CVN_SIGNATURE || inv.type == MSG_POC_CHAIN_DATA)
+    if (inv.type == MSG_CVN_PUB_NONCE_POOL || inv.type == MSG_CVN_SIGNATURE || inv.type == MSG_POC_CHAIN_DATA)
         nRetryInterval = 10;
     nRequestTime = std::max(nRequestTime + nRetryInterval * 1000000, nNow);
     if (it != mapAlreadyAskedFor.end())

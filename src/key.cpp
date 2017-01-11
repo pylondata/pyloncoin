@@ -12,6 +12,7 @@
 
 #include <secp256k1.h>
 #include <secp256k1_recovery.h>
+#include <secp256k1_schnorr.h>
 
 static secp256k1_context* secp256k1_context_sign = NULL;
 
@@ -165,6 +166,15 @@ CPubKey CKey::GetPubKey() const {
     return result;
 }
 
+CSchnorrPubKey CKey::GetRawPubKey() const {
+    assert(fValid);
+    secp256k1_pubkey pubkey;
+    int ret = secp256k1_ec_pubkey_create(secp256k1_context_sign, &pubkey, begin());
+    assert(ret);
+    CSchnorrPubKey result(pubkey.data);
+    return result;
+}
+
 bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_t test_case) const {
     if (!fValid)
         return false;
@@ -180,12 +190,39 @@ bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_
     return true;
 }
 
+bool CKey::SchnorrSign(const uint256 &hash, CSchnorrSig& sig) const {
+    if (!fValid)
+        return false;
+
+    int ret = secp256k1_schnorr_sign(secp256k1_context_sign, (unsigned char*)&sig.begin()[0], hash.begin(), begin(), secp256k1_nonce_function_rfc6979, NULL);
+    assert(ret);
+    return true;
+}
+
+bool CKey::SchnorrSignParial(const uint256 &hash, const CSchnorrPubKey& sumPublicNoncesOthers, const CSchnorrPrivNonce& privNonce, CSchnorrSig& sig) const {
+    if (!fValid)
+        return false;
+
+    int ret = secp256k1_schnorr_partial_sign(secp256k1_context_sign, sig.begin(), hash.begin(), begin(), (secp256k1_pubkey *)&sumPublicNoncesOthers.begin()[0], privNonce.begin());
+    assert(ret);
+    return true;
+}
+
+bool CKey::SchnorrCreateNoncePair(const uint256 &hash, CSchnorrNonce& noncePub, unsigned char *noncePriv, const uint256 &noncedata) const {
+    if (!fValid)
+        return false;
+    int ret = secp256k1_schnorr_generate_nonce_pair(
+            secp256k1_context_sign, (secp256k1_pubkey *)&noncePub.begin()[0], noncePriv, begin(), hash.begin(), secp256k1_nonce_function_rfc6979, noncedata.begin());
+    assert(ret);
+    return true;
+}
+
 bool CKey::VerifyPubKey(const CPubKey& pubkey) const {
     if (pubkey.IsCompressed() != fCompressed) {
         return false;
     }
     unsigned char rnd[8];
-    std::string str = "Bitcoin key verification\n";
+    std::string str = "FairCoin key verification\n";
     GetRandBytes(rnd, sizeof(rnd));
     uint256 hash;
     CHash256().Write((unsigned char*)str.data(), str.size()).Write(rnd, sizeof(rnd)).Finalize(hash.begin());

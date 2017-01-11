@@ -738,7 +738,7 @@ public:
         }
     }
 
-    void GetScriptForMining(CReserveScript **script);
+    void GetFeeScript(CReserveScript &script);
     void ResetRequestCount(const uint256 &hash)
     {
         LOCK(cs_wallet);

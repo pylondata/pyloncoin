@@ -45,8 +45,8 @@ UniValue blockheaderToJSON(const CBlockIndex* blockindex)
     result.push_back(Pair("time", (int64_t)blockindex->nTime));
     result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
     result.push_back(Pair("creator", strprintf("0x%08x", blockindex->nCreatorId)));
-    result.push_back(Pair("signatures", (uint64_t)blockindex->vSignatures.size()));
-    result.push_back(Pair("adminSignatures", (uint64_t)blockindex->vAdminSignatures.size()));
+    result.push_back(Pair("signatures", (uint64_t)blockindex->GetNumChainSigs()));
+    result.push_back(Pair("adminSignatures", (uint64_t)blockindex->vAdminIds.size()));
 
     if (blockindex->pprev)
         result.push_back(Pair("previousblockhash", blockindex->pprev->GetBlockHash().GetHex()));
@@ -73,9 +73,26 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const u
     result.push_back(Pair("time", block.GetBlockTime()));
     result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
     result.push_back(Pair("creator", strprintf("0x%08x", blockindex->nCreatorId)));
-    result.push_back(Pair("creatorSignature", HexStr(block.vCreatorSignature)));
-    result.push_back(Pair("nSignatures", (uint64_t)blockindex->vSignatures.size()));
-    result.push_back(Pair("nAdminSignatures", (uint64_t)blockindex->vAdminSignatures.size()));
+    result.push_back(Pair("creatorSignature", block.creatorSignature.ToString()));
+    result.push_back(Pair("nSignatures", (uint64_t)block.GetNumChainSigs()));
+    result.push_back(Pair("nAdminSignatures", (uint64_t)block.vAdminIds.size()));
+    result.push_back(Pair("chainSignature", block.chainMultiSig.ToString()));
+
+    ///////// MISSING CHAIN SIGNERS
+    UniValue missingSigners(UniValue::VARR);
+    BOOST_FOREACH(const uint32_t& signerId, block.vMissingSignerIds)
+    {
+        missingSigners.push_back(strprintf("0x%08x", signerId));
+    }
+    result.push_back(Pair("missingCreatorIds", missingSigners));
+
+    ///////// ADMIN SIGNERS
+    UniValue adminSigners(UniValue::VARR);
+    BOOST_FOREACH(const uint32_t& signerId, block.vAdminIds)
+    {
+        adminSigners.push_back(strprintf("0x%08x", signerId));
+    }
+    result.push_back(Pair("adminSignerIds", adminSigners));
 
     ///////// TRANSACTIONS
     UniValue txs(UniValue::VARR);
@@ -109,7 +126,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const u
         objCvn.push_back(Pair("nodeId", strprintf("0x%08x", cvn.nNodeId)));
         objCvn.push_back(Pair("heightAdded", (int) cvn.nHeightAdded));
         if (nMode >= 3)
-            objCvn.push_back(Pair("pubKey", HexStr(cvn.vPubKey)));
+            objCvn.push_back(Pair("pubKey", cvn.pubKey.ToString()));
 
         cvns.push_back(objCvn);
     }
@@ -132,7 +149,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const u
         objAdmin.push_back(Pair("adminId", strprintf("0x%08x", admin.nAdminId)));
         objAdmin.push_back(Pair("heightAdded", (int) admin.nHeightAdded));
         if (nMode >= 3)
-            objAdmin.push_back(Pair("pubKey", HexStr(admin.vPubKey)));
+            objAdmin.push_back(Pair("pubKey", admin.pubKey.ToString()));
 
         admins.push_back(objAdmin);
     }
@@ -140,32 +157,6 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const u
 
     if (nMode < 4)
         return result;
-
-    ///////// CVN SIGNATURES
-    UniValue signatures(UniValue::VARR);
-    BOOST_FOREACH(const CCvnSignature& sig, block.vSignatures)
-    {
-        UniValue objSignature(UniValue::VOBJ);
-        objSignature.push_back(Pair("version", (int) sig.nVersion));
-        objSignature.push_back(Pair("signerId", strprintf("0x%08x", sig.nSignerId)));
-        objSignature.push_back(Pair("signature", HexStr(sig.vSignature)));
-
-        signatures.push_back(objSignature);
-    }
-    result.push_back(Pair("signatures", signatures));
-
-    ///////// ADMIN SIGNATURES
-    UniValue adminSignatures(UniValue::VARR);
-    BOOST_FOREACH(const CCvnSignature& sig, block.vAdminSignatures)
-    {
-        UniValue objSignature(UniValue::VOBJ);
-        objSignature.push_back(Pair("version", (int) sig.nVersion));
-        objSignature.push_back(Pair("adminId", strprintf("0x%08x", sig.nSignerId)));
-        objSignature.push_back(Pair("signature", HexStr(sig.vSignature)));
-
-        adminSignatures.push_back(objSignature);
-    }
-    result.push_back(Pair("adminSignatures", adminSignatures));
 
     return result;
 }

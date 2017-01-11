@@ -14,6 +14,7 @@
 #include "crypto/common.h"
 #include "pubkey.h"
 #include "consensus/params.h"
+#include "poc.h"
 
 uint256 CBlockHeader::GetHash() const
 {
@@ -63,19 +64,18 @@ std::string CBlock::ToString() const
     if (HasCoinSupplyPayload())
         payload << strprintf("%ssupply", (payload.tellp() > 0) ? "|" : "");
 
-    s << strprintf("CBlock(hash=%s, ver=%d, payload=%s, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nCreatorId=0x%08x, signatures=%u, vtx=%u)\n",
+    s << strprintf("CBlock(hash=%s, ver=%d, payload=%s, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nCreatorId=0x%08x, vtx=%u, missing=%u)\n",
         GetHash().ToString(),
         nVersion & 0xff, payload.str(),
         hashPrevBlock.ToString(),
         hashMerkleRoot.ToString(),
-        nTime, nCreatorId, vSignatures.size(),
-        vtx.size());
-    s << "  CreatorSignature: " << HexStr(vCreatorSignature) << "\n";
+        nTime, nCreatorId,
+		vtx.size(), vMissingSignerIds.size());
+    if (HasAdminPayload())
+    	s << strprintf("  AdminSignature(%u): %s\n", vAdminIds.size(), adminMultiSig.ToString());
+    s << strprintf("  ChainSignature(%u): %s\n", GetNumChainSigs(), chainMultiSig.ToString());
+    s << "  CreatorSignature: " << creatorSignature.ToString() << "\n";
 
-    for (unsigned int i = 0; i < vSignatures.size(); i++)
-    {
-        s << "  " << vSignatures[i].ToString() << "\n";
-    }
     if (HasCvnInfo())
     {
         for (unsigned int i = 0; i < vCvns.size(); i++)

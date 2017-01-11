@@ -3,6 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <blockfactory.h>
 #include "main.h"
 
 #include "addrman.h"
@@ -34,7 +35,6 @@
 #include "utilmoneystr.h"
 #include "utilstrencodings.h"
 #include "validationinterface.h"
-#include "miner.h"
 #include "core_io.h"
 
 #include <sstream>
@@ -1400,9 +1400,7 @@ bool IsInitialBlockDownload()
 
 arith_uint256 GetBlockProof(const CBlockIndex& block)
 {
-    arith_uint256 bnSignatures;
-
-    bnSignatures = block.vSignatures.size() + block.vAdminSignatures.size() * 10; // admin sigs count 10 fold
+    arith_uint256 bnSignatures(block.GetNumChainSigs());
 
     return bnSignatures;
 }
@@ -1930,7 +1928,7 @@ bool FindUndoPos(CValidationState &state, int nFile, CDiskBlockPos &pos, unsigne
 static CCheckQueue<CScriptCheck> scriptcheckqueue(128);
 
 void ThreadScriptCheck() {
-    RenameThread("bitcoin-scriptch");
+    RenameThread("faircoin-scriptch");
     scriptcheckqueue.Thread();
 }
 
@@ -1990,7 +1988,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     CAmount nFees = 0;
     int nInputs = 0;
     unsigned int nSigOps = 0;
-    CDiskTxPos pos(pindex->GetBlockPos(), GetSizeOfCompactSize(block.vtx.size()) + GetSerializeSize(block.vCreatorSignature, SER_DISK, CLIENT_VERSION));
+    CDiskTxPos pos(pindex->GetBlockPos(), GetSizeOfCompactSize(block.vtx.size()) + GetSerializeSize(block.creatorSignature, SER_DISK, CLIENT_VERSION));
     std::vector<std::pair<uint256, CDiskTxPos> > vPos;
     vPos.reserve(block.vtx.size());
     if (block.HasTx())
@@ -2260,12 +2258,12 @@ void static UpdateTip(CBlockIndex *pindexNew)
     nTimeBestReceived = GetTime();
     mempool.AddTransactionsUpdated(1);
 
-    LogPrintf("%s: new best=%s height=%d creator=%08x pl=%s log2_work=%.8g tx=%lu ate=%s progress=%f cache=%.1fMiB(%utx) sigs=%u\n", __func__,
+    LogPrintf("%s: new best=%s height=%d creator=%08x pl=%s work=%.8g tx=%lu date=%s progress=%f cache=%.1fMiB(%utx) sigs=%u admSigs=%u\n", __func__,
       chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(), pindexNew->nCreatorId, pindexNew->GetPayloadString(),
       log(chainActive.Tip()->nChainWork.getdouble())/log(2.0), (unsigned long)chainActive.Tip()->nChainTx,
-      DateTimeStrFormat("%Y-%m-%d %H:%M:%S", chainActive.Tip()->GetBlockTime()),
+      DateTimeStrFormat("%Y-%m-%d %H:%M:%S", pindexNew->nTime),
       Checkpoints::GuessVerificationProgress(chainParams.Checkpoints(), chainActive.Tip()), pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)),
-      pcoinsTip->GetCacheSize(), pindexNew->vSignatures.size());
+      pcoinsTip->GetCacheSize(), pindexNew->GetNumChainSigs(), pindexNew->vAdminIds.size());
 
     cvBlockChange.notify_all();
 
@@ -2418,8 +2416,8 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
     if (pblock->HasChainAdmins())
         UpdateChainAdmins(pblock);
 
-    if (pindexNew->pprev)
-        RemoveCvnSignatures(pindexNew->pprev->GetBlockHash());
+    if (!IsInitialBlockDownload())
+        sigHolder.SetNull();
 
     return true;
 }
@@ -2897,7 +2895,7 @@ bool FindUndoPos(CValidationState &state, int nFile, CDiskBlockPos &pos, unsigne
 
 bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, bool fCheckPOC)
 {
-    // Check if we have at least one of TX, CVN or CHAIN_PARAMS bits set
+    // Check if at least one of TX, CVN or CHAIN_PARAMS bits are set
     if (!(block.nVersion & CBlock::PAYLOAD_MASK))
         return state.DoS(50, error("CheckBlockHeader(): invalid block version. No block type defined"),
                          REJECT_INVALID, "no-blk-type", true);
@@ -2934,14 +2932,19 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOC, bo
 
     if (fCheckPOC) {
         // check for correct signature of the block hash by the creator
-        CCvnSignature creatorSignature(block.nCreatorId, block.vCreatorSignature);
-        if (!CvnVerifySignature(block.GetHash(), creatorSignature))
+        if (!CvnVerifySignature(block.GetHash(), block.creatorSignature, block.nCreatorId))
             return state.DoS(100, error("CheckBlock(): invalid creator signature"),
                                          REJECT_INVALID, "bad-creator-sig", true);
 
-        if (block.HasAdminPayload() && !CheckAdminSignatures(block.GetChainAdminDataHash(), block.vAdminSignatures, block.HasCoinSupplyPayload()))
-            return state.DoS(100, error("CheckBlock(): invalid chain admin signature"),
-                                                     REJECT_INVALID, "bad-admin-sig", true);
+        if (block.HasAdminPayload()) {
+            if (!CheckForDuplicateAdminSigs(block))
+                return state.DoS(100, error("CheckBlock(): invalid number of chain admin signatures"),
+                                             REJECT_INVALID, "bad-admin-sig", true);
+
+            if (!CheckAdminSignature(block.vAdminIds, block.GetChainAdminDataHash(), block.adminMultiSig, block.HasCoinSupplyPayload()))
+                return state.DoS(100, error("CheckBlock(): invalid chain admin signature"),
+                                             REJECT_INVALID, "bad-admin-sig", true);
+        }
     }
 
     // Check the merkle root.
@@ -3043,41 +3046,26 @@ static bool CheckIndexAgainstCheckpoint(const CBlockIndex* pindexPrev, CValidati
     return true;
 }
 
-bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& state, CBlockIndex * const pindexPrev, bool fCheckSignatures)
+bool HasEnoughSignatures(CBlockIndex * const pindexPrev, const uint32_t nSignaturesToCheck)
 {
-    LogPrint("cvn", "ContextualCheckBlockHeader : checking # of sigs: Prev: %u, This: %u\n", pindexPrev->vSignatures.size(), block.vSignatures.size());
+    CBlockIndex *pindex = pindexPrev;
+    size_t nSignatures = 0;
+    uint32_t nBlocks = 0;
 
-    // only do advanced checks if we have a decrease in number of signatures
-    if (fCheckSignatures && pindexPrev->vSignatures.size() > block.vSignatures.size()) {
-        // calculate the mean of the number of the signatures from
-        // the last dynParams.nBlocksToConsiderForSigCheck blocks
-        CBlockIndex *pindex = pindexPrev;
-        size_t nSignatures = 0;
-        uint32_t nBlocks = 0;
-
-        while (nBlocks++ < dynParams.nBlocksToConsiderForSigCheck && pindex != NULL) {
-            nSignatures += pindex->vSignatures.size();
-            pindex = pindex->pprev;
-        }
-
-        float nSignatureMean = nBlocks ? (float) nSignatures / (float) nBlocks : 0.0f;
-
-        // this block requires at least dynParams.nPercentageOfSignatureMean of the number of nSignatureMean
-        if ((float) block.vSignatures.size() < nSignatureMean * ((float)dynParams.nPercentageOfSignaturesMean / 100.0f)) {
-            LogPrintf("ContextualCheckBlockHeader : past signatures [");
-            CBlockIndex *pindexDebug = pindexPrev;
-            uint8_t i = 0;
-            while (i++ < dynParams.nBlocksToConsiderForSigCheck && pindexDebug != NULL) {
-                LogPrintf("%s%02u", i == 1 ? " " : ", ", pindexDebug->vSignatures.size());
-                pindexDebug = pindexDebug->pprev;
-            }
-            LogPrintf(" ], nSignatureMean: %f, nBlock: %u\n", nSignatureMean, nBlocks);
-            return state.Invalid(error("%s: not enough signatures available in this block. Mean: %f, This: %u", __func__,
-                    nSignatureMean, block.vSignatures.size()),
-                             REJECT_INVALID, "not-enough-sigs");
-        }
+    // calculate the mean of the number of the signatures from
+    // the last dynParams.nBlocksToConsiderForSigCheck blocks
+    while (nBlocks < dynParams.nBlocksToConsiderForSigCheck && pindex != NULL) {
+        nSignatures += pindex->GetNumChainSigs();
+        pindex = pindex->pprev;
+        nBlocks++;
     }
 
+    float nSignaturesMean = nBlocks ? (float) nSignatures / (float) nBlocks : 0.0f;
+    return (float) nSignaturesToCheck > nSignaturesMean * ((float)dynParams.nPercentageOfSignaturesMean / 100.0f);
+}
+
+bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& state, CBlockIndex * const pindexPrev, bool fCheckSignatures)
+{
     // Check timestamp against prev
     if (block.GetBlockTime() <= pindexPrev->GetBlockTime())
         return state.Invalid(error("%s: block's timestamp is too early", __func__),
@@ -3319,7 +3307,7 @@ bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams,
     indexDummy.nHeight = pindexPrev->nHeight + 1;
 
     // NOTE: CheckBlockHeader is called by CheckBlock
-    if (!ContextualCheckBlockHeader(block, state, pindexPrev, false))
+    if (!ContextualCheckBlockHeader(block, state, pindexPrev, true))
         return false;
     if (!CheckBlock(block, state, fCheckPOW, fCheckMerkleRoot))
         return false;
@@ -3528,7 +3516,7 @@ bool static LoadBlockIndexDB()
 #if 0
         LogPrintf("LoadBlockIndexDB : nVersion: 0x%08x, nHeight: %u, nChainwork: %s, nStatus: %u, blockHash: %s, sigs: %u, adminSigs: %u\n",
                 pindex->nVersion, pindex->nHeight, pindex->nChainWork.ToString(), pindex->nStatus, pindex->GetBlockHash().ToString(),
-                pindex->vSignatures.size(), pindex->vAdminSignatures.size());
+                pindex->GetNumChainSigs(), pindex->vAdminIds.size());
 #endif
         // We can link the chain of blocks for which we've received transactions at some point.
         // Pruned nodes may have deleted the block.
@@ -4245,6 +4233,8 @@ bool static AlreadyHave(const CInv& inv) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
         }
     case MSG_BLOCK:
         return mapBlockIndex.count(inv.hash);
+    case MSG_CVN_PUB_NONCE_POOL:
+        return mapRelayNonces.count(inv.hash);
     case MSG_CVN_SIGNATURE:
         return mapRelaySigs.count(inv.hash);
     case MSG_POC_CHAIN_DATA:
@@ -4371,9 +4361,16 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
                         pushed = true;
                     }
                 }
+                if (!pushed && inv.type == MSG_CVN_PUB_NONCE_POOL) {
+                    if (mapRelayNonces.count(inv.hash)) {
+                        CNoncePool msg = mapRelayNonces[inv.hash];
+                        pfrom->PushMessage(NetMsgType::NONCEPOOL, msg);
+                        pushed = true;
+                    }
+                }
                 if (!pushed && inv.type == MSG_CVN_SIGNATURE) {
                     if (mapRelaySigs.count(inv.hash)) {
-                        CCvnSignatureMsg msg = mapRelaySigs[inv.hash];
+                        CCvnPartialSignature msg = mapRelaySigs[inv.hash];
                         pfrom->PushMessage(NetMsgType::SIG, msg);
                         pushed = true;
                     }
@@ -4516,18 +4513,22 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                 CAddress addr = GetLocalAddress(&pfrom->addr);
                 if (addr.IsRoutable())
                 {
-                    LogPrint("net", "ProcessMessages: advertizing address %s\n", addr.ToString());
+                    LogPrint("net", "ProcessMessages: advertising address %s\n", addr.ToString());
                     pfrom->PushAddress(addr);
                 } else if (IsPeerAddrLocalGood(pfrom)) {
                     addr.SetIP(pfrom->addrLocal);
-                    LogPrint("net", "ProcessMessages: advertizing address %s\n", addr.ToString());
+                    LogPrint("net", "ProcessMessages: advertising address %s\n", addr.ToString());
                     pfrom->PushAddress(addr);
                 }
 
-                // request peers CVN info list
+#if 0
+                // request peers chain signatures
                 uint32_t nNextCreator = CheckNextBlockCreator(chainActive.Tip(), GetAdjustedTime());
-                if (nNextCreator)
+                if (nNextCreator && !IsInitialBlockDownload()) {
+                    pfrom->PushMessage(NetMsgType::GETNONCES, chainActive.Tip()->GetBlockHash(), nNextCreator);
                     pfrom->PushMessage(NetMsgType::GETSIGLIST, chainActive.Tip()->GetBlockHash(), nNextCreator);
+                }
+#endif
             }
 
             // Get recent addresses
@@ -4544,7 +4545,15 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                 addrman.Good(addrFrom);
             }
         }
-
+#if 1
+        // TODO: tmp remove from here
+        // request peers chain signatures
+        uint32_t nNextCreator = CheckNextBlockCreator(chainActive.Tip(), GetAdjustedTime());
+        if (nNextCreator && !IsInitialBlockDownload()) {
+            pfrom->PushMessage(NetMsgType::GETNONCES, chainActive.Tip()->GetBlockHash(), nNextCreator);
+            pfrom->PushMessage(NetMsgType::GETSIGLIST, chainActive.Tip()->GetBlockHash(), nNextCreator);
+        }
+#endif
         // Relay alerts
         {
             LOCK(cs_mapAlerts);
@@ -4724,7 +4733,13 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                     LogPrint("net", "getheaders (%d) %s to peer=%d\n", pindexBestHeader->nHeight, inv.hash.ToString(), pfrom->id);
                 }
             }
-            else if (inv.type == MSG_CVN_SIGNATURE || inv.type == MSG_POC_CHAIN_DATA) {
+            else if (!IsInitialBlockDownload() && (inv.type == MSG_CVN_PUB_NONCE_POOL || inv.type == MSG_CVN_SIGNATURE)) {
+                if (mapNoncePool.empty())
+                    pfrom->PushMessage(NetMsgType::GETNONCES, chainActive.Tip()->GetBlockHash(), CheckNextBlockCreator(chainActive.Tip(), GetAdjustedTime()));
+                else if (!fAlreadyHave && !fImporting && !fReindex)
+                    pfrom->AskFor(inv);
+            }
+            else if (!IsInitialBlockDownload() && inv.type == MSG_POC_CHAIN_DATA) {
                 if (!fAlreadyHave && !fImporting && !fReindex)
                     pfrom->AskFor(inv);
             }
@@ -4890,9 +4905,40 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
     }
 
 
+    else if (strCommand == NetMsgType::NONCEPOOL)
+    {
+        CNoncePool msg;
+        vRecv >> msg;
+
+        CInv inv(MSG_CVN_PUB_NONCE_POOL, msg.GetHash());
+        pfrom->AddInventoryKnown(inv);
+
+        LOCK(cs_main);
+
+        pfrom->setAskFor.erase(inv.hash);
+        mapAlreadyAskedFor.erase(inv.hash);
+
+        if (!AlreadyHave(inv)) {
+            if (!mapBannedCVNs.count(msg.nCvnId)) {
+                LogPrint("net", "received nonce pool %s for CvnID 0x%08x\n", msg.GetHash().ToString(), msg.nCvnId);
+                if (AddNoncePool(msg))
+                    RelayNoncePool(msg);
+                else {
+                    LogPrintf("received invalid nonce pool %s\n", msg.ToString());
+                    Misbehaving(pfrom->GetId(), 50);
+                }
+            } else {
+                LogPrintf("Ignoring nonce pool of banned CvnID 0x%08x\n", msg.nCvnId);
+                Misbehaving(pfrom->GetId(), 20);
+            }
+        } else
+            LogPrint("net", "AlreadyHave nonce pool for CvnID 0x%08x\n", msg.nCvnId);
+    }
+
+
     else if (strCommand == NetMsgType::SIG)
     {
-        CCvnSignatureMsg msg;
+        CCvnPartialSignature msg;
         vRecv >> msg;
 
         CInv inv(MSG_CVN_SIGNATURE, msg.GetHash());
@@ -4904,17 +4950,76 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         mapAlreadyAskedFor.erase(inv.hash);
 
         if (!AlreadyHave(inv)) {
-            if (msg.hashPrevBlock != chainActive.Tip()->GetBlockHash())
-                LogPrintf("received outdated CVN signature from peer %d for tip %s signed by 0x%08x\n", pfrom->id, msg.hashPrevBlock.ToString(), msg.nSignerId);
-            else {
-                LogPrint("net", "received chain signature %s for tip %s\n", msg.GetHash().ToString(), msg.hashPrevBlock.ToString());
-                if (AddCvnSignature(msg.GetCvnSignature(), msg.hashPrevBlock, msg.nCreatorId))
-                    RelayCvnSignature(msg);
-                else
-                    LogPrintf("received invalid signature data %s\n", msg.ToString());
+            if (!mapBannedCVNs.count(msg.nSignerId)) {
+                if (msg.hashPrevBlock != chainActive.Tip()->GetBlockHash())
+                    LogPrintf("received outdated chain signature from peer %d for tip %s signed by 0x%08x\n", pfrom->id, msg.hashPrevBlock.ToString(), msg.nCreatorId);
+                else {
+                    LogPrint("net", "received chain signature %s for tip %s\n", msg.GetHash().ToString(), msg.hashPrevBlock.ToString());
+                    if (AddCvnSignature(msg))
+                        RelayCvnSignature(msg);
+                    else
+                        LogPrintf("received invalid signature data %s\n", msg.ToString());
+                }
+            } else {
+                LogPrintf("Ignoring chain signature of banned CvnID 0x%08x\n", msg.nSignerId);
+                Misbehaving(pfrom->GetId(), 20);
             }
         } else
             LogPrint("net", "AlreadyHave sig %s\n", msg.hashPrevBlock.ToString());
+    }
+
+
+    else if (strCommand == NetMsgType::GETNONCES)
+    {
+        LogPrint("net", "peer %d requests CVN nonce pools\n", pfrom->id);
+
+        LOCK(cs_mapNoncePool);
+
+        if (!mapNoncePool.empty()) {
+            vector<CNoncePool> vPoolList(mapNoncePool.size());
+
+            int i = 0;
+            BOOST_FOREACH(const CNoncePoolType::value_type& pool, mapNoncePool) {
+                if (mapBannedCVNs.count(pool.first))
+                    continue;
+                vPoolList[i++] = pool.second;
+            }
+
+            if (vPoolList.size())
+                pfrom->PushMessage(NetMsgType::NONCEPOOLS, vPoolList);
+        }
+    }
+
+
+    else if (strCommand == NetMsgType::NONCEPOOLS)
+    {
+        vector<CNoncePool> vPoolList;
+
+        vRecv >> vPoolList;
+
+        LogPrint("net", "received %u CVN nonce pools from peer %d\n", vPoolList.size(), pfrom->id);
+
+        if (vPoolList.size()) {
+            bool fPoolValid = true, fPoolFromBanned = false;
+            for (uint32_t i = 0; i < vPoolList.size() ; i++) {
+                if (mapBannedCVNs.count(vPoolList[i].nCvnId)) {
+                    LogPrintf("Ignoring from list nonce pool of banned CvnID 0x%08x\n", vPoolList[i].nCvnId);
+                    fPoolFromBanned = true;
+                    continue;
+                }
+                if (!AddNoncePool(vPoolList[i]))
+                    fPoolValid = false;
+            }
+
+            if (!fPoolValid && !IsInitialBlockDownload())
+                Misbehaving(pfrom->GetId(), 50);
+
+            if (fPoolFromBanned)
+                Misbehaving(pfrom->GetId(), 20);
+        } else {
+            // received empty list
+            Misbehaving(pfrom->GetId(), 20);
+        }
     }
 
 
@@ -4927,29 +5032,26 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
         LogPrint("net", "peer %d requests CVN signature list for 0x%08x tip: %s\n", pfrom->id, nNextCreator, hashPeersTip.ToString());
 
-        if (mapCvnSigs.count(hashPeersTip)) {
-            LOCK(cs_mapCvnSigs);
-            CvnSigCreatorType mapSigsByNextCreator = mapCvnSigs[hashPeersTip];
+        MapSigSigner mapSigsBySigner;
+        if (sigHolder.GetSignatures(mapSigsBySigner, hashPeersTip, nNextCreator)) {
+            vector<CCvnPartialSignature> vSigList;
 
-            if (mapSigsByNextCreator.count(nNextCreator)) {
-                CvnSigSignerType mapSigsBySigner = mapSigsByNextCreator[nNextCreator];
-                vector<CCvnSignature> vSigList(mapSigsBySigner.size());
-
-                int i = 0;
-                BOOST_FOREACH(CvnSigSignerType::value_type& sig, mapSigsBySigner) {
-                    vSigList[i++] = sig.second;
+            BOOST_FOREACH(const MapSigSigner::value_type& sig, mapSigsBySigner) {
+                if (mapBannedCVNs.count(sig.first)) {
+                    continue;
                 }
-
-                if (vSigList.size())
-                    pfrom->PushMessage(NetMsgType::SIGLIST, hashPeersTip, nNextCreator, vSigList);
+                vSigList.push_back(sig.second);
             }
+
+            if (vSigList.size())
+                pfrom->PushMessage(NetMsgType::SIGLIST, hashPeersTip, nNextCreator, vSigList);
         }
     }
 
 
     else if (strCommand == NetMsgType::SIGLIST)
     {
-        vector<CCvnSignature> vSigList;
+        vector<CCvnPartialSignature> vSigList;
         uint256 hashPeersTip;
         uint32_t nNextCreator;
 
@@ -4963,16 +5065,20 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             LogPrintf("received outdated CVN signature list from peer %d for block %s\n", pfrom->id, hashPeersTip.ToString());
         else {
             if (vSigList.size()) {
-                LOCK(cs_mapCvnSigs);
-                CvnSigCreatorType mapSigsByCreator = mapCvnSigs[hashPeersTip];
-                CvnSigSignerType mapSigsBySigner = mapSigsByCreator[nNextCreator]; // it's OK to add an element here
-
+                bool fAllSigsVaild = true;
                 for (uint32_t i = 0; i < vSigList.size() ; i++) {
-                    if (!mapSigsBySigner.count(vSigList[i].nSignerId)) {
-                        if (!AddCvnSignature(vSigList[i], hashPeersTip, nNextCreator))
-                            Misbehaving(pfrom->GetId(), 50);
+                    if (!mapBannedCVNs.count(vSigList[i].nSignerId)) {
+                        if (!AddCvnSignature(vSigList[i])) {
+                            fAllSigsVaild = false;
+                        }
+                    } else {
+                        LogPrintf("Ignoring from list chain signature of banned CvnID 0x%08x\n", vSigList[i].nSignerId);
+                        fAllSigsVaild = false;
                     }
                 }
+
+                if (!fAllSigsVaild)
+                    Misbehaving(pfrom->GetId(), 20);
             } else {
                 // received empty list
                 Misbehaving(pfrom->GetId(), 20);
@@ -5145,7 +5251,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             CValidationState state;
             if (pindexLast != NULL && header.hashPrevBlock != pindexLast->GetBlockHash()) {
                 Misbehaving(pfrom->GetId(), 20);
-                return error("non-continuous headers sequence");
+                return error("non-continuous headers sequence: %s != %s", header.hashPrevBlock.ToString(), pindexLast->GetBlockHash().ToString());
             }
             if (!AcceptBlockHeader(header, state, chainparams, &pindexLast)) {
                 int nDoS;
@@ -5950,13 +6056,31 @@ bool SendMessages(CNode* pto)
             }
 
             //
-            // Handle: PoC chain signatures
+            // Handle: PoC public nonces
             //
 
             const uint256& hashTip = chainActive.Tip()->GetBlockHash();
+            BOOST_FOREACH(const uint256& hash, pto->vInventoryNoncePoolsToSend) {
+                if (mapRelayNonces.count(hash)) {
+                    CInv inv(MSG_CVN_PUB_NONCE_POOL, hash);
+                    vInv.push_back(inv);
+                    if (vInv.size() == MAX_INV_SZ) {
+                        pto->PushMessage(NetMsgType::INV, vInv);
+                        vInv.clear();
+                    }
+                }
+
+            }
+            pto->vInventoryNoncePoolsToSend.clear();
+
+
+            //
+            // Handle: PoC chain signatures
+            //
+
             BOOST_FOREACH(const uint256& hash, pto->vInventoryChainSignaturesToSend) {
                 if (mapRelaySigs.count(hash)) {
-                    CCvnSignatureMsg& msg = mapRelaySigs[hash];
+                    CCvnPartialSignature& msg = mapRelaySigs[hash];
 
                     // we only relay signatures for the active chain tip
                     if (msg.hashPrevBlock == hashTip) {
@@ -6070,11 +6194,9 @@ bool SendMessages(CNode* pto)
     return true;
 }
 
- std::string CBlockFileInfo::ToString() const {
-     return strprintf("CBlockFileInfo(blocks=%u, size=%u, heights=%u...%u, time=%s...%s)", nBlocks, nSize, nHeightFirst, nHeightLast, DateTimeStrFormat("%Y-%m-%d", nTimeFirst), DateTimeStrFormat("%Y-%m-%d", nTimeLast));
- }
-
-
+std::string CBlockFileInfo::ToString() const {
+    return strprintf("CBlockFileInfo(blocks=%u, size=%u, heights=%u...%u, time=%s...%s)", nBlocks, nSize, nHeightFirst, nHeightLast, DateTimeStrFormat("%Y-%m-%d", nTimeFirst), DateTimeStrFormat("%Y-%m-%d", nTimeLast));
+}
 
 class CMainCleanup
 {

@@ -8,7 +8,6 @@
 #include "consensus/merkle.h"
 #include "consensus/validation.h"
 #include "main.h"
-#include "miner.h"
 #include "pubkey.h"
 #include "script/standard.h"
 #include "txmempool.h"
@@ -19,6 +18,7 @@
 #include "test/test_bitcoin.h"
 
 #include <boost/test/unit_test.hpp>
+#include "../blockfactory.h"
 
 BOOST_FIXTURE_TEST_SUITE(miner_tests, TestingSetup)
 

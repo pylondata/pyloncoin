@@ -5,7 +5,7 @@ This document describes the requirements for setting up and operating a CVN (cer
 For online discussion and support please join the FairCoin CVN Operators telegram group here: https://telegram.me/joinchat/Bumu8gbZmAhnXoxCBr3WHg
 
 ## 1 About CVNs
-The aim of a CVN is to secure the network by validating all the transactions that had been sent to the network and put them into a transaction block chain. Blocks are created every 3 minutes (180 sec.). Transactions are confirmed after they have been added to a block. A CVN is a standard FairCoin core client configured to use a smart card for continuously signing certain pieces of data of the FairCoin network with certification data issued by FairCoop. Every node will be assigned a unique id called the CVN ID.
+The aim of a CVN is to secure the network by validating all the transactions that had been sent to the network and put them into a transaction block chain. Blocks are created every 3 minutes (180 sec.). Transactions are confirmed after they have been added to a block. A CVN is a standard FairCoin core client configured to use a signature token (Fasito) for continuously signing certain pieces of data of the FairCoin network with certification data issued by FairCoop. Every node will be assigned a unique id called the CVN ID.
 
 ## 2 Technical information for running a CVN
 
@@ -15,9 +15,9 @@ A secure and stable operating system is crucial for reliably running a CVN. Ther
 1. A Linux operating system with a current distribution is required to run a CVN. We recommend using Ubuntu or Debian. All available system updates must be applied on a regular basis.
 2. The system must provide at least 1GB of free hard drive space, the more the better.
 3. The FairCoin wallet software needs be updated as official releases are made available by the development team.
-4. The system must be connected to the Internet all the time (24/7) and the TCP port 40404 must be reachable by all remote nodes from the Internet. Avoid using a wireless connection if possible as this would result in additional network latency and potential unstable internet connection.
+4. The system must be connected to the Internet all the time (24/7) and the TCP port 40404 must be reachable by all remote nodes from the Internet. Avoid using a wireless connection as this would result in additional network latency and potential unstable internet connection.
 5. The system must use a public NTP server to synchronize its system time to, e.g. pool.ntp.org to ensure that the system time is always correct. NTP means Networking Time Protocol and is intended to synchronize all participating computers to within a few milliseconds of Coordinated Universal Time (UTC).
-6. The hardware must provide a USB 2.0 port which takes up the USB card reader. Please avoid using a USB-hub for the reader.
+6. The hardware must provide a USB 2.0 port which takes up the Fasito USB token. Please avoid using a USB-hub for the token.
 7. Although not absolutely necessary, a UPS (uninterruptible power supply) would be appreciated. Note that all network related equipment should also be hooked up to the UPS to keep the network connection up in the event of a power outage.
 
 ### 2.2 Preparing your system
@@ -30,24 +30,12 @@ Please note that the package names and/or versions can differ depending on your 
 After package installation has completed successfully proceed by following the instructions provided here:
 https://github.com/faircoin/faircoin2/blob/faircoin2/doc/build-CVN.md
 
-Make sure your card reader is connected to your system and is working properly. You can test it by execute the following commands:
+Make sure your Fasito is connected to your system and is working properly. You can test it by execute the following commands:
 ```
-export PATH=/opt/faircoin/OpenSC/target/bin/:$PATH
-pkcs11-tool -T
+minicom -D /dev/ttyACM0
 ```
 
-This will display a list of all connected readers with inserted cards. It should list something like this:
-```
-Available slots:
-Slot 0 (0x0): ACS ACR 38U-CCID 02 00
-  token label        : SmartCard-HSM (UserPIN)
-  token manufacturer : www.CardContact.de
-  token model        : PKCS#15 emulated
-  token flags        : rng, login required, PIN initialized, token initialized
-  hardware version   : 24.13
-  firmware version   : 1.2
-  serial num         : DECM0104412
-```
+First type ```HELP``` (all uppercase!) and press enter. This will display a list of all commands.
 
 ### 2.3 The first start of your node
 Create a configuration file in the data directory of FairCoin and copy-and-paste the following command sequence in your terminal:
@@ -59,7 +47,7 @@ cat > ~/.faircoin2/faircoin2.conf <<EOF
 logtimestamps=1
 logips=1
 gen=1
-cvn=card
+cvn=fasito
 cvnpin=123456
 EOF
 ```
@@ -69,7 +57,7 @@ Now start the FairCoin wallet with:
 /opt/faircoin/faircoin2/src/qt/faircoin-qt -gen=0
 ```
 
-It will then start to download the block chain, which will take some time, a matter of minutes or maybe hours. The progress bar at the lower left corner of the wallet software displays the download status.
+It will then start to download the block chain, which will take some time. The progress bar at the lower left corner of the wallet software displays the download status.
 When it is finished, quit the wallet software.
 
 ### 2.4 Normal startup of a CVN
@@ -125,8 +113,6 @@ CVN operators can request removal if they are no longer willing or able to run a
 The removal of a CVN will be performed by the chain administrators.
 
 ### 4.6 How to join
-If you are interested in setting up a CVN, write us at cvn@fair-coin.org. Around the 7th to the 8th of September 2016 we are going to publish a form to officialy begin the process of CVN acceptance, and we will notify you to fill in the application form as it comes available.
-
-We will be able to begin when at least 15 CVN are ready. After that, the open process will continue to welcome more CVNs to secure the network further.
+If you are interested in setting up a CVN, write us at cvn@fair-coin.org.
 
 More information and discussion is avaiable here: https://fair.coop/groups/faircoop-community/faircoin/faircoin2/

@@ -4,6 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "chain.h"
+#include "poc.h"
 
 using namespace std;
 
@@ -93,8 +94,8 @@ CBlockIndex* CBlockIndex::GetAncestor(int height)
             pindexWalk = pindexWalk->pskip;
             heightWalk = heightSkip;
         } else {
-        	assert(pindexWalk->pprev);
-        	pindexWalk = pindexWalk->pprev;
+            assert(pindexWalk->pprev);
+            pindexWalk = pindexWalk->pprev;
             heightWalk--;
         }
     }
@@ -110,4 +111,20 @@ void CBlockIndex::BuildSkip()
 {
     if (pprev)
         pskip = pprev->GetAncestor(GetSkipHeight(nHeight));
+}
+
+string CBlockIndex::ToString() const
+{
+    return strprintf("CBlockIndex(pprev=%p, nHeight=%d, pl=%s, nCreatorId=%08x, merkle=%s, hashBlock=%s, nTime=%u, nStatus=%08x, signatures=%u, adminSignatures=%u)",
+        pprev, nHeight, GetPayloadString(), nCreatorId,
+        hashMerkleRoot.ToString(),
+        GetBlockHash().ToString(),
+        nTime, nStatus,
+        GetNumChainSigs(),
+        vAdminIds.size());
+}
+
+uint32_t CBlockIndex::GetNumChainSigs() const
+{
+    return mapCVNs.size() - vMissingCreatorIds.size();
 }

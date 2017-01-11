@@ -11,6 +11,7 @@
 #include "support/allocators/secure.h"
 #include "uint256.h"
 
+#include <secp256k1.h>
 #include <stdexcept>
 #include <vector>
 
@@ -121,10 +122,31 @@ public:
     CPubKey GetPubKey() const;
 
     /**
+     * Compute the public key from a private key.
+     * This is expensive. Return the raw point.
+     */
+    CSchnorrPubKey GetRawPubKey() const;
+
+    /**
      * Create a DER-serialized signature.
      * The test_case parameter tweaks the deterministic nonce.
      */
     bool Sign(const uint256& hash, std::vector<unsigned char>& vchSig, uint32_t test_case = 0) const;
+
+    /**
+     * Create a schnorr signature.
+     */
+    bool SchnorrSign(const uint256 &hash, CSchnorrSig& sig) const;
+
+    /**
+     * Create a partial schnorr signature.
+     */
+    bool SchnorrSignParial(const uint256 &hash, const CSchnorrPubKey& sumPublicNoncesOthers, const CSchnorrPrivNonce& privateNonce, CSchnorrSig& vchSig) const;
+
+    /**
+     * Create a schnorr nonce pair for creating threshold signatures
+     */
+    bool SchnorrCreateNoncePair(const uint256 &hash, CSchnorrNonce& noncePub, unsigned char *noncePriv, const uint256 &noncedata) const;
 
     /**
      * Create a compact signature (65 bytes), which allows reconstructing the used public key.

@@ -188,6 +188,7 @@ extern UniValue addcvn(const UniValue& params, bool fHelp);
 extern UniValue removecvn(const UniValue& params, bool fHelp);
 extern UniValue signchaindata(const UniValue& params, bool fHelp);
 extern UniValue getcvninfo(const UniValue& params, bool fHelp);
+extern UniValue bancvn(const UniValue& params, bool fHelp);
 extern UniValue getchainparameters(const UniValue& params, bool fHelp);
 extern UniValue getactivecvns(const UniValue& params, bool fHelp);
 extern UniValue submitblock(const UniValue& params, bool fHelp);

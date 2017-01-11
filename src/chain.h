@@ -143,8 +143,12 @@ public:
     uint256 hashMerkleRoot;
     unsigned int nTime;
     unsigned int nCreatorId;
-    std::vector<CCvnSignature> vSignatures;
-    std::vector<CCvnSignature> vAdminSignatures;
+
+    CSchnorrSig chainMultiSig;
+    std::vector<uint32_t> vMissingCreatorIds;
+
+    CSchnorrSig adminMultiSig;
+    std::vector<uint32_t> vAdminIds;
 
     //! (memory only) Sequential id assigned to distinguish order in which blocks are received.
     uint32_t nSequenceId;
@@ -168,8 +172,10 @@ public:
         hashMerkleRoot = uint256();
         nTime          = 0;
         nCreatorId     = 0;
-        vSignatures.clear();
-        vAdminSignatures.clear();
+        chainMultiSig.SetNull();
+        vMissingCreatorIds.clear();
+        adminMultiSig.SetNull();
+        vAdminIds.clear();
     }
 
     CBlockIndex()
@@ -181,12 +187,14 @@ public:
     {
         SetNull();
 
-        nVersion         = block.nVersion;
-        hashMerkleRoot   = block.hashMerkleRoot;
-        nTime            = block.nTime;
-        nCreatorId       = block.nCreatorId;
-        vSignatures      = block.vSignatures;
-        vAdminSignatures = block.vAdminSignatures;
+        nVersion           = block.nVersion;
+        hashMerkleRoot     = block.hashMerkleRoot;
+        nTime              = block.nTime;
+        nCreatorId         = block.nCreatorId;
+        chainMultiSig      = block.chainMultiSig;
+        vMissingCreatorIds = block.vMissingSignerIds;
+        adminMultiSig      = block.adminMultiSig;
+        vAdminIds          = block.vAdminIds;
     }
 
     CDiskBlockPos GetBlockPos() const {
@@ -210,14 +218,18 @@ public:
     CBlockHeader GetBlockHeader() const
     {
         CBlockHeader block;
-        block.nVersion         = nVersion;
+        block.nVersion           = nVersion;
         if (pprev)
-            block.hashPrevBlock = pprev->GetBlockHash();
-        block.hashMerkleRoot   = hashMerkleRoot;
-        block.nTime            = nTime;
-        block.nCreatorId       = nCreatorId;
-        block.vSignatures      = vSignatures;
-        block.vAdminSignatures = vAdminSignatures;
+            block.hashPrevBlock  = pprev->GetBlockHash();
+        block.hashMerkleRoot     = hashMerkleRoot;
+        block.nTime              = nTime;
+        block.nCreatorId         = nCreatorId;
+        block.chainMultiSig      = chainMultiSig;
+        block.vMissingSignerIds = vMissingCreatorIds;
+        if (nVersion & CBlock::ADMIN_PAYLOAD_MASK) {
+            block.adminMultiSig      = adminMultiSig;
+            block.vAdminIds          = vAdminIds;
+        }
         return block;
     }
 
@@ -265,17 +277,6 @@ public:
         return payload.str();
     }
 
-    std::string ToString() const
-    {
-        return strprintf("CBlockIndex(pprev=%p, nHeight=%d, pl=%s, nCreatorId=%08x, merkle=%s, hashBlock=%s, nTime=%u, nStatus=%08x, signatures=%u, adminSignatures=%u)",
-            pprev, nHeight, GetPayloadString(), nCreatorId,
-            hashMerkleRoot.ToString(),
-            GetBlockHash().ToString(),
-            nTime, nStatus,
-            vSignatures.size(),
-			vAdminSignatures.size());
-    }
-
     //! Check whether this block index entry is valid up to the passed validity level.
     bool IsValid(enum BlockStatus nUpTo = BLOCK_VALID_TRANSACTIONS) const
     {
@@ -301,6 +302,10 @@ public:
 
     //! Build the skiplist pointer for this entry.
     void BuildSkip();
+
+    string ToString() const;
+
+    uint32_t GetNumChainSigs() const;
 
     //! Efficiently find an ancestor of this block.
     CBlockIndex* GetAncestor(int height);
@@ -344,20 +349,28 @@ public:
         READWRITE(hashMerkleRoot);
         READWRITE(nTime);
         READWRITE(nCreatorId);
-        READWRITE(vSignatures);
-        READWRITE(vAdminSignatures);
+        READWRITE(chainMultiSig);
+        READWRITE(vMissingCreatorIds);
+        if (this->nVersion & CBlock::ADMIN_PAYLOAD_MASK) {
+            READWRITE(adminMultiSig);
+            READWRITE(vAdminIds);
+        }
     }
 
     uint256 GetBlockHash() const
     {
         CBlockHeader block;
-        block.nVersion         = nVersion;
-        block.hashPrevBlock    = hashPrev;
-        block.hashMerkleRoot   = hashMerkleRoot;
-        block.nTime            = nTime;
-        block.nCreatorId       = nCreatorId;
-        block.vSignatures      = vSignatures;
-        block.vAdminSignatures = vAdminSignatures;
+        block.nVersion           = nVersion;
+        block.hashPrevBlock      = hashPrev;
+        block.hashMerkleRoot     = hashMerkleRoot;
+        block.nTime              = nTime;
+        block.nCreatorId         = nCreatorId;
+        block.vMissingSignerIds = vMissingCreatorIds;
+        block.chainMultiSig      = chainMultiSig;
+        if (this->nVersion & CBlock::ADMIN_PAYLOAD_MASK) {
+            block.vAdminIds          = vAdminIds;
+            block.adminMultiSig      = adminMultiSig;
+        }
         return block.GetHash();
     }
 

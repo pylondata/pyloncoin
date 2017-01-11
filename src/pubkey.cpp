@@ -2,10 +2,14 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <stdio.h>
+
 #include "pubkey.h"
+#include "util.h"
 
 #include <secp256k1.h>
 #include <secp256k1_recovery.h>
+#include <secp256k1_schnorr.h>
 
 namespace
 {
@@ -182,6 +186,23 @@ bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchS
      * not historically been enforced in Bitcoin, so normalize them first. */
     secp256k1_ecdsa_signature_normalize(secp256k1_context_verify, &sig, &sig);
     return secp256k1_ecdsa_verify(secp256k1_context_verify, &sig, hash.begin(), &pubkey);
+}
+
+/* static */ bool CPubKey::VerifySchnorr(const uint256 &hash, const CSchnorrSig& schnorrSig, const std::vector<unsigned char>& vchPubKey) {
+    secp256k1_pubkey pubKey;
+
+    if (!secp256k1_ec_pubkey_parse(secp256k1_context_verify, &pubKey, &vchPubKey[0], vchPubKey.size()))
+        return false;
+
+    return secp256k1_schnorr_verify(secp256k1_context_verify, &schnorrSig.begin()[0], hash.begin(), &pubKey);
+}
+
+/* static */ bool CPubKey::VerifySchnorr(const uint256 &hash, const CSchnorrSig &schnorrSig, const CSchnorrPubKey &pubKey) {
+    return secp256k1_schnorr_verify(secp256k1_context_verify, &schnorrSig.begin()[0], hash.begin(), (secp256k1_pubkey *) pubKey.begin());
+}
+
+/* static */ bool CPubKey::VerifyPartialSchnorr(const uint256 &hash, const CSchnorrSig &schnorrSig, const CSchnorrPubKey &pubKey, const CSchnorrPubKey &sumPubNoncesOthers) {
+    return secp256k1_schnorr_partial_verify(secp256k1_context_verify, &schnorrSig.begin()[0], hash.begin(), (secp256k1_pubkey *) pubKey.begin(), (secp256k1_pubkey *) sumPubNoncesOthers.begin());
 }
 
 bool CPubKey::RecoverCompact(const uint256 &hash, const std::vector<unsigned char>& vchSig) {

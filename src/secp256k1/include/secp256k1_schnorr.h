@@ -48,6 +48,23 @@ SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorr_verify(
   const secp256k1_pubkey *pubkey
 ) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4);
 
+/** Verify a partial signature created by secp256k1_schnorr_partial_sign.
+ *  Returns: 1: correct signature
+ *           0: incorrect signature
+ *  Args:    ctx:       a secp256k1 context object, initialized for verification.
+ *  In:      sig64:     the 64-byte signature being verified (cannot be NULL)
+ *           msg32:     the 32-byte message hash being verified (cannot be NULL)
+ *           pubkey:    the public key to verify with (cannot be NULL)
+ *           sumOthers: the sum of all others public nonces
+ */
+SECP256K1_API SECP256K1_WARN_UNUSED_RESULT int secp256k1_schnorr_partial_verify(
+  const secp256k1_context* ctx,
+  const unsigned char *sig64,
+  const unsigned char *msg32,
+  const secp256k1_pubkey *pubkey,
+  const secp256k1_pubkey *sumOthers
+) SECP256K1_ARG_NONNULL(1) SECP256K1_ARG_NONNULL(2) SECP256K1_ARG_NONNULL(3) SECP256K1_ARG_NONNULL(4) SECP256K1_ARG_NONNULL(5);
+
 /** Recover an EC public key from a Schnorr signature created using
  *  secp256k1_schnorr_sign.
  *  Returns: 1: public key successfully recovered (which guarantees a correct

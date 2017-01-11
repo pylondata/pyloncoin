@@ -29,14 +29,24 @@ public:
     static const int32_t     CHAIN_ADMINS_PAYLOAD = 1 << 11;
     static const int32_t      COIN_SUPPLY_PAYLOAD = 1 << 12;
     static const int32_t       ADMIN_PAYLOAD_MASK = CVN_PAYLOAD | CHAIN_PARAMETERS_PAYLOAD | CHAIN_ADMINS_PAYLOAD | COIN_SUPPLY_PAYLOAD;
-    static const int32_t             PAYLOAD_MASK = TX_PAYLOAD | CVN_PAYLOAD | CHAIN_PARAMETERS_PAYLOAD | CHAIN_ADMINS_PAYLOAD | COIN_SUPPLY_PAYLOAD;
+    static const int32_t             PAYLOAD_MASK = TX_PAYLOAD | ADMIN_PAYLOAD_MASK;
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
     uint32_t nTime;
     uint32_t nCreatorId;
-    std::vector<CCvnSignature> vSignatures;
-    std::vector<CCvnSignature> vAdminSignatures;
+
+    CSchnorrSig chainMultiSig;
+    /* contains the CVN IDs of all the currently active CVN that failed
+     * to sign the block, ideally empty
+     */
+    vector<uint32_t> vMissingSignerIds;
+
+    CSchnorrSig adminMultiSig;
+    /* contains the admin IDs of all the currently active CVN that signed
+     * the block
+     */
+    vector<uint32_t> vAdminIds;
 
     CBlockHeader()
     {
@@ -53,8 +63,12 @@ public:
         READWRITE(hashMerkleRoot);
         READWRITE(nTime);
         READWRITE(nCreatorId);
-        READWRITE(vSignatures);
-        READWRITE(vAdminSignatures);
+        READWRITE(chainMultiSig);
+        READWRITE(vMissingSignerIds);
+        if (HasAdminPayload()) {
+            READWRITE(adminMultiSig);
+            READWRITE(vAdminIds);
+        }
     }
 
     void SetNull()
@@ -64,16 +78,16 @@ public:
         hashMerkleRoot.SetNull();
         nTime = 0;
         nCreatorId = 0;
-        vSignatures.clear();
-        vAdminSignatures.clear();
+        chainMultiSig.SetNull();
+        vMissingSignerIds.clear();
+        adminMultiSig.SetNull();
+        vAdminIds.clear();
     }
 
     bool IsNull() const
     {
         return (nCreatorId == 0);
     }
-
-    uint256 GetHash() const;
 
     int64_t GetBlockTime() const
     {
@@ -109,13 +123,17 @@ public:
     {
         return (nVersion & ADMIN_PAYLOAD_MASK);
     }
+
+    uint256 GetHash() const;
+    uint32_t GetNumChainSigs() const;
+
 };
 
 class CBlock : public CBlockHeader
 {
 public:
     // network and disk
-    std::vector<unsigned char> vCreatorSignature;
+    CSchnorrSig creatorSignature;
     std::vector<CTransaction> vtx;
     std::vector<CCvnInfo> vCvns;
     std::vector<CChainAdmin> vChainAdmins;
@@ -141,7 +159,7 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(*(CBlockHeader*)this);
-        READWRITE(vCreatorSignature);
+        READWRITE(creatorSignature);
 
         if (HasTx())
             READWRITE(vtx);
@@ -160,7 +178,7 @@ public:
         CBlockHeader::SetNull();
         vtx.clear();
         vCvns.clear();
-        vCreatorSignature.clear();
+        creatorSignature.SetNull();
         vChainAdmins.clear();
         dynamicChainParams = CDynamicChainParams();
         coinSupply = CCoinSupply();
@@ -170,13 +188,15 @@ public:
     CBlockHeader GetBlockHeader() const
     {
         CBlockHeader block;
-        block.nVersion         = nVersion;
-        block.hashPrevBlock    = hashPrevBlock;
-        block.hashMerkleRoot   = hashMerkleRoot;
-        block.nTime            = nTime;
-        block.nCreatorId       = nCreatorId;
-        block.vSignatures      = vSignatures;
-        block.vAdminSignatures = vAdminSignatures;
+        block.nVersion           = nVersion;
+        block.hashPrevBlock      = hashPrevBlock;
+        block.hashMerkleRoot     = hashMerkleRoot;
+        block.nTime              = nTime;
+        block.nCreatorId         = nCreatorId;
+        block.chainMultiSig      = chainMultiSig;
+        block.vMissingSignerIds = vMissingSignerIds;
+        block.adminMultiSig      = adminMultiSig;
+        block.vAdminIds          = vAdminIds;
         return block;
     }
 

@@ -189,19 +189,21 @@ bool CBlockTreeDB::LoadBlockIndexGuts()
             if (pcursor->GetValue(diskindex)) {
                 // Construct block index object
                 CBlockIndex* pindexNew = InsertBlockIndex(diskindex.GetBlockHash());
-                pindexNew->pprev            = InsertBlockIndex(diskindex.hashPrev);
-                pindexNew->nHeight          = diskindex.nHeight;
-                pindexNew->nFile            = diskindex.nFile;
-                pindexNew->nDataPos         = diskindex.nDataPos;
-                pindexNew->nUndoPos         = diskindex.nUndoPos;
-                pindexNew->nVersion         = diskindex.nVersion;
-                pindexNew->hashMerkleRoot   = diskindex.hashMerkleRoot;
-                pindexNew->nTime            = diskindex.nTime;
-                pindexNew->nCreatorId       = diskindex.nCreatorId;
-                pindexNew->vSignatures      = diskindex.vSignatures;
-                pindexNew->vAdminSignatures = diskindex.vAdminSignatures;
-                pindexNew->nStatus          = diskindex.nStatus;
-                pindexNew->nTx              = diskindex.nTx;
+                pindexNew->pprev              = InsertBlockIndex(diskindex.hashPrev);
+                pindexNew->nHeight            = diskindex.nHeight;
+                pindexNew->nFile              = diskindex.nFile;
+                pindexNew->nDataPos           = diskindex.nDataPos;
+                pindexNew->nUndoPos           = diskindex.nUndoPos;
+                pindexNew->nVersion           = diskindex.nVersion;
+                pindexNew->hashMerkleRoot     = diskindex.hashMerkleRoot;
+                pindexNew->nTime              = diskindex.nTime;
+                pindexNew->nCreatorId         = diskindex.nCreatorId;
+                pindexNew->vMissingCreatorIds = diskindex.vMissingCreatorIds;
+                pindexNew->chainMultiSig      = diskindex.chainMultiSig;
+                pindexNew->vAdminIds          = diskindex.vAdminIds;
+                pindexNew->adminMultiSig      = diskindex.adminMultiSig;
+                pindexNew->nStatus            = diskindex.nStatus;
+                pindexNew->nTx                = diskindex.nTx;
 
                 //TODO: put CVN checks here
                 pcursor->Next();
