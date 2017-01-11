@@ -146,7 +146,7 @@ public:
     /**
      * Create a schnorr nonce pair for creating threshold signatures
      */
-    bool SchnorrCreateNoncePair(const uint256 &hash, CSchnorrNonce& noncePub, CSchnorrPrivNonce& noncePriv) const;
+    bool SchnorrCreateNoncePair(const uint256 &hash, CSchnorrNonce& noncePub, unsigned char *noncePriv, const uint256 &noncedata) const;
 
     /**
      * Create a compact signature (65 bytes), which allows reconstructing the used public key.

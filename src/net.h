@@ -173,10 +173,10 @@ extern NodeId nLastNodeId;
 extern CCriticalSection cs_nLastNodeId;
 
 extern CCriticalSection cs_mapRelayNonces;
-extern std::map<uint256, CCvnPubNonceMsg> mapRelayNonces;
+extern std::map<uint256, CNoncePool> mapRelayNonces;
 
 extern CCriticalSection cs_mapRelaySigs;
-extern std::map<uint256, CCvnPartialSignatureMsg> mapRelaySigs;
+extern std::map<uint256, CCvnPartialSignature> mapRelaySigs;
 
 extern CCriticalSection cs_mapRelayChainData;
 extern std::map<uint256, CChainDataMsg> mapRelayChainData;
@@ -406,7 +406,7 @@ public:
     // There is no final sorting before sending, as they are always sent immediately
     // and in the order requested.
     std::vector<uint256> vInventoryBlockToSend;
-    std::set<uint256> vInventoryPublicNoncesToSend;
+    std::set<uint256> vInventoryNoncePoolsToSend;
     std::set<uint256> vInventoryChainSignaturesToSend;
     std::set<uint256> vInventoryChainDataToSend;
     CCriticalSection cs_inventory;
@@ -532,9 +532,9 @@ public:
             }
         } else if (inv.type == MSG_BLOCK) {
             vInventoryBlockToSend.push_back(inv.hash);
-        } else if (inv.type == MSG_CVN_PUB_NONCE) {
+        } else if (inv.type == MSG_CVN_PUB_NONCE_POOL) {
             if (!filterInventoryKnown.contains(inv.hash))
-                vInventoryPublicNoncesToSend.insert(inv.hash);
+                vInventoryNoncePoolsToSend.insert(inv.hash);
         } else if (inv.type == MSG_CVN_SIGNATURE) {
             if (!filterInventoryKnown.contains(inv.hash))
                 vInventoryChainSignaturesToSend.insert(inv.hash);

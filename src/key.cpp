@@ -208,10 +208,11 @@ bool CKey::SchnorrSignParial(const uint256 &hash, const CSchnorrPubKey& sumPubli
     return true;
 }
 
-bool CKey::SchnorrCreateNoncePair(const uint256 &hash, CSchnorrNonce& noncePub, CSchnorrPrivNonce& noncePriv) const {
+bool CKey::SchnorrCreateNoncePair(const uint256 &hash, CSchnorrNonce& noncePub, unsigned char *noncePriv, const uint256 &noncedata) const {
     if (!fValid)
         return false;
-    int ret = secp256k1_schnorr_generate_nonce_pair(secp256k1_context_sign, (secp256k1_pubkey *)&noncePub.begin()[0], noncePriv.begin(), begin(), hash.begin(), secp256k1_nonce_function_rfc6979, NULL);
+    int ret = secp256k1_schnorr_generate_nonce_pair(
+            secp256k1_context_sign, (secp256k1_pubkey *)&noncePub.begin()[0], noncePriv, begin(), hash.begin(), secp256k1_nonce_function_rfc6979, noncedata.begin());
     assert(ret);
     return true;
 }

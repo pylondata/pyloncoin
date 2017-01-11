@@ -67,7 +67,7 @@ static const X509* ParseCertificate(FILE* file, const bool fChainAdmin)
 static void PrintCertDetails(X509 *x509Certificate, const bool fChainAdmin)
 {
     const char * prefix = fChainAdmin ? "ADMIN" : "CVN";
-	BIO *mem = BIO_new(BIO_s_mem());
+    BIO *mem = BIO_new(BIO_s_mem());
     BUF_MEM *bptr;
 
     X509_NAME *name = X509_get_subject_name(x509Certificate);

@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <boost/foreach.hpp>
+
 #include "primitives/cvn.h"
 
 #include "hash.h"
@@ -43,68 +45,32 @@ std::string CCoinSupply::ToString() const
     std::stringstream s;
         s << strprintf("CCoinSupply(ver=%d, nValue=%d.%08d, rawScriptDestination=%s, asm=%s)",
             nVersion,
-			nValue / COIN, nValue % COIN,
-			HexStr(scriptDestination),
-			ScriptToAsmStr(scriptDestination)
+            nValue / COIN, nValue % COIN,
+            HexStr(scriptDestination),
+            ScriptToAsmStr(scriptDestination)
         );
     return s.str();
 }
 
-uint256 CCvnPubNonceMsg::GetHash() const
+uint256 CCvnPartialSignatureUnsinged::GetHash() const
 {
-    CHashWriter hasher(SER_GETHASH, 0);
-
-    hasher << GetPubNonce() << hashPrevBlock << nCreatorId;
-
-    return hasher.GetHash();
+    return SerializeHash(*this);
 }
 
-std::string CCvnPubNonce::ToString() const
+std::string CCvnPartialSignatureUnsinged::ToString() const
 {
     std::stringstream s;
-    s << strprintf("CCvnPubNonce(signerId=0x%08x, ver=%d, sig=%s)",
-        nSignerId,
-        nVersion,
-        pubNonce.ToString());
+    s << strprintf("CCvnSignatureUnsinged(signerId=0x%08x, nextCreatorId=0x%08x, hashPrev=%s, ver=%d, sig=%s, missing=%d)",
+        nSignerId, nCreatorId, hashPrevBlock.ToString(), nVersion,
+        signature.ToString(), vMissingSignerIds.size()); //TODO: limit again .substr(0, 30));
     return s.str();
-}
-
-std::string CCvnPubNonceMsg::ToString() const
-{
-    std::stringstream s;
-    s << strprintf("CCvnPubNonceMsg(creatorId=0x%08x, hashPrev=%s, msgSig=%s) : %s",
-        nCreatorId,
-        hashPrevBlock.ToString(),
-        msgSig.ToString(), CCvnPubNonce::ToString());
-    return s.str();
-}
-
-uint256 CCvnPartialSignatureMsg::GetHash() const
-{
-    CHashWriter hasher(SER_GETHASH, 0);
-
-    hasher << GetCvnSignature() << hashPrevBlock << nCreatorId;
-
-    return hasher.GetHash();
 }
 
 std::string CCvnPartialSignature::ToString() const
 {
     std::stringstream s;
-    s << strprintf("CCvnSignature(signerId=0x%08x, ver=%d, sig=%s, missing=%d)",
-        nSignerId,
-        nVersion,
-        signature.ToString(), vMissingPubNonces.size()); //TODO: limit again .substr(0, 30));
-    return s.str();
-}
-
-std::string CCvnPartialSignatureMsg::ToString() const
-{
-    std::stringstream s;
-    s << strprintf("CCvnPartialSignatureMsg(creatorId=0x%08x, hashPrev=%s, msgSig=%s) : %s",
-        nCreatorId,
-        hashPrevBlock.ToString(),
-        msgSig.ToString(), CCvnPartialSignature::ToString());
+    s << strprintf("%s :: msgSig=%s)",
+        CCvnPartialSignatureUnsinged::ToString(), msgSig.ToString());
     return s.str();
 }
 
@@ -175,6 +141,28 @@ std::string CChainDataMsg::ToString() const
     return s.str();
 }
 
+uint256 CNoncePoolUnsigned::GetHash() const
+{
+    return SerializeHash(*this);
+}
+
+std::string CNoncePoolUnsigned::ToString(const bool fVerbose) const
+{
+    std::stringstream s;
+
+    s << strprintf("CNoncePoolUnsigned(cvnID=0x%08x, size=%u, rootHash=%s, createionTime=%u)\n",
+            nCvnId, vPublicNonces.size(), hashRootBlock.ToString(), nCreationTime);
+
+    if (fVerbose) {
+        BOOST_FOREACH(const CSchnorrNonce &nonce, vPublicNonces) {
+            s << "  " << nonce.ToString() << "\n";
+        }
+        s << "\n";
+    }
+
+    return s.str();
+}
+
 template <unsigned int BYTES>
 poc_storage<BYTES>::poc_storage(const std::vector<unsigned char>& vch)
 {
@@ -213,10 +201,9 @@ std::string poc_storage<BYTES>::ToString() const
 template <unsigned int BYTES>
 void poc_storage<BYTES>::SetHexDER(const std::string& str)
 {
-    vector<unsigned char> vchHex = ParseHex(str);
-    reverse(vchHex.begin(), vchHex.end());
-    memcpy(data, &vchHex.begin()[WIDTH / 2], WIDTH / 2);
-    memcpy(&data[WIDTH / 2], &vchHex.begin()[0], WIDTH / 2);
+    vector<unsigned char> vchHex = ParseHex(&str[2]); // skip the first 0x04
+    reverse_copy(vchHex.begin(), vchHex.begin() + WIDTH / 2, data);
+    reverse_copy(vchHex.begin() + WIDTH / 2, vchHex.end(), &data[WIDTH / 2]);
 }
 
 // Explicit instantiations for poc_storage<32>

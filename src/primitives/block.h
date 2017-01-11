@@ -29,7 +29,7 @@ public:
     static const int32_t     CHAIN_ADMINS_PAYLOAD = 1 << 11;
     static const int32_t      COIN_SUPPLY_PAYLOAD = 1 << 12;
     static const int32_t       ADMIN_PAYLOAD_MASK = CVN_PAYLOAD | CHAIN_PARAMETERS_PAYLOAD | CHAIN_ADMINS_PAYLOAD | COIN_SUPPLY_PAYLOAD;
-    static const int32_t             PAYLOAD_MASK = TX_PAYLOAD | CVN_PAYLOAD | CHAIN_PARAMETERS_PAYLOAD | CHAIN_ADMINS_PAYLOAD | COIN_SUPPLY_PAYLOAD;
+    static const int32_t             PAYLOAD_MASK = TX_PAYLOAD | ADMIN_PAYLOAD_MASK;
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
@@ -40,7 +40,7 @@ public:
     /* contains the CVN IDs of all the currently active CVN that failed
      * to sign the block, ideally empty
      */
-    vector<uint32_t> vMissingCreatorIds;
+    vector<uint32_t> vMissingSignerIds;
 
     CSchnorrSig adminMultiSig;
     /* contains the admin IDs of all the currently active CVN that signed
@@ -64,7 +64,7 @@ public:
         READWRITE(nTime);
         READWRITE(nCreatorId);
         READWRITE(chainMultiSig);
-        READWRITE(vMissingCreatorIds);
+        READWRITE(vMissingSignerIds);
         if (HasAdminPayload()) {
             READWRITE(adminMultiSig);
             READWRITE(vAdminIds);
@@ -79,7 +79,7 @@ public:
         nTime = 0;
         nCreatorId = 0;
         chainMultiSig.SetNull();
-        vMissingCreatorIds.clear();
+        vMissingSignerIds.clear();
         adminMultiSig.SetNull();
         vAdminIds.clear();
     }
@@ -194,7 +194,7 @@ public:
         block.nTime              = nTime;
         block.nCreatorId         = nCreatorId;
         block.chainMultiSig      = chainMultiSig;
-        block.vMissingCreatorIds = vMissingCreatorIds;
+        block.vMissingSignerIds = vMissingSignerIds;
         block.adminMultiSig      = adminMultiSig;
         block.vAdminIds          = vAdminIds;
         return block;

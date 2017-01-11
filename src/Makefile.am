@@ -5,14 +5,6 @@ AM_CXXFLAGS = $(HARDENED_CXXFLAGS)
 AM_CPPFLAGS = $(HARDENED_CPPFLAGS)
 EXTRA_LIBRARIES =
 
-if USE_OPENSC
-OPENSC_LIBS=$(USE_OPENSC)/src/common/libpkcs11.la $(USE_OPENSC)/src/common/libscdl.la
-OPENSC_CFLAGS=-I$(USE_OPENSC)/src
-else
-OPENSC_LIBS=
-OPENSC_CFLAGS=
-endif
-
 BITCOIN_CONFIG_INCLUDES=-I$(builddir)/config
 BITCOIN_INCLUDES=-I$(builddir) -I$(builddir)/obj $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS) $(CRYPTO_CFLAGS) $(SSL_CFLAGS)
 
@@ -22,7 +14,7 @@ BITCOIN_INCLUDES += -I$(srcdir)/univalue/include
 LIBBITCOIN_SERVER=libbitcoin_server.a
 LIBBITCOIN_WALLET=libbitcoin_wallet.a
 LIBBITCOIN_COMMON=libbitcoin_common.a
-LIBBITCOIN_SMARTCARD=libbitcoin_smartcard.a
+LIBBITCOIN_FASITO=libbitcoin_fasito.a
 LIBBITCOIN_CLI=libbitcoin_cli.a
 LIBBITCOIN_UTIL=libbitcoin_util.a
 LIBBITCOIN_CRYPTO=crypto/libbitcoin_crypto.a
@@ -51,8 +43,8 @@ endif
 if ENABLE_ZMQ
 EXTRA_LIBRARIES += libbitcoin_zmq.a
 endif
-if USE_OPENSC
-EXTRA_LIBRARIES += libbitcoin_smartcard.a
+if USE_FASITO
+EXTRA_LIBRARIES += libbitcoin_fasito.a
 endif
 
 if BUILD_BITCOIN_LIBS
@@ -115,7 +107,7 @@ BITCOIN_CORE_H = \
   main.h \
   memusage.h \
   merkleblock.h \
-  miner.h \
+  blockfactory.h \
   net.h \
   netbase.h \
   noui.h \
@@ -172,7 +164,7 @@ BITCOIN_CORE_H = \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
   zmq/zmqpublishnotifier.h \
-  smartcard.h
+  fasito.h
 
 
 obj/build.h: FORCE
@@ -197,7 +189,7 @@ libbitcoin_server_a_SOURCES = \
   dbwrapper.cpp \
   main.cpp \
   merkleblock.cpp \
-  miner.cpp \
+  blockfactory.cpp \
   net.cpp \
   noui.cpp \
   policy/fees.cpp \
@@ -245,10 +237,10 @@ libbitcoin_wallet_a_SOURCES = \
   policy/rbf.cpp \
   $(BITCOIN_CORE_H)
 
-if USE_OPENSC
-libbitcoin_smartcard_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(OPENSC_CFLAGS)
-libbitcoin_smartcard_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libbitcoin_smartcard_a_SOURCES = smartcard.cpp
+if USE_FASITO
+libbitcoin_fasito_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+libbitcoin_fasito_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libbitcoin_fasito_a_SOURCES = fasito.cpp
 endif
 
 # crypto primitives library
@@ -364,8 +356,8 @@ if ENABLE_WALLET
 faircoind_LDADD += libbitcoin_wallet.a
 endif
 
-if USE_OPENSC
-faircoind_LDADD += libbitcoin_smartcard.a $(OPENSC_LIBS)
+if USE_FASITO
+faircoind_LDADD += libbitcoin_fasito.a
 endif
 
 faircoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS)

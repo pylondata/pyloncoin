@@ -219,12 +219,11 @@ extern const char *REJECT;
  */
 extern const char *SENDHEADERS;
 /**
- * The CVN signature message transmits a single serialised CVN signature,
- * hashPrev and nCreatorId.
+ * The CVN noncepool message transmits a single serialised CVN public nonce pool
  */
-extern const char *PUBNONCE;
+extern const char *NONCEPOOL;
 /**
- * The CVN pub nonce message transmits a single serialised CVN public nonce,
+ * The CVN signature message transmits a single serialised CVN signature,
  * hashPrev and nCreatorId.
  */
 extern const char *SIG;
@@ -245,9 +244,9 @@ extern const char *CHAINDATA;
  */
 extern const char *GETNONCES;
 /**
- * The nonceslist sends the complete cvn nonces list for the given Tip()
+ * The noncepools sends a list of all known cvn nonces pools
  */
-extern const char *NONCESLIST;
+extern const char *NONCEPOOLS;
 };
 
 /* Get a vector of all valid message types (see above) */
@@ -345,7 +344,7 @@ enum {
     // Nodes may always request a MSG_FILTERED_BLOCK in a getdata, however,
     // MSG_FILTERED_BLOCK should not appear in any invs except as a part of getdata.
     MSG_FILTERED_BLOCK,
-    MSG_CVN_PUB_NONCE,
+    MSG_CVN_PUB_NONCE_POOL,
     MSG_CVN_SIGNATURE,
     MSG_POC_CHAIN_DATA,
 };

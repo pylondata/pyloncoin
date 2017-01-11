@@ -294,6 +294,7 @@ static const CRPCCommand vRPCCommands[] =
     { "cvn",                "removecvn",              &removecvn,              false },
     { "cvn",                "signchaindata",          &signchaindata,          true  },
     { "cvn",                "getcvninfo",             &getcvninfo,             true  },
+    { "cvn",                "bancvn",                 &bancvn,                 true  },
     { "cvn",                "getchainparameters",     &getchainparameters,     true  },
     { "cvn",                "getactivecvns",          &getactivecvns,          true  },
     { "cvn",                "submitblock",            &submitblock,            true  },

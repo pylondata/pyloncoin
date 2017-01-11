@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The FairCoin Core developers
+// Copyright (c) 2017 The FairCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,9 +7,9 @@
 
 #include "primitives/block.h"
 
-X509* InitCVNWithSmartCard();
-bool CvnSignWithSmartCard(const uint256& hashUnsignedBlock, CCvnPartialSignature& signature, const CCvnInfo& cvnInfo);
+X509* InitCVNWithFasito();
+bool CvnSignWithFasito(const uint256& hashUnsignedBlock, CCvnPartialSignatureUnsinged& signature, const CCvnInfo& cvnInfo);
 
-extern bool fSmartCardUnlocked;
+extern bool fFasitoUnlocked;
 
 #endif // BITCOIN_SMARTCARD_H

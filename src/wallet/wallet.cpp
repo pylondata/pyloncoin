@@ -2887,7 +2887,7 @@ void CWallet::UpdatedTransaction(const uint256 &hashTx)
     }
 }
 
-void CWallet::GetScriptForMining(CReserveScript **script)
+void CWallet::GetFeeScript(CReserveScript &script)
 {
     CReserveKey *rKey = new CReserveKey(this);
     CPubKey pubkey;
@@ -2896,8 +2896,7 @@ void CWallet::GetScriptForMining(CReserveScript **script)
         return;
     }
 
-    *script = rKey;
-    (*script)->reserveScript = GetScriptForDestination(pubkey.GetID());
+    script.reserveScript = GetScriptForDestination(pubkey.GetID());
 }
 
 void CWallet::LockCoin(COutPoint& output)

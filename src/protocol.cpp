@@ -35,13 +35,13 @@ const char *FILTERADD="filteradd";
 const char *FILTERCLEAR="filterclear";
 const char *REJECT="reject";
 const char *SENDHEADERS="sendheaders";
-const char *PUBNONCE="pubnonce";
+const char *NONCEPOOL="noncepool";
 const char *SIG="sig";
 const char *GETSIGLIST="getsiglist";
 const char *SIGLIST="siglist";
 const char *CHAINDATA="chaindata";
 const char *GETNONCES="getnonces";
-const char *NONCESLIST="nonceslist";
+const char *NONCEPOOLS="noncepools";
 };
 
 static const char* ppszTypeName[] =
@@ -50,7 +50,7 @@ static const char* ppszTypeName[] =
     NetMsgType::TX,
     NetMsgType::BLOCK,
     "filtered block", // Should never occur
-    NetMsgType::PUBNONCE,
+    NetMsgType::NONCEPOOL,
     NetMsgType::SIG,
     NetMsgType::CHAINDATA
 };
@@ -81,13 +81,13 @@ const static std::string allNetMessageTypes[] = {
     NetMsgType::FILTERCLEAR,
     NetMsgType::REJECT,
     NetMsgType::SENDHEADERS,
-    NetMsgType::PUBNONCE,
+    NetMsgType::NONCEPOOL,
     NetMsgType::SIG,
     NetMsgType::GETSIGLIST,
     NetMsgType::SIGLIST,
     NetMsgType::CHAINDATA,
     NetMsgType::GETNONCES,
-    NetMsgType::NONCESLIST,
+    NetMsgType::NONCEPOOLS,
 };
 const static std::vector<std::string> allNetMessageTypesVec(allNetMessageTypes, allNetMessageTypes+ARRAYLEN(allNetMessageTypes));
 

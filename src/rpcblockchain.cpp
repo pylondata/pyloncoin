@@ -80,11 +80,19 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const u
 
     ///////// MISSING CHAIN SIGNERS
     UniValue missingSigners(UniValue::VARR);
-    BOOST_FOREACH(const uint32_t& signerId, block.vMissingCreatorIds)
+    BOOST_FOREACH(const uint32_t& signerId, block.vMissingSignerIds)
     {
         missingSigners.push_back(strprintf("0x%08x", signerId));
     }
     result.push_back(Pair("missingCreatorIds", missingSigners));
+
+    ///////// ADMIN SIGNERS
+    UniValue adminSigners(UniValue::VARR);
+    BOOST_FOREACH(const uint32_t& signerId, block.vAdminIds)
+    {
+        adminSigners.push_back(strprintf("0x%08x", signerId));
+    }
+    result.push_back(Pair("adminSignerIds", adminSigners));
 
     ///////// TRANSACTIONS
     UniValue txs(UniValue::VARR);

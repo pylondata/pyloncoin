@@ -125,11 +125,19 @@ public:
     CSchnorrPubKey(const poc_storage<64>& b) : poc_storage<64>(b) {}
     CSchnorrPubKey(const unsigned char *pch) : poc_storage<64>(pch) {}
     explicit CSchnorrPubKey(const std::vector<unsigned char>& vch) : poc_storage<64>(vch) {}
-    uint160 GetHash160() const
+
+    void GetPubKeyDER(vector<unsigned char> &vPubKey) const
+    {
+        vPubKey.resize(65);
+        vPubKey[0] = 0x04;
+        reverse_copy(data, data + 32, vPubKey.begin() + 1);
+        reverse_copy(&data[32], data + WIDTH, vPubKey.begin() + 33);
+    }
+
+    uint160 GetHash160()
     {
         vector<unsigned char> vData;
-        vData.insert(vData.begin(), 0x04);
-        vData.insert(vData.begin(), data, data + WIDTH); // TODO: reverse data and &data[32]
+        GetPubKeyDER(vData);
         return Hash160(vData);
     }
 };
@@ -162,31 +170,45 @@ public:
     explicit CSchnorrPrivNonce(const std::vector<unsigned char>& vch) : poc_storage<32>(vch) {}
 };
 
-class CCvnPubNonce
+/** CVNs send this signature to the creator of the next block
+ * to proof consensus about the block.
+ */
+class CCvnPartialSignatureUnsinged
 {
 public:
-    static const int32_t CURRENT_VERSION = 1;
+    static const int32_t CURRENT_VERSION=1;
     int32_t nVersion;
     uint32_t nSignerId;
-    CSchnorrNonce pubNonce;
+    uint32_t nCreatorId; // the CVN node ID of the creator of the next block
+    uint256 hashPrevBlock;
+    CSchnorrSig signature;
 
-    CCvnPubNonce()
+    // contains the CVN IDs that did not co-sign (usually all in IDs in mapCVNs should sign)
+    vector<uint32_t> vMissingSignerIds;
+
+    CCvnPartialSignatureUnsinged()
     {
         SetNull();
     }
 
-    CCvnPubNonce(const uint32_t nSignerId, const int32_t nVersion = CCvnPubNonce::CURRENT_VERSION)
+    CCvnPartialSignatureUnsinged(const CCvnPartialSignatureUnsinged &sig)
     {
-        this->nVersion  = nVersion;
-        this->nSignerId = nSignerId;
-        this->pubNonce.SetNull();
+        this->nVersion          = sig.nVersion;
+        this->nSignerId         = sig.nSignerId;
+        this->nCreatorId        = sig.nCreatorId;
+        this->hashPrevBlock     = sig.hashPrevBlock;
+        this->signature         = sig.signature;
+        this->vMissingSignerIds = sig.vMissingSignerIds;
     }
 
-    CCvnPubNonce(const uint32_t nSignerId, const CSchnorrNonce& pubNonce, const int32_t nVersion = CCvnPubNonce::CURRENT_VERSION)
+    CCvnPartialSignatureUnsinged(const uint32_t nSignerId, const uint32_t nCreatorId, const uint256 hashPrevBlock, const vector<uint32_t> vMissingSignerIds, const int32_t nVersion = CCvnPartialSignatureUnsinged::CURRENT_VERSION)
     {
-        this->nVersion  = nVersion;
-        this->nSignerId = nSignerId;
-        this->pubNonce  = pubNonce;
+        this->nVersion          = nVersion;
+        this->nSignerId         = nSignerId;
+        this->nCreatorId        = nCreatorId;
+        this->hashPrevBlock     = hashPrevBlock;
+        this->signature.SetNull();
+        this->vMissingSignerIds = vMissingSignerIds;
     }
 
     ADD_SERIALIZE_METHODS;
@@ -196,61 +218,20 @@ public:
         READWRITE(this->nVersion);
         nVersion = this->nVersion;
         READWRITE(nSignerId);
-        READWRITE(pubNonce);
-    }
-
-    void SetNull()
-    {
-        nVersion = CCvnPubNonce::CURRENT_VERSION;
-        nSignerId = 0;
-        this->pubNonce.SetNull();
-    }
-
-    string ToString() const;
-};
-
-class CCvnPubNonceMsg : public CCvnPubNonce
-{
-public:
-    uint256 hashPrevBlock;
-    uint32_t nCreatorId; // the CVN ID of the creator of the next block
-    CSchnorrSig msgSig;
-
-    CCvnPubNonceMsg()
-    {
-        SetNull();
-    }
-
-    CCvnPubNonceMsg(const CCvnPubNonce nonce, const uint256 hashPrevBlock, const uint32_t nCreatorId)
-        : CCvnPubNonce(nonce.nSignerId, nonce.pubNonce, nonce.nVersion)
-    {
-        this->hashPrevBlock = hashPrevBlock;
-        this->nCreatorId    = nCreatorId;
-        this->msgSig.SetNull();
-    }
-
-    void SetNull()
-    {
-        CCvnPubNonce::SetNull();
-        hashPrevBlock.SetNull();
-        nCreatorId = 0;
-        this->msgSig.SetNull();
-    }
-
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
-        READWRITE(*(CCvnPubNonce*)this);
-        READWRITE(hashPrevBlock);
         READWRITE(nCreatorId);
-        READWRITE(msgSig);
+        READWRITE(hashPrevBlock);
+        READWRITE(signature);
+        READWRITE(vMissingSignerIds);
     }
 
-    CCvnPubNonce GetPubNonce() const
+    void SetNull()
     {
-        CCvnPubNonce nonce(nSignerId, pubNonce, nVersion);
-        return nonce;
+        nVersion   = CCvnPartialSignatureUnsinged::CURRENT_VERSION;
+        nSignerId  = 0;
+        nCreatorId = 0;
+        hashPrevBlock.SetNull();
+        signature.SetNull();
+        vMissingSignerIds.clear();
     }
 
     uint256 GetHash() const;
@@ -258,87 +239,25 @@ public:
     string ToString() const;
 };
 
-
-/** CVNs send this signature to the creator of the next block
- * to proof consensus about the block.
- */
-class CCvnPartialSignature
+class CCvnPartialSignature : public CCvnPartialSignatureUnsinged
 {
 public:
-    static const int32_t CURRENT_VERSION=1;
-    int32_t nVersion;
-    uint32_t nSignerId;
-    CSchnorrSig signature;
-    vector<uint32_t> vMissingPubNonces; // contains the CVN IDs of those that we didn't receive pubnonces from
+    CSchnorrSig msgSig;
 
     CCvnPartialSignature()
     {
         SetNull();
     }
 
-    CCvnPartialSignature(const uint32_t nSignerId, const vector<uint32_t> vMissingPubNonces, const int32_t nVersion = CCvnPartialSignature::CURRENT_VERSION)
+    CCvnPartialSignature(const CCvnPartialSignatureUnsinged& signature)
+        : CCvnPartialSignatureUnsinged(signature)
     {
-        this->nVersion          = nVersion;
-        this->nSignerId         = nSignerId;
-        this->signature.SetNull();
-        this->vMissingPubNonces = vMissingPubNonces;
-    }
-
-    CCvnPartialSignature(const uint32_t nSignerId, const vector<uint32_t> vMissingPubNonces, const CSchnorrSig& signature, const int32_t nVersion = CCvnPartialSignature::CURRENT_VERSION)
-    {
-        this->nVersion          = nVersion;
-        this->nSignerId         = nSignerId;
-        this->signature         = signature;
-        this->vMissingPubNonces = vMissingPubNonces;
-    }
-
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
-        READWRITE(this->nVersion);
-        nVersion = this->nVersion;
-        READWRITE(nSignerId);
-        READWRITE(signature);
-        READWRITE(vMissingPubNonces);
-    }
-
-    void SetNull()
-    {
-        nVersion = CCvnPartialSignature::CURRENT_VERSION;
-        nSignerId = 0;
-        signature.SetNull();
-        vMissingPubNonces.clear();
-    }
-
-    string ToString() const;
-};
-
-class CCvnPartialSignatureMsg : public CCvnPartialSignature
-{
-public:
-    uint256 hashPrevBlock;
-    uint32_t nCreatorId; // the CVN node ID of the creator of the next block
-    CSchnorrSig msgSig;
-
-    CCvnPartialSignatureMsg()
-    {
-        SetNull();
-    }
-
-    CCvnPartialSignatureMsg(const CCvnPartialSignature& signature, const uint256& hashPrevBlock, const uint32_t nCreatorId)
-        : CCvnPartialSignature(signature.nSignerId, signature.vMissingPubNonces, signature.signature, signature.nVersion)
-    {
-        this->hashPrevBlock = hashPrevBlock;
-        this->nCreatorId    = nCreatorId;
         this->msgSig.SetNull();
     }
 
     void SetNull()
     {
-        CCvnPartialSignature::SetNull();
-        hashPrevBlock.SetNull();
-        nCreatorId = 0;
+        CCvnPartialSignatureUnsinged::SetNull();
         this->msgSig.SetNull();
     }
 
@@ -346,19 +265,9 @@ public:
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
-        READWRITE(*(CCvnPartialSignature*)this);
-        READWRITE(hashPrevBlock);
-        READWRITE(nCreatorId);
+        READWRITE(*(CCvnPartialSignatureUnsinged*)this);
         READWRITE(msgSig);
     }
-
-    CCvnPartialSignature GetCvnSignature() const
-    {
-        CCvnPartialSignature sig(nSignerId, vMissingPubNonces, signature, nVersion);
-        return sig;
-    }
-
-    uint256 GetHash() const;
 
     string ToString() const;
 };
@@ -640,6 +549,82 @@ public:
     bool HasCoinSupplyPayload() const
     {
         return (nPayload & COIN_SUPPLY_PAYLOAD);
+    }
+};
+
+class CNoncePoolUnsigned
+{
+public:
+    uint32_t nCvnId;
+    uint256  hashRootBlock;
+    vector<CSchnorrNonce> vPublicNonces;
+    uint32_t nCreationTime;
+
+    CNoncePoolUnsigned()
+    {
+        SetNull();
+    }
+
+    CNoncePoolUnsigned(const uint32_t nCvnId, const uint16_t nSize, const uint256 hashRootBlock, const uint32_t nCreationTime)
+    {
+        this->nCvnId        = nCvnId;
+        this->hashRootBlock = hashRootBlock;
+        this->nCreationTime = nCreationTime;
+        vPublicNonces.clear();
+    }
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(nCvnId);
+        READWRITE(hashRootBlock);
+        READWRITE(nCreationTime);
+        READWRITE(vPublicNonces);
+    }
+
+    void SetNull()
+    {
+        nCvnId        = 0;
+        nCreationTime = 0;
+        hashRootBlock.SetNull();
+        vPublicNonces.clear();
+    }
+
+    uint256 GetHash() const;
+    string ToString(const bool fVerbose = false) const;
+};
+
+class CNoncePool : public CNoncePoolUnsigned
+{
+public:
+    CSchnorrSig msgSig;
+    uint32_t    nHeightAdded; // memory only
+
+    CNoncePool()
+    {
+        SetNull();
+    }
+
+    CNoncePool(CNoncePoolUnsigned &pool, CSchnorrSig &msgSig) : CNoncePoolUnsigned(pool)
+    {
+        this->msgSig = msgSig;
+        nHeightAdded = 0;
+    }
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(*(CNoncePoolUnsigned*)this);
+        READWRITE(msgSig);
+    }
+
+    void SetNull()
+    {
+        CNoncePoolUnsigned::SetNull();
+        msgSig.SetNull();
+        nHeightAdded = 0;
     }
 };
 

@@ -20,7 +20,7 @@
 #include "httprpc.h"
 #include "key.h"
 #include "main.h"
-#include "miner.h"
+#include "blockfactory.h"
 #include "net.h"
 #include "policy/policy.h"
 #include "rpcserver.h"
@@ -65,8 +65,8 @@
 #include "zmq/zmqnotificationinterface.h"
 #endif
 
-#ifdef USE_OPENSC
-#include "smartcard.h"
+#ifdef USE_FASITO
+#include "fasito.h"
 #endif
 
 using namespace std;
@@ -202,8 +202,7 @@ void Shutdown()
     if (pwalletMain)
         pwalletMain->Flush(false);
 #endif
-    RunCertifiedValidationNode(false, Params(), 0);
-    RunCVNSignerThread(false, Params(), 0);
+    RunPOCThread(false, Params(), 0);
     StopNode();
     StopTorControl();
     UnregisterNodeSignals(GetNodeSignals());
@@ -1133,10 +1132,10 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     if (mapArgs.count("-admin")) {
         X509 *x509ADMINCertificate = NULL;
         if (GetArg("-admin", "") == "fasito") {
-#ifdef USE_OPENSC
+#ifdef USE_FASITO
             LogPrintf("Initializing fasito\n");
             uiInterface.InitMessage(_("Initializing fasito..."));
-            x509ADMINCertificate = InitChainAdminWithSmartCard();
+            x509ADMINCertificate = InitChainAdminWithFasito();
 #else
             LogPrintf("ERROR: invalid parameter -cvn=fasito. This wallet version was not compiled with fasito support\n");
 #endif
@@ -1159,10 +1158,10 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     if (mapArgs.count("-cvn")) {
         X509 *x509CVNCertificate = NULL;
         if (GetArg("-cvn", "") == "fasito") {
-#ifdef USE_OPENSC
+#ifdef USE_FASITO
             LogPrintf("Initializing fasito\n");
             uiInterface.InitMessage(_("Initializing fasito..."));
-            x509CVNCertificate = InitCVNWithSmartCard();
+            x509CVNCertificate = InitCVNWithFasito();
 #else
             LogPrintf("ERROR: invalid parameter -cvn=fasito. This wallet version was not compiled with fasito support\n");
 #endif
@@ -1197,7 +1196,8 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
         }
 
         CCvnPartialSignature chainSig;
-        CvnSignPartial(genesis.hashPrevBlock, chainSig, GENESIS_NODE_ID, GENESIS_NODE_ID);
+        vector<uint32_t> vMissingSignatures;
+        CvnSignPartial(genesis.hashPrevBlock, chainSig, GENESIS_NODE_ID, GENESIS_NODE_ID, vMissingSignatures);
         LogPrintf("Genesis chain signature       : %s\n", chainSig.signature.ToString());
 
         CvnSignBlock(genesis);
@@ -1753,8 +1753,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     StartNode(threadGroup, scheduler);
 
     // Start up a CVN (generate blocks)
-    RunCertifiedValidationNode(GetBoolArg("-gen", DEFAULT_GENERATE), chainparams, nCvnNodeId);
-    RunCVNSignerThread(GetBoolArg("-gen", DEFAULT_GENERATE), chainparams, nCvnNodeId);
+    RunPOCThread(GetBoolArg("-gen", DEFAULT_GENERATE), chainparams, nCvnNodeId);
 
     // ********************************************************* Step 12: finished
 

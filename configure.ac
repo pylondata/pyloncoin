@@ -84,10 +84,10 @@ AC_ARG_ENABLE([coinsupply],
   [enable_coinsupply=$enableval],
   [enable_coinsupply=no])
 
-AC_ARG_WITH([opensc],
-  [AS_HELP_STRING([--with-opensc], [enable use of OpenSC (default is no)])],
-  [use_opensc=$withval],
-  [use_opensc=no])
+AC_ARG_WITH([fasito],
+  [AS_HELP_STRING([--with-fasito], [enable use of Fasito (FairCoin signature token) - (default is yes)])],
+  [use_fasito=$withval],
+  [use_fasito=yes])
 
 AC_ARG_WITH([miniupnpc],
   [AS_HELP_STRING([--with-miniupnpc],
@@ -567,11 +567,6 @@ if test x$use_upnp != xno; then
   )
 fi
 
-dnl Check for OpenSC (optional)
-if test x$use_opensc != xno; then
-  AC_CHECK_HEADER($use_opensc/src/pkcs11/pkcs11.h,,[use_opensc=no])
-fi
-
 BITCOIN_QT_INIT
 
 dnl sets $bitcoin_enable_qt, $bitcoin_enable_qt_test, $bitcoin_enable_qt_dbus
@@ -872,11 +867,11 @@ else
   fi
 fi
 
-dnl enable OpenSC
-AC_MSG_CHECKING([whether to build with OpenSC])
-if test x$use_opensc != xno; then
-  AC_MSG_RESULT(yes ($use_opensc))
-  AC_DEFINE_UNQUOTED([USE_OPENSC],[$use_opensc],[OpenSC support])
+dnl enable Fasito
+AC_MSG_CHECKING([whether to build with Fasito support])
+if test x$use_fasito != xno; then
+  AC_MSG_RESULT(yes ($use_fasito))
+  AC_DEFINE_UNQUOTED([USE_FASITO],[$use_fasito],[Fasito support])
 else
   AC_MSG_RESULT(no)
 fi
@@ -952,14 +947,14 @@ AM_CONDITIONAL([ENABLE_QT],[test x$bitcoin_enable_qt = xyes])
 AM_CONDITIONAL([ENABLE_QT_TESTS],[test x$use_tests$bitcoin_enable_qt_test = xyesyes])
 AM_CONDITIONAL([ENABLE_BENCH],[test x$use_bench = xyes])
 AM_CONDITIONAL([USE_QRCODE], [test x$use_qr = xyes])
-AM_CONDITIONAL([USE_OPENSC], [test x$use_opensc != xno])
+AM_CONDITIONAL([USE_FASITO], [test x$use_fasito != xno])
 AM_CONDITIONAL([USE_LCOV],[test x$use_lcov = xyes])
 AM_CONDITIONAL([USE_COMPARISON_TOOL],[test x$use_comparison_tool != xno])
 AM_CONDITIONAL([USE_COMPARISON_TOOL_REORG_TESTS],[test x$use_comparison_tool_reorg_test != xno])
 AM_CONDITIONAL([GLIBC_BACK_COMPAT],[test x$use_glibc_compat = xyes])
 AM_CONDITIONAL([HARDEN],[test x$use_hardening = xyes])
 
-AC_SUBST(USE_OPENSC,$use_opensc)
+AC_SUBST(USE_FASITO,$use_fasito)
 
 AC_DEFINE(CLIENT_VERSION_MAJOR, _CLIENT_VERSION_MAJOR, [Major version])
 AC_DEFINE(CLIENT_VERSION_MINOR, _CLIENT_VERSION_MINOR, [Minor version])

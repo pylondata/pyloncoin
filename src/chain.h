@@ -192,7 +192,7 @@ public:
         nTime              = block.nTime;
         nCreatorId         = block.nCreatorId;
         chainMultiSig      = block.chainMultiSig;
-        vMissingCreatorIds = block.vMissingCreatorIds;
+        vMissingCreatorIds = block.vMissingSignerIds;
         adminMultiSig      = block.adminMultiSig;
         vAdminIds          = block.vAdminIds;
     }
@@ -225,7 +225,7 @@ public:
         block.nTime              = nTime;
         block.nCreatorId         = nCreatorId;
         block.chainMultiSig      = chainMultiSig;
-        block.vMissingCreatorIds = vMissingCreatorIds;
+        block.vMissingSignerIds = vMissingCreatorIds;
         if (nVersion & CBlock::ADMIN_PAYLOAD_MASK) {
             block.adminMultiSig      = adminMultiSig;
             block.vAdminIds          = vAdminIds;
@@ -365,7 +365,7 @@ public:
         block.hashMerkleRoot     = hashMerkleRoot;
         block.nTime              = nTime;
         block.nCreatorId         = nCreatorId;
-        block.vMissingCreatorIds = vMissingCreatorIds;
+        block.vMissingSignerIds = vMissingCreatorIds;
         block.chainMultiSig      = chainMultiSig;
         if (this->nVersion & CBlock::ADMIN_PAYLOAD_MASK) {
             block.vAdminIds          = vAdminIds;

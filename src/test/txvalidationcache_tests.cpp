@@ -5,7 +5,6 @@
 #include "consensus/validation.h"
 #include "key.h"
 #include "main.h"
-#include "miner.h"
 #include "pubkey.h"
 #include "txmempool.h"
 #include "random.h"
@@ -14,6 +13,7 @@
 #include "utiltime.h"
 
 #include <boost/test/unit_test.hpp>
+#include "../blockfactory.h"
 
 BOOST_AUTO_TEST_SUITE(tx_validationcache_tests)
 

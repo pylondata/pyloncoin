@@ -189,9 +189,9 @@ bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchS
 }
 
 /* static */ bool CPubKey::VerifySchnorr(const uint256 &hash, const CSchnorrSig& schnorrSig, const std::vector<unsigned char>& vchPubKey) {
-	secp256k1_pubkey pubKey;
+    secp256k1_pubkey pubKey;
 
-	if (!secp256k1_ec_pubkey_parse(secp256k1_context_verify, &pubKey, &vchPubKey[0], vchPubKey.size()))
+    if (!secp256k1_ec_pubkey_parse(secp256k1_context_verify, &pubKey, &vchPubKey[0], vchPubKey.size()))
         return false;
 
     return secp256k1_schnorr_verify(secp256k1_context_verify, &schnorrSig.begin()[0], hash.begin(), &pubKey);

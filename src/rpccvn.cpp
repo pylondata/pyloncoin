@@ -2,13 +2,13 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <blockfactory.h>
 #include "base58.h"
 #include "rpcserver.h"
 #include "util.h"
 #include "main.h"
 #include "utilstrencodings.h"
 #include "poc.h"
-#include "miner.h"
 #include "cvn.h"
 #include "core_io.h"
 #include "timedata.h"
@@ -174,8 +174,7 @@ UniValue setgenerate(const UniValue& params, bool fHelp)
         fGenerate = params[0].get_bool();
 
     mapArgs["-gen"] = (fGenerate ? "1" : "0");
-    RunCertifiedValidationNode(fGenerate, Params(), nCvnNodeId);
-    RunCVNSignerThread(fGenerate, Params(), nCvnNodeId);
+    RunPOCThread(fGenerate, Params(), nCvnNodeId);
 
     return NullUniValue;
 }
@@ -231,7 +230,7 @@ UniValue addcvn(const UniValue& params, bool fHelp)
     msg.hashPrevBlock = chainActive.Tip()->GetBlockHash();
 
     if (vPubKey.size() == 65) {
-    	pubKey = CSchnorrPubKeyDER(params[2].get_str());
+        pubKey = CSchnorrPubKeyDER(params[2].get_str());
         if (fAddCvn)
             AddCvnInfoToMsg(msg, nNodeId, chainActive.Tip()->nHeight + 1, pubKey);
         else
@@ -283,7 +282,7 @@ UniValue addcvn(const UniValue& params, bool fHelp)
 
 UniValue removecvn(const UniValue& params, bool fHelp)
 {
-    if (fHelp || params.size() != 3)
+    if (fHelp || params.size() < 3 || params.size() > 4)
         throw runtime_error(
             "removecvn \"Id\" \"timestamp\" [\"n:sigs\",...]\n"
             "\nRemove a CVN from the FairCoin network\n"
@@ -301,6 +300,9 @@ UniValue removecvn(const UniValue& params, bool fHelp)
             "\nRemove a CVN\n"
             + HelpExampleCli("removecvn", "c 0x123488 [\"0x87654321:a1b5..9093\",\"0x3453:0432..12aa\"]")
         );
+
+    if (IsInitialBlockDownload())
+        return "wait for block chain download to finish";
 
     LOCK(cs_main);
 
@@ -347,15 +349,14 @@ UniValue removecvn(const UniValue& params, bool fHelp)
         }
     }
 
-    if (IsInitialBlockDownload())
-        return "wait for block chain download to finish";
-
     // if no signatures are supplied we print out the CChainDataMsg's hash to sign
-    if (adminIds.empty())
+    if (params[3].isNull())
         return msg.GetHash().ToString();
 
-    AddAdminSignatures(msg, adminIds, params[3].get_str());
-    LogPrintf("about remove %s 0x%08x from the network\n", fRemoveCvn ? "CVN" : "Admin", nNodeId);;
+    if (!AddAdminSignatures(msg, adminIds, params[3].get_str()))
+        return "error in signatures";
+
+    LogPrintf("about remove %s 0x%08x from the network\n", fRemoveCvn ? "CVN" : "Admin", nNodeId);
 
     if (AddChainData(msg)) {
         RelayChainData(msg);
@@ -384,7 +385,7 @@ UniValue signchaindata(const UniValue& params, bool fHelp)
     LOCK(cs_main);
 
     if (!mapArgs.count("-admin") || !nChainAdminId || !adminPrivKey.IsValid())
-    	return "ERROR: wallet not configured for chain administration";
+        return "ERROR: wallet not configured for chain administration";
 
     uint256 hashChainData = uint256S(params[0].get_str());
 
@@ -421,7 +422,7 @@ UniValue getcvninfo(const UniValue& params, bool fHelp)
              "}\n"
             "\nExamples:\n"
             "\nDisplay CVN state\n"
-            + HelpExampleCli("getcvninfo","")
+            + HelpExampleCli("getcvninfo", "0x12345678")
         );
 
     uint32_t nNodeId = nCvnNodeId;
@@ -433,6 +434,38 @@ UniValue getcvninfo(const UniValue& params, bool fHelp)
     }
 
     return "to be implemented";
+}
+
+UniValue bancvn(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() > 1)
+        throw runtime_error(
+            "bancvn\n"
+            "\nBan a malicious CVN\n"
+            "\nArguments:\n"
+            "1. \"cvnId\"   (string, optional) The ID (in hex) of the CVN to ban\n"
+            "\nResult:\n"
+            "OK   : the CVN was successfully banned\n"
+            "ERROR: the supplied CVN ID was unknown\n"
+            "\nExamples:\n"
+            "\nBan CVN\n"
+            + HelpExampleCli("bancvn", "0x12345678")
+        );
+
+    uint32_t nNodeId = nCvnNodeId;
+
+    if (params.size() == 1) {
+        stringstream ss;
+        ss << hex << params[1].get_str();
+        ss >> nNodeId;
+    }
+
+    if (!mapCVNs.count(nNodeId))
+        return "ERROR";
+
+    mapBannedCVNs[nNodeId] = chainActive.Tip()->nHeight;
+
+    return "OK";
 }
 
 UniValue getactivecvns(const UniValue& params, bool fHelp)

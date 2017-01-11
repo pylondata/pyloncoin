@@ -369,6 +369,36 @@ static bool rest_getcvninfo(HTTPRequest* req, const std::string& strURIPart)
     return true; // continue to process further HTTP reqs on this cxn
 }
 
+static bool rest_bancvn(HTTPRequest* req, const std::string& strURIPart)
+{
+    if (!CheckWarmup(req))
+        return false;
+    std::string param;
+    const RetFormat rf = ParseDataFormat(param, strURIPart);
+
+    uint32_t nNode;
+    if (!ParseHexStr(param, nNode))
+        return RESTERR(req, HTTP_BAD_REQUEST, "Invalid cvn ID: " + param);
+
+    switch (rf) {
+    case RF_JSON: {
+        UniValue rpcParams(UniValue::VOBJ);
+        rpcParams.push_back(param);
+        UniValue cvnInfoObject = bancvn(rpcParams, false);
+        string str = cvnInfoObject.getValStr() + "\n";
+        req->WriteHeader("Content-Type", "text/plain");
+        req->WriteReply(HTTP_OK, str);
+        return true;
+    }
+    default: {
+        return RESTERR(req, HTTP_NOT_FOUND, "output format not found (available: json)");
+    }
+    }
+
+    // not reached
+    return true; // continue to process further HTTP reqs on this cxn
+}
+
 static bool rest_getactivecvns(HTTPRequest* req, const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
@@ -707,6 +737,7 @@ static const struct {
       {"/rest/headers/", rest_headers},
       {"/rest/getutxos", rest_getutxos},
       {"/rest/cvninfo/", rest_getcvninfo},
+      {"/rest/bancvn/", rest_bancvn},
       {"/rest/activecvns", rest_getactivecvns},
 };
 

@@ -3,8 +3,6 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "miner.h"
-
 #include "amount.h"
 #include "chain.h"
 #include "chainparams.h"
@@ -23,17 +21,17 @@
 #include "txmempool.h"
 #include "util.h"
 #include "utilmoneystr.h"
-#include "validationinterface.h"
 #include "key.h"
 #include "keystore.h"
 #include "init.h"
 #include "wallet/wallet.h"
 #include "base58.h"
+#include "blockfactory.h"
 #include "poc.h"
 #include "cvn.h"
 
-#ifdef USE_OPENSC
-#include "smartcard.h"
+#ifdef USE_FASITO
+#include "fasito.h"
 #endif
 
 #include <secp256k1.h>
@@ -71,13 +69,13 @@ public:
     }
 };
 
-static void PopulateBlock(const CChainParams& chainparams, CBlockTemplate& blocktemplate)
+static void PopulateBlock(CBlockTemplate& blocktemplate)
 {
     CBlock *pblock = &blocktemplate.block; // pointer for convenience
 
     // -regtest only: allow overriding block.nVersion with
     // -blockversion=N to test forking scenarios
-    if (chainparams.MineBlocksOnDemand())
+    if (blocktemplate.chainparams.MineBlocksOnDemand())
         pblock->nVersion = GetArg("-blockversion", pblock->nVersion);
 
     // Set block type TX_BLOCK
@@ -88,7 +86,7 @@ static void PopulateBlock(const CChainParams& chainparams, CBlockTemplate& block
     txNew.vin.resize(1);
     txNew.vin[0].prevout.SetNull();
     txNew.vout.resize(1);
-    txNew.vout[0].scriptPubKey = blocktemplate.coinbaseScript->reserveScript;
+    txNew.vout[0].scriptPubKey = blocktemplate.feeScript.reserveScript;
 
     // Add dummy coinbase tx as first transaction
     pblock->vtx.push_back(CTransaction());
@@ -275,7 +273,7 @@ static void PopulateBlock(const CChainParams& chainparams, CBlockTemplate& block
         LogPrintf("PopulateBlock(): total size %u txs: %u fees: %ld sigops %d\n", nBlockSize, nBlockTx, nFees, nBlockSigOps);
 
         // Compute final coinbase transaction.
-        txNew.vout[0].nValue = nFees + (pindexPrev->GetBlockHash() == chainparams.GetConsensus().hashGenesisBlock ? MAX_MONEY : 0);
+        txNew.vout[0].nValue = nFees + (pindexPrev->GetBlockHash() == blocktemplate.chainparams.GetConsensus().hashGenesisBlock ? MAX_MONEY : 0);
         txNew.vin[0].scriptSig = CScript() << nHeight << OP_0;
 
         blocktemplate.vTxFees[0] = -nFees;
@@ -307,7 +305,7 @@ static void UpdateCoinbase(CBlock* pblock, const CBlockIndex* pindexPrev, const 
 
 static bool ProcessCVNBlock(const CBlock* pblock, const CChainParams& chainparams)
 {
-    LogPrintf("%s\n", pblock->ToString());
+    LogPrintf("%s", pblock->ToString());
     LogPrintf("fees collected: %s\n", FormatMoney(pblock->vtx[0].vout[0].nValue));
 
     {
@@ -336,6 +334,21 @@ static bool AddChainDataToBlock(CBlock *pblock, const CChainDataMsg& msg)
         return false;
     }
 
+    if (msg.hashPrevBlock != pblock->hashPrevBlock) {
+        LogPrintf("ERROR: chain data for different tip: %s != %s\n", msg.hashPrevBlock.ToString(), pblock->hashPrevBlock.ToString());
+        return false;
+    }
+
+    pblock->vAdminIds     = msg.vAdminIds;
+    pblock->adminMultiSig = msg.adminMultiSig;
+
+    if (!CheckForDuplicateAdminSigs(*pblock)) {
+        LogPrintf("found invalid admin sigs, ignoring admin payload.\n");
+        pblock->vAdminIds.clear();
+        pblock->adminMultiSig.SetNull();
+        return true;
+    }
+
     if (msg.HasCvnInfo()) {
         pblock->nVersion |= CBlock::CVN_PAYLOAD;
         pblock->vCvns = msg.vCvns;
@@ -359,15 +372,99 @@ static bool AddChainDataToBlock(CBlock *pblock, const CChainDataMsg& msg)
         pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
     }
 
-    pblock->vAdminIds     = msg.vAdminIds;
-    pblock->adminMultiSig = msg.adminMultiSig;
-
     return true;
 }
 
-static bool CreateNewBlock(const CChainParams& chainparams, CBlockTemplate& blockTemplate)
+string bin2hex(const uint8_t *buf, const size_t len)
 {
-    PopulateBlock(chainparams, blockTemplate);
+    size_t i;
+    char c[3];
+    string res;
+
+    for (i = 0; i < len; i++) {
+        sprintf(c, "%02x", buf[i]);
+        res.append(c);
+    }
+
+    return res;
+}
+
+void printHex(const uint8_t *buf, const size_t len, const bool addLF = false)
+{
+    cout << bin2hex(buf, len);
+
+    if (addLF)
+        cout << endl;
+}
+
+bool DetermineBestSignatureSet(CBlockIndex * const pindexPrev, CBlock *pblock)
+{
+    MapMissing mapMissing;
+    if (!sigHolder.GetMissing(mapMissing, pblock->hashPrevBlock, pblock->nCreatorId)) {
+        LogPrintf("Could not find signatures. Can not create block.\n");
+        return false;
+    }
+
+    // try each signature set if it's correct and contains enough sigs
+    BOOST_FOREACH(const MapMissing::value_type& missing, mapMissing) {
+        MapSigSigner signatures;
+        if (!sigHolder.GetSignatureSet(signatures, missing.first, pblock->hashPrevBlock, pblock->nCreatorId)) {
+            LogPrintf("No signatures found. Trying next set.\n");
+            continue;
+        }
+
+        if (signatures.size() + missing.first.size() < mapNoncePool.size()) {
+            LogPrintf("Not enough signatures found. Trying next set.\n");
+            continue;
+        }
+
+        if (!HasEnoughSignatures(pindexPrev, signatures.size())) {
+            LogPrintf("Not enough signatures to continue blockchain. Trying next set.\n");
+            continue;
+        }
+
+        int count = 0;
+        bool fAllSigsValid = true;
+        uint8_t *sigs[MAX_NUMBER_OF_CVNS];
+
+        BOOST_FOREACH(const MapSigSigner::value_type& entry, signatures)
+        {
+            const CCvnPartialSignature& sig = entry.second;
+
+            if (!CvnVerifyPartialSignature(sig)) {
+                LogPrintf("Invalid signature found. Trying next set.\n%s\n", sig.ToString());
+                fAllSigsValid = false;
+                break;
+            }
+
+            sigs[count++] = (uint8_t *)&sig.signature.begin()[0];
+        }
+
+        if (!fAllSigsValid)
+            continue;
+
+        LogPrint("cvnsig", "all partial chain signatures in set found valid.\n");
+
+        CSchnorrSig allsig;
+        int ret = CombinePartialSignatures(allsig, sigs, count);
+        if (ret != 1) {
+            LogPrintf("could not combine schnorr signatures: %d", ret);
+            continue;
+        }
+
+        pblock->chainMultiSig = allsig;
+        pblock->vMissingSignerIds = missing.first;
+
+        return true;
+    }
+
+    LogPrintf("No working signature set found out of %d. Cannot create block.\nPrinting Signature tree:\n%s\n", mapMissing.size(), sigHolder.ToString());
+    return false;
+}
+
+static bool CreateNewBlock(CBlockTemplate& blockTemplate)
+{
+    PopulateBlock(blockTemplate);
     CBlock *pblock = &blockTemplate.block;
     UpdateCoinbase(pblock, blockTemplate.pindexPrev, blockTemplate.nExtraNonce);
 
@@ -376,86 +473,15 @@ static bool CreateNewBlock(const CChainParams& chainparams, CBlockTemplate& bloc
 
     uint256 hashBlock = pblock->hashPrevBlock;
     {
-        LOCK(cs_mapCvnSigs);
-
-        if (!mapCvnSigs.count(hashBlock)) {
-            LogPrintf("ERROR: no signatures found for hash %s. Can not create block.\n", hashBlock.ToString());
-            return false;
-        }
-
-        CvnSigCreatorType& mapSigsByNextCreator = mapCvnSigs[hashBlock];
-        if (!mapSigsByNextCreator.count(blockTemplate.nNodeId)) {
-            LogPrintf("ERROR: no signatures found. Can not create block\n");
-            return false;
-        }
-
-        CvnSigSignerType mapSigsBySigners = mapSigsByNextCreator[blockTemplate.nNodeId];
-        LogPrintf("# of sig available for block %s: %u (c: %u, h: %u)\n",
-                hashBlock.ToString(), mapSigsBySigners.size(), mapSigsByNextCreator.size(), mapCvnSigs.size());
-
-        if (!mapSigsBySigners.count(blockTemplate.nNodeId)) {
-            LogPrintf("WARN: signature for local CVN (0x%08x) not found...\n", blockTemplate.nNodeId);
-            return false;
-        }
-
         if (mapCVNs.size() == 1) {
             /* if we only have one CVN available (e.g. during bootstrap) we create a plain signature */
-
-            pblock->chainMultiSig = mapSigsBySigners[mapCVNs.begin()->first].signature;
+            vector<uint32_t> vMissing;
+            CCvnPartialSignature singleSig;
+            sigHolder.GetSignature(singleSig, hashBlock, pblock->nCreatorId, blockTemplate.nNodeId, vMissing);
+            pblock->chainMultiSig = singleSig.signature;
         } else {
-            int count = 0;
-            bool fAllSigsValid = true;
-            vector<uint32_t> vMissingCreatorIds;
-            uint8_t *sigs[MAX_NUMBER_OF_CVNS];
-
-            BOOST_FOREACH(const CvnSigSignerType::value_type& ps, mapSigsBySigners)
-            {
-                const CCvnPartialSignatureMsg &sig = ps.second;
-
-                if (hashBlock != sig.hashPrevBlock) {
-                    LogPrintf("ERROR: signature for wrong tip: %s\n%s\n", hashBlock.ToString(), sig.ToString());
-                    fAllSigsValid = false;
-                    continue;
-                }
-
-                if (blockTemplate.nNodeId != sig.nCreatorId) {
-                    LogPrintf("ERROR: signature for wrong next creator: 0x%08x\n%s\n", blockTemplate.nNodeId, sig.ToString());
-                    fAllSigsValid = false;
-                    continue;
-                }
-
-                if (!CvnVerifyPartialSignature(sig.GetCvnSignature(), sig.hashPrevBlock, sig.nCreatorId)) {
-                    LogPrintf("ERROR: invalid signature found: %s\n", sig.ToString());
-                    fAllSigsValid = false;
-                }
-            }
-
-            if (!fAllSigsValid)
+            if (!DetermineBestSignatureSet(blockTemplate.pindexPrev, pblock))
                 return false;
-            else
-                LogPrint("cvnsig", "all partial chain signatures found valid.\n");
-
-            // TODO: we should really cache this somehow...
-            BOOST_FOREACH(const CvnMapType::value_type& cvn, mapCVNs)
-            {
-                if (!mapSigsBySigners.count(cvn.first)) {
-                    vMissingCreatorIds.push_back(cvn.first);
-                    continue;
-                }
-
-                sigs[count++] = &mapSigsBySigners[cvn.first].signature.begin()[0];
-            }
-
-            if (count < 2)
-                return error("not enough signatures to create block");
-
-            CSchnorrSig allsig;
-            int ret = CombinePartialSignatures(allsig, sigs, count);
-            if (ret != 1)
-                return error("could not combine schnorr signatures: %d", ret);
-
-            pblock->chainMultiSig = allsig;
-            pblock->vMissingCreatorIds = vMissingCreatorIds;
         }
 
         if (blockTemplate.pindexPrev->GetNumChainSigs() > 1 && ((float)blockTemplate.pindexPrev->GetNumChainSigs() / (float)2 >= (float)pblock->GetNumChainSigs())) {
@@ -487,15 +513,12 @@ static bool CreateNewBlock(const CChainParams& chainparams, CBlockTemplate& bloc
 
     // final tests
     CValidationState state;
-    if (!TestBlockValidity(state, chainparams, *pblock, blockTemplate.pindexPrev, true, false)) {
+    if (!TestBlockValidity(state, blockTemplate.chainparams, *pblock, blockTemplate.pindexPrev, true, false)) {
         LogPrintf("ERROR: TestBlockValidity failed: %s\n", FormatStateMessage(state));
         return false;
     }
 
-    if (ProcessCVNBlock(pblock, chainparams)) {
-        LOCK(cs_mapCvnSigs);
-        mapCvnSigs.erase(pblock->hashPrevBlock);
-    } else {
+    if (!ProcessCVNBlock(pblock, blockTemplate.chainparams)) {
         LogPrintf("ERROR: block not accepted %s\n", pblock->GetHash().ToString());
         return false;
     }
@@ -503,160 +526,12 @@ static bool CreateNewBlock(const CChainParams& chainparams, CBlockTemplate& bloc
     return true;
 }
 
-static CReserveScript* GetCoinbaseScript()
+bool CreateBlock(const POCStateHolder& s)
 {
-    CReserveScript *coinbaseScript = NULL;
-#ifdef ENABLE_WALLET
-    GetMainSignals().ScriptForMining(&coinbaseScript);
-#else
-    if (!mapArgs.count("-cvnfeeaddress")) {
-        LogPrintf("Option -cvnfeeaddress must be given if wallet support is not compiled in.\n");
-        return NULL;
-    }
-#endif
-    if (mapArgs.count("-cvnfeeaddress")) {
-        CBitcoinAddress feeAddress(GetArg("-cvnfeeaddress", ""));
-        if (feeAddress.IsValid()) {
-            if (!coinbaseScript) {
-                coinbaseScript = new CReserveScript();
-            }
-            coinbaseScript->reserveScript = GetScriptForDestination(feeAddress.Get());
-            LogPrintf("CVN fee address: %s\n", feeAddress.ToString());
-        } else {
-#ifdef ENABLE_WALLET
-            LogPrintf("CVN ERROR: the fee address %s is invalid. Falling back to standard wallet address.\n", feeAddress.ToString());
-#else
-            LogPrintf("CVN ERROR: the fee address %s is invalid. Can not start CVN.\n", feeAddress.ToString());
-            return NULL;
-#endif
-        }
-    }
+    CBlockTemplate blockTemplate(s.feeScript, chainActive.Tip(), s.nNodeId, GetAdjustedTime(), (rand() % 1000000 + 1), s.chainparams);
 
-    return coinbaseScript;
-}
+    if (!CreateNewBlock(blockTemplate))
+        return false;
 
-void static CertifiedValidationNode(const CChainParams& chainparams, const uint32_t& nNodeId)
-{
-    SetThreadPriority(THREAD_PRIORITY_NORMAL);
-    RenameThread("certified-validation-node");
-
-#ifdef USE_OPENSC
-    // wait for smartcard init
-    if (GetArg("-cvn", "") == "card")
-        while (!fSmartCardUnlocked && !ShutdownRequested())
-            MilliSleep(1000);
-#endif
-
-    while (IsInitialBlockDownload() && !ShutdownRequested())
-        MilliSleep(1000);
-
-    CReserveScript *coinbaseScript = GetCoinbaseScript();
-
-    MilliSleep(10000);
-    LogPrintf("Certified validation node started for node ID 0x%08x\n", nNodeId);
-
-    uint32_t nExtraNonce = 0;
-    try {
-        // Throw an error if no script was provided.  This can happen
-        // due to some internal error but also if the keypool is empty.
-        // In the latter case, already the pointer is NULL.
-        if (!coinbaseScript || coinbaseScript->reserveScript.empty())
-            throw std::runtime_error("No coinbase script available. Can not start CVN.");
-
-        while (!ShutdownRequested()) {
-            if (chainparams.MiningRequiresPeers()) {
-                // Busy-wait for the network to come online so we don't waste time mining
-                // on an obsolete chain. In regtest mode we expect to fly solo.
-                do {
-                    bool fvNodesEmpty;
-                    {
-                        LOCK(cs_vNodes);
-                        fvNodesEmpty = vNodes.empty();
-                    }
-                    if (!fvNodesEmpty && !IsInitialBlockDownload())
-                        break;
-                    MilliSleep(1000);
-                } while (!ShutdownRequested());
-            }
-
-            // wait for block spacing
-            int64_t nTimeToWait = (chainActive.Tip()->nTime + dynParams.nBlockSpacing) - GetAdjustedTime();
-            if (nTimeToWait < 1)
-                nTimeToWait = 1;
-
-            MilliSleep(nTimeToWait * 1000);
-
-            int64_t nCurrentTime = GetAdjustedTime();
-
-            if (CheckNextBlockCreator(chainActive.Tip(), nCurrentTime) != nNodeId) {
-                MilliSleep(1000);
-                continue;
-            }
-
-            if ((chainActive.Tip()->nTime + dynParams.nBlockSpacing) > GetAdjustedTime()) {
-                LogPrintf("WARN, not yet time to create the next block\n");
-                MilliSleep(1000);
-                continue;
-            }
-
-            nExtraNonce += rand() % 1000000 + 1; // create some 'randomness' for the coinbase, we need a unique merkle hash
-
-            //
-            // This node is potentially the next to advance the chain
-            //
-
-            CBlockTemplate blockTemplate;
-            blockTemplate.coinbaseScript = coinbaseScript;
-            blockTemplate.nCurrentTime   = nCurrentTime;
-            blockTemplate.nExtraNonce    = nExtraNonce;
-            blockTemplate.nNodeId        = nNodeId;
-            blockTemplate.pindexPrev     = chainActive.Tip();
-
-            if (!CreateNewBlock(chainparams, blockTemplate)) {
-                LogPrintf("ERROR, could not create block\n");
-                continue;
-            }
-
-            coinbaseScript->KeepScript();
-
-            // In regression test mode, stop after a block is created.
-            if (chainparams.MineBlocksOnDemand())
-                throw boost::thread_interrupted();
-        }
-
-        LogPrintf("Certified validation node 0x%08x stopped\n", nNodeId);
-    }
-    catch (const boost::thread_interrupted&)
-    {
-        LogPrintf("Certified validation node 0x%08x terminated\n", nNodeId);
-        throw;
-    }
-    catch (const std::runtime_error &e)
-    {
-        LogPrintf("CertifiedValidationNode 0x%08x runtime error: %s\n", nNodeId, e.what());
-        return;
-    }
-}
-
-void RunCertifiedValidationNode(const bool fGenerate, const CChainParams& chainparams, const uint32_t& nNodeId)
-{
-    static boost::thread_group* minerThreads = NULL;
-
-    if (minerThreads != NULL)
-    {
-        minerThreads->interrupt_all();
-        delete minerThreads;
-        minerThreads = NULL;
-    }
-
-    if (!fGenerate)
-        return;
-
-    if (!nNodeId) {
-        LogPrintf("Not starting CVN thread. CVN not configured.\n");
-        return;
-    }
-
-    minerThreads = new boost::thread_group();
-    minerThreads->create_thread(boost::bind(&CertifiedValidationNode, boost::cref(chainparams), boost::cref(nNodeId)));
+    return true;
 }

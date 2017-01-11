@@ -64,13 +64,13 @@ std::string CBlock::ToString() const
     if (HasCoinSupplyPayload())
         payload << strprintf("%ssupply", (payload.tellp() > 0) ? "|" : "");
 
-    s << strprintf("CBlock(hash=%s, ver=%d, payload=%s, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nCreatorId=0x%08x, vtx=%u)\n",
+    s << strprintf("CBlock(hash=%s, ver=%d, payload=%s, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nCreatorId=0x%08x, vtx=%u, missing=%u)\n",
         GetHash().ToString(),
         nVersion & 0xff, payload.str(),
         hashPrevBlock.ToString(),
         hashMerkleRoot.ToString(),
         nTime, nCreatorId,
-		vtx.size());
+		vtx.size(), vMissingSignerIds.size());
     if (HasAdminPayload())
     	s << strprintf("  AdminSignature(%u): %s\n", vAdminIds.size(), adminMultiSig.ToString());
     s << strprintf("  ChainSignature(%u): %s\n", GetNumChainSigs(), chainMultiSig.ToString());

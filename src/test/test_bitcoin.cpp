@@ -11,7 +11,7 @@
 #include "consensus/validation.h"
 #include "key.h"
 #include "main.h"
-#include "miner.h"
+#include "../blockfactory.h"
 #include "pubkey.h"
 #include "random.h"
 #include "txdb.h"
