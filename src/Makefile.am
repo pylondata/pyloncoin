@@ -164,7 +164,8 @@ BITCOIN_CORE_H = \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
   zmq/zmqpublishnotifier.h \
-  fasito.h
+  fasito/fasito.h \
+  fasito/SerialConnection.h
 
 
 obj/build.h: FORCE
@@ -240,7 +241,9 @@ libbitcoin_wallet_a_SOURCES = \
 if USE_FASITO
 libbitcoin_fasito_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libbitcoin_fasito_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libbitcoin_fasito_a_SOURCES = fasito.cpp
+libbitcoin_fasito_a_SOURCES = \
+  fasito/fasito.cpp \
+  fasito/SerialConnection.cpp
 endif
 
 # crypto primitives library

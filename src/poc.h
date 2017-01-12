@@ -9,7 +9,6 @@
 #include "primitives/block.h"
 #include "chainparams.h"
 #include "chain.h"
-//#include "script.h"
 #include "sync.h"
 
 #include <stdint.h>
@@ -53,6 +52,9 @@ typedef map<uint32_t, uint32_t> BannedCVNMapType; // nCreatorID/nHeight at which
 #define MAX_NONCE_POOL_SIZE 100
 
 #define __DBG_ LogPrintf("DEBUG: In file %s in function %s in line %d\n", __FILE__, __func__, __LINE__);
+
+extern uint32_t nCvnNodeId;
+extern uint32_t nChainAdminId;
 
 extern const char *pocStateNames[];
 
@@ -187,7 +189,7 @@ extern void RelayChainData(const CChainDataMsg& msg);
 extern void RelayCvnSignature(const CCvnPartialSignature& msg);
 
 extern bool AddNoncePool(CNoncePool& msg);
-extern void SendNoncePool(const POCStateHolder& s);
+extern void CreateNewNoncePool(const POCStateHolder& s);
 extern void RelayNoncePool(const CNoncePool& msg);
 extern void RemoveCvnPubNonces(const uint256& hashPrevBlock);
 

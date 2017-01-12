@@ -14,7 +14,12 @@
 
 bool fFasitoUnlocked = false;
 
-#define FASITO_DEBUG 0
+//#define FASITO_DEBUG 0
+
+bool CreateNonceWithFasito(const uint256& hashUnsignedBlock, const CKey cvnPrivKey, unsigned char *pPrivateData, CSchnorrNonce& noncePublic, const CCvnInfo& cvnInfo)
+{
+    return false;
+}
 
 bool CvnSignWithFasito(const uint256& hashUnsignedBlock, CCvnPartialSignatureUnsinged& signature, const CCvnInfo& cvnInfo)
 {
@@ -22,13 +27,18 @@ bool CvnSignWithFasito(const uint256& hashUnsignedBlock, CCvnPartialSignatureUns
 #ifdef FASITO_DEBUG
     LogPrintf("CvnSignWithFasito : OK\n  Hash: %s\n  node: 0x%08x\n  pubk: %s\n   sig: %s\n",
             hashUnsignedBlock.ToString(), signature.nSignerId,
-            HexStr(cvnInfo.vPubKey),
-            HexStr(signature.vSignature));
+            cvnInfo.pubKey.ToString(),
+            signature.signature.ToString());
 #endif
     return true;
 }
 
-X509* InitCVNWithFasito()
+uint32_t InitCVNWithFasito()
+{
+    return NULL;
+}
+
+uint32_t InitChainAdminWithFasito()
 {
     return NULL;
 }

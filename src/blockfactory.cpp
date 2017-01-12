@@ -31,7 +31,7 @@
 #include "cvn.h"
 
 #ifdef USE_FASITO
-#include "fasito.h"
+#include "fasito/fasito.h"
 #endif
 
 #include <secp256k1.h>

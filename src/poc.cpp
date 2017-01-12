@@ -17,7 +17,7 @@
 #include "validationinterface.h"
 
 #ifdef USE_FASITO
-#include "fasito.h"
+#include "fasito/fasito.h"
 #endif
 
 #include <secp256k1.h>
@@ -30,6 +30,9 @@
 #define POC_BLOCKS_TO_SCAN 200
 
 #define POC_DEBUG 0
+
+uint32_t nCvnNodeId = 0;
+uint32_t nChainAdminId = 0;
 
 CCriticalSection cs_mapChainAdmins;
 ChainAdminMapType mapChainAdmins;
@@ -419,7 +422,7 @@ bool static CreateNonceWithKey(const uint256& hashUnsignedBlock, const CKey cvnP
     return true;
 }
 
-static bool CreateNoncePairForHash(const uint256& hashToSign, const uint32_t& nNodeId, CSchnorrNonce& noncePublic, unsigned char *pPrivateData)
+static bool CreateNoncePairForHash(CSchnorrNonce& noncePublic, unsigned char *pPrivateData, const uint256& hashToSign, const uint32_t& nNodeId)
 {
     if (!nNodeId) {
         LogPrintf("CreateNoncePairForHash : CVN node not initialized\n");
@@ -440,11 +443,11 @@ static bool CreateNoncePairForHash(const uint256& hashToSign, const uint32_t& nN
 
     if (GetArg("-cvn", "") == "fasito") {
 #ifdef USE_FASITO
-        if (!fSmartCardUnlocked) {
+        if (!fFasitoUnlocked) {
             LogPrint("cvn", "CreateNoncePairForHash : ERROR, smart card not unlocked. Make sure that -cvnpin, -cvnslot and -cvnkeyid are set correctly\n");
             return false;
         }
-        if (!CvnSignWithFasito(hashToSign, signature, cvnInfo)) {
+        if (!CreateNonceWithFasito(hashToSign, cvnPrivKey, pPrivateData, noncePublic, cvnInfo)) {
             noncePublic.SetNull();
             return false;
         }
@@ -1626,7 +1629,37 @@ static bool SetUpNoncePool(const POCStateHolder& s)
     return AddNoncePool(pool);
 }
 
-void SendNoncePool(const POCStateHolder& s)
+static bool CreateNoncePoolFile(CNoncePool& pool, const uint16_t nPoolSize)
+{
+    const uint256 hash4noncePool = pool.GetHash();
+
+    if (GetArg("-cvn", "") == "file")
+        vNoncePrivate.clear();
+
+    for (uint16_t i = 0 ; i < nPoolSize ; i++) {
+        CSchnorrNonce nonce;
+        unsigned char privateData[32];
+        if (!CreateNoncePairForHash(nonce, privateData, hash4noncePool, pool.nCvnId)) {
+            pool.vPublicNonces.clear();
+            return false;
+        }
+
+        CSchnorrPrivNonce pn(privateData);
+        vNoncePrivate.push_back(pn);
+        pool.vPublicNonces.push_back(nonce);
+    }
+
+    return true;
+}
+
+#ifdef USE_FASITO
+static bool CreateNoncePoolFasito(CNoncePool& pool, const uint16_t nPoolSize)
+{
+    return false;
+}
+#endif
+
+void CreateNewNoncePool(const POCStateHolder& s)
 {
     uint16_t nPoolSize = GetArg("-poolsizenonces", DEFAULT_NONCE_POOL_SIZE);
     if (nPoolSize > MAX_NONCE_POOL_SIZE)
@@ -1640,23 +1673,14 @@ void SendNoncePool(const POCStateHolder& s)
     pool.hashRootBlock = s.GetPrevBlockHash();
     pool.nCreationTime = GetAdjustedTime();
 
-    uint256 hash4noncePool = pool.GetHash();
-
-    if (GetArg("-cvn", "") == "file")
-        vNoncePrivate.clear();
-
-    for (uint16_t i = 0 ; i < nPoolSize ; i++) {
-        CSchnorrNonce nonce;
-        unsigned char privateData[32];
-        if (!CreateNoncePairForHash(hash4noncePool, s.nNodeId, nonce, privateData)) {
-            pool.vPublicNonces.clear();
-            return;
-        }
-
-        CSchnorrPrivNonce pn(privateData);
-        vNoncePrivate.push_back(pn);
-        pool.vPublicNonces.push_back(nonce);
+    if (GetArg("-cvn", "") == "file") {
+        CreateNoncePoolFile(pool, nPoolSize);
     }
+#ifdef USE_FASITO
+    else {
+        CreateNoncePoolFasito(pool, nPoolSize);
+    }
+#endif
 
     if (!CvnSignHash(pool.GetHash(), pool.msgSig)) {
         pool.vPublicNonces.clear();
@@ -1668,28 +1692,6 @@ void SendNoncePool(const POCStateHolder& s)
         RelayNoncePool(pool);
     }
 }
-
-#if 0
-static bool EnoughNoncesAvailable(POCStateHolder& s)
-{
-
-    if (!mapCvnNonces.count(s.GetPrevBlockHash()))
-        return false;
-
-    CvnNonceCreatorType& nextCreator = mapCvnNonces[s.pindexPrev->GetBlockHash()];
-    size_t nNonces = nextCreator.count(s.nNextCreator);
-
-    if (nNonces == mapCVNs.size())
-        return true;
-
-    if (!nNonces)
-        return false;
-
-    if (HasEnoughSignatures(s.pindexPrev, nNonces))
-        return true;
-    return false;
-}
-#endif
 
 static void handleCreateSignature(POCStateHolder& s)
 {
@@ -1802,7 +1804,7 @@ static void handleNoncePoolChanges(POCStateHolder& s)
 
         if (nPoolAge + 1 >= p.vPublicNonces.size()) {
             LogPrint("cvnsig", "nonce pool expired, creating new pool.\n");
-            SendNoncePool(s);
+            CreateNewNoncePool(s);
         }
     }
 
@@ -1825,7 +1827,7 @@ static void handleWaitingForCvnData(POCStateHolder& s)
         s.state = NONCE_POOL_CHANGES;
         s.nSleep = 0;
 
-        SendNoncePool(s);
+        CreateNewNoncePool(s);
     } else {
         s.nSleep = 3;
     }
@@ -1847,7 +1849,7 @@ static void handleInit(POCStateHolder& s)
             LogPrintf("Using saved nonces pool\n");
             RelayNoncePool(mapNoncePool[s.nNodeId]);
         } else
-            SendNoncePool(s);
+            CreateNewNoncePool(s);
 
         s.state = NONCE_POOL_CHANGES;
     } else {

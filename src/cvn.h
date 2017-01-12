@@ -2,23 +2,17 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_CVN_H
-#define BITCOIN_CVN_H
+#ifndef FAIRCOIN_CVN_H
+#define FAIRCOIN_CVN_H
 
-#include <openssl/ssl.h>
-
-class CKey;
-
-extern uint32_t nCvnNodeId;
-extern uint32_t nChainAdminId;
+#include "key.h"
 
 extern CKey cvnPrivKey;
 extern CSchnorrPubKey cvnPubKey;
 extern CKey adminPrivKey;
 extern CSchnorrPubKey adminPubKey;
 
-X509* InitCVNWithCertificate();
-X509* InitChainAdminWithCertificate();
-uint32_t ExtractIdFromCertificate(X509 *x509Cert, const bool fChainAdmin);
+extern uint32_t InitCVNWithCertificate();
+extern uint32_t InitChainAdminWithCertificate();
 
-#endif // BITCOIN_CVN_H
+#endif // FAIRCOIN_CVN_H

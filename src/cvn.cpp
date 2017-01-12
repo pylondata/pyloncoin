@@ -13,15 +13,13 @@
 
 using namespace std;
 
-uint32_t nCvnNodeId = 0;
 CKey cvnPrivKey;
 CSchnorrPubKey cvnPubKey;
 
-uint32_t nChainAdminId = 0;
 CKey adminPrivKey;
 CSchnorrPubKey adminPubKey;
 
-static const X509* ParseCertificate(FILE* file, const bool fChainAdmin)
+static X509* ParseCertificate(FILE* file, const bool fChainAdmin)
 {
     EVP_PKEY *privkey = EVP_PKEY_new();
     PEM_read_PrivateKey(file, &privkey, NULL, NULL);
@@ -57,7 +55,7 @@ static const X509* ParseCertificate(FILE* file, const bool fChainAdmin)
         return NULL;
     }
 
-    const X509 *x509Cert = PEM_read_bio_X509(bioCert, NULL, 0, NULL);
+    X509 *x509Cert = PEM_read_bio_X509(bioCert, NULL, 0, NULL);
 
     BIO_free(bioCert);
 
@@ -96,7 +94,7 @@ static void PrintCertDetails(X509 *x509Certificate, const bool fChainAdmin)
     LogPrintf("%s public key : %s\n", prefix, fChainAdmin ? adminPubKey.ToString() : cvnPubKey.ToString());
 }
 
-uint32_t ExtractIdFromCertificate(X509 *x509Cert, const bool fChainAdmin)
+static uint32_t ExtractIdFromCertificate(X509 *x509Cert, const bool fChainAdmin)
 {
     PrintCertDetails(x509Cert, fChainAdmin);
 
@@ -139,7 +137,7 @@ uint32_t ExtractIdFromCertificate(X509 *x509Cert, const bool fChainAdmin)
     return lnCvnNodeId;
 }
 
-const X509* InitCVNWithCertificate()
+uint32_t InitCVNWithCertificate()
 {
     boost::filesystem::path privkeyFile = GetDataDir() / GetArg("-cvnkeyfile", "cvn.pem");
     FILE* file = fopen(privkeyFile.string().c_str(), "r");
@@ -148,13 +146,17 @@ const X509* InitCVNWithCertificate()
         return NULL;
     }
 
-    const X509 *x509Cert = ParseCertificate(file, false);
+    X509 *x509Cert = ParseCertificate(file, false);
 
-    cvnPubKey = cvnPrivKey.GetRawPubKey();
-    return x509Cert;
+    if (x509Cert) {
+        cvnPubKey = cvnPrivKey.GetRawPubKey();
+        return ExtractIdFromCertificate(x509Cert, false);
+    }
+
+    return 0;
 }
 
-const X509* InitChainAdminWithCertificate()
+uint32_t InitChainAdminWithCertificate()
 {
     boost::filesystem::path privkeyFile = GetDataDir() / GetArg("-adminkeyfile", "admin.pem");
     FILE* file = fopen(privkeyFile.string().c_str(), "r");
@@ -163,8 +165,12 @@ const X509* InitChainAdminWithCertificate()
         return NULL;
     }
 
-    const X509 *x509Cert = ParseCertificate(file, true);
+    X509 *x509Cert = ParseCertificate(file, true);
 
-    adminPubKey = adminPrivKey.GetRawPubKey();
-    return x509Cert;
+    if (x509Cert) {
+        adminPubKey = adminPrivKey.GetRawPubKey();
+        return ExtractIdFromCertificate(x509Cert, true);
+    }
+
+    return 0;
 }

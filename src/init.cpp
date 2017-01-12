@@ -66,7 +66,7 @@
 #endif
 
 #ifdef USE_FASITO
-#include "fasito.h"
+#include "fasito/fasito.h"
 #endif
 
 using namespace std;
@@ -1130,24 +1130,18 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     }
 
     if (mapArgs.count("-admin")) {
-        X509 *x509ADMINCertificate = NULL;
         if (GetArg("-admin", "") == "fasito") {
 #ifdef USE_FASITO
             LogPrintf("Initializing fasito\n");
             uiInterface.InitMessage(_("Initializing fasito..."));
-            x509ADMINCertificate = InitChainAdminWithFasito();
+            nChainAdminId = InitChainAdminWithFasito();
 #else
             LogPrintf("ERROR: invalid parameter -cvn=fasito. This wallet version was not compiled with fasito support\n");
 #endif
         } else if (GetArg("-admin", "") == "file") {
-            x509ADMINCertificate = InitChainAdminWithCertificate();
+            nChainAdminId = InitChainAdminWithCertificate();
         } else
             return InitError("-admin configuration invalid. Parameter must be 'fasito' or 'file'\n");
-
-        if (!x509ADMINCertificate)
-            return InitError("could not find a vaild chain admin certificate\n");
-
-        nChainAdminId = ExtractIdFromCertificate(x509ADMINCertificate, true);
 
         if (!nChainAdminId)
             return InitError("could not find a vaild chain admin ID\n");
@@ -1156,24 +1150,18 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     }
 
     if (mapArgs.count("-cvn")) {
-        X509 *x509CVNCertificate = NULL;
         if (GetArg("-cvn", "") == "fasito") {
 #ifdef USE_FASITO
             LogPrintf("Initializing fasito\n");
             uiInterface.InitMessage(_("Initializing fasito..."));
-            x509CVNCertificate = InitCVNWithFasito();
+            nCvnNodeId = InitCVNWithFasito();
 #else
             LogPrintf("ERROR: invalid parameter -cvn=fasito. This wallet version was not compiled with fasito support\n");
 #endif
         } else if (GetArg("-cvn", "") == "file") {
-            x509CVNCertificate = InitCVNWithCertificate();
+            nCvnNodeId = InitCVNWithCertificate();
         } else
             return InitError("-cvn configuration invalid. Parameter must be 'fasito' or 'file'\n");
-
-        if (!x509CVNCertificate)
-            return InitError("could not find a vaild CVN node certificate\n");
-
-        nCvnNodeId = ExtractIdFromCertificate(x509CVNCertificate, false);
 
         if (!nCvnNodeId)
             return InitError("could not find a vaild CVN node ID\n");
