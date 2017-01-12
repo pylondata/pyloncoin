@@ -1,6 +1,8 @@
 FairCoin2 proof-of-cooperation working tree
 ===========================================
 
+PLEASE NOTE: this version has not yet been released and can not be used for real world transactions. We're in beta test right now. The CURRENT version of FairCoin can be found here: https://github.com/FairCoinTeam/fair-coin.git
+
 https://fair.to/fc2
 
 FairCoin is the monetary base system for FairCoop. We constantly drive development of the FairCoop/FairCoin ecosystem further and shape the individual components to fit our vision: building tools to enable everyone to participate in a fair economy on a global scale.
