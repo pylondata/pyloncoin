@@ -375,7 +375,7 @@ static bool AddChainDataToBlock(CBlock *pblock, const CChainDataMsg& msg)
     return true;
 }
 
-string bin2hex(const uint8_t *buf, const size_t len)
+static string bin2hex(const uint8_t *buf, const size_t len)
 {
     size_t i;
     char c[3];

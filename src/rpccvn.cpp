@@ -452,7 +452,7 @@ UniValue bancvn(const UniValue& params, bool fHelp)
             + HelpExampleCli("bancvn", "0x12345678")
         );
 
-    uint32_t nNodeId = nCvnNodeId;
+    uint32_t nNodeId;
 
     if (params.size() == 1) {
         stringstream ss;

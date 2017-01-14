@@ -14,8 +14,6 @@
 #include <boost/utility.hpp>
 #include <boost/asio.hpp>
 
-using namespace boost::asio;
-
 /**
  * Thrown if timeout occurs
  */
@@ -45,16 +43,18 @@ public:
      * \throws boost::system::system_error if cannot open the
      * serial device
      */
-	SerialConnection(const std::string& devname, unsigned int baud_rate,
-			serial_port_base::parity opt_parity = serial_port_base::parity(
-					serial_port_base::parity::none),
-			serial_port_base::character_size opt_csize =
-					serial_port_base::character_size(8),
-			serial_port_base::flow_control opt_flow =
-					serial_port_base::flow_control(
-							serial_port_base::flow_control::none),
-			serial_port_base::stop_bits opt_stop = serial_port_base::stop_bits(
-					serial_port_base::stop_bits::one));
+    SerialConnection(const std::string& devname, unsigned int baud_rate,
+            boost::asio::serial_port_base::parity opt_parity =
+                    boost::asio::serial_port_base::parity(
+                            boost::asio::serial_port_base::parity::none),
+            boost::asio::serial_port_base::character_size opt_csize =
+                    boost::asio::serial_port_base::character_size(8),
+            boost::asio::serial_port_base::flow_control opt_flow =
+                    boost::asio::serial_port_base::flow_control(
+                            boost::asio::serial_port_base::flow_control::none),
+            boost::asio::serial_port_base::stop_bits opt_stop =
+                    boost::asio::serial_port_base::stop_bits(
+                            boost::asio::serial_port_base::stop_bits::one));
 
     /**
      * Opens a serial device.
@@ -67,16 +67,18 @@ public:
      * \throws boost::system::system_error if cannot open the
      * serial device
      */
-	void open(const std::string& devname, unsigned int baud_rate,
-			serial_port_base::parity opt_parity = serial_port_base::parity(
-					serial_port_base::parity::none),
-			serial_port_base::character_size opt_csize =
-					serial_port_base::character_size(8),
-			serial_port_base::flow_control opt_flow =
-					serial_port_base::flow_control(
-							serial_port_base::flow_control::none),
-			serial_port_base::stop_bits opt_stop = serial_port_base::stop_bits(
-					serial_port_base::stop_bits::one));
+    void open(const std::string& devname, unsigned int baud_rate,
+            boost::asio::serial_port_base::parity opt_parity =
+                    boost::asio::serial_port_base::parity(
+                            boost::asio::serial_port_base::parity::none),
+            boost::asio::serial_port_base::character_size opt_csize =
+                    boost::asio::serial_port_base::character_size(8),
+            boost::asio::serial_port_base::flow_control opt_flow =
+                    boost::asio::serial_port_base::flow_control(
+                            boost::asio::serial_port_base::flow_control::none),
+            boost::asio::serial_port_base::stop_bits opt_stop =
+                    boost::asio::serial_port_base::stop_bits(
+                            boost::asio::serial_port_base::stop_bits::one));
 
     /**
      * \return true if serial device is open
@@ -163,9 +165,9 @@ public:
     std::string readStringUntil(const std::string& delim="\n");
     
     /**
-     * Send a line to the serial port and return all the resulting lines in a vector
+     * Send a line to the serial port and return all the resulting lines in vLines
      */
-    std::vector<std::string> sendAndReceive(std::string line);
+    bool sendAndReceive(const std::string line, std::vector<std::string> &vLines);
 
     /**
      * Send a line to the serial port and return true if 'OK' was received
@@ -232,11 +234,11 @@ private:
         resultTimeoutExpired
     };
 
-    io_service io; ///< Io service object
-    serial_port port; ///< Serial port object
-    deadline_timer timer; ///< Timer for timeout
+    boost::asio::io_service io; ///< Io service object
+    boost::asio::serial_port port; ///< Serial port object
+    boost::asio::deadline_timer timer; ///< Timer for timeout
     boost::posix_time::time_duration timeout; ///< Read/write timeout
-    streambuf readData; ///< Holds eventual read but not consumed
+    boost::asio::streambuf readData; ///< Holds eventual read but not consumed
     enum ReadResult result;  ///< Used by read with timeout
     size_t bytesTransferred; ///< Used by async read callback
     ReadSetupParameters setupParameters; ///< Global because used in the OSX fix

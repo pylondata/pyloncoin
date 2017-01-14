@@ -248,21 +248,25 @@ void SerialConnection::readCompleted(const boost::system::error_code& error,
     result=resultError;
 }
 
-std::vector<std::string> SerialConnection::sendAndReceive(const std::string line)
+bool SerialConnection::sendAndReceive(const std::string line, vector<string> &vLines)
 {
 	writeString(line + "\r");
 
 	string s = readStringUntil("\r\n");
 
-	vector<string> lines;
+	vLines.push_back(s);
+	while (1) {
+	    if (s == "OK")
+	        return true;
 
-	lines.push_back(s);
-	while (s != "OK" && !boost::algorithm::starts_with(s, "ERROR")) {
+	    if (boost::algorithm::starts_with(s, "ERROR"))
+	        return false;
+
 		s = readStringUntil("\r\n");
-		lines.push_back(s);
+		vLines.push_back(s);
 	}
 
-	return lines;
+	return false; // never reached
 }
 
 bool SerialConnection::sendCommand(const std::string command) {

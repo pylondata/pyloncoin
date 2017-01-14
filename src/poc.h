@@ -219,8 +219,8 @@ private:
     boost::filesystem::path pathNonces;
 public:
     CNoncesPoolDB();
-    bool Write(const CNoncePool& pool, const vector<CSchnorrPrivNonce>& vPrivateNonces);
-    bool Read(CNoncePool& pool, vector<CSchnorrPrivNonce>& vPrivateNonces);
+    bool Write(const CNoncePool& pool, const vector<CSchnorrPrivNonce>& vPrivateNonces, const vector<uint8_t>& vNonceHandles);
+    bool Read(CNoncePool& pool, vector<CSchnorrPrivNonce>& vPrivateNonces, vector<uint8_t>& vNonceHandles);
 };
 
 void SaveNoncesPool();

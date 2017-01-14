@@ -286,7 +286,7 @@ CNoncesPoolDB::CNoncesPoolDB()
     pathNonces = GetDataDir() / "pool.dat";
 }
 
-bool CNoncesPoolDB::Write(const CNoncePool& pool, const vector<CSchnorrPrivNonce>& vPrivateNonces)
+bool CNoncesPoolDB::Write(const CNoncePool& pool, const vector<CSchnorrPrivNonce>& vPrivateNonces, const vector<uint8_t>& vNonceHandles)
 {
     // Generate random temporary filename
     unsigned short randv = 0;
@@ -298,6 +298,8 @@ bool CNoncesPoolDB::Write(const CNoncePool& pool, const vector<CSchnorrPrivNonce
     ssNonces << FLATDATA(Params().MessageStart());
     ssNonces << pool;
     ssNonces << vPrivateNonces;
+    ssNonces << vNonceHandles;
+
     uint256 hash = Hash(ssNonces.begin(), ssNonces.end());
     ssNonces << hash;
 
@@ -325,7 +327,7 @@ bool CNoncesPoolDB::Write(const CNoncePool& pool, const vector<CSchnorrPrivNonce
     return true;
 }
 
-bool CNoncesPoolDB::Read(CNoncePool& pool, vector<CSchnorrPrivNonce>& vPrivateNonces)
+bool CNoncesPoolDB::Read(CNoncePool& pool, vector<CSchnorrPrivNonce>& vPrivateNonces, vector<uint8_t>& vNonceHandles)
 {
     // open input file, and associate with CAutoFile
     FILE *file = fopen(pathNonces.string().c_str(), "rb");
@@ -372,6 +374,7 @@ bool CNoncesPoolDB::Read(CNoncePool& pool, vector<CSchnorrPrivNonce>& vPrivateNo
         // de-serialize address data into the vector
         ssNonces >> pool;
         ssNonces >> vPrivateNonces;
+        ssNonces >> vNonceHandles;
 
         if (pool.nCvnId != nCvnNodeId)
             return error("%s: CVN ID mismatch", __func__);
@@ -389,13 +392,13 @@ void SaveNoncesPool()
         return;
 
     CNoncesPoolDB pooldb;
-    pooldb.Write(mapNoncePool[nCvnNodeId], vNoncePrivate);
+    pooldb.Write(mapNoncePool[nCvnNodeId], vNoncePrivate, fasito.vNonceHandles);
 
-    LogPrint("cvnsig", "Flushed pool with %d public nonces and %d private nonces to pool.dat\n",
-            mapNoncePool[nCvnNodeId].vPublicNonces.size(), vNoncePrivate.size());
+    LogPrint("cvnsig", "Flushed pool with %d public nonces and %d private nonces and %d nonces handles to pool.dat\n",
+            mapNoncePool[nCvnNodeId].vPublicNonces.size(), vNoncePrivate.size(), fasito.vNonceHandles.size());
 }
 
-bool static CreateNonceWithKey(const uint256& hashUnsignedBlock, const CKey cvnPrivKey, unsigned char *pPrivateData, CSchnorrNonce& noncePublic, const CCvnInfo& cvnInfo)
+bool static CreateNonceWithKey(const uint256& hashData, const CKey& cvnPrivKey, unsigned char *pPrivateData, CSchnorrNonce& noncePublic, const CCvnInfo& cvnInfo)
 {
     if (cvnInfo.pubKey != cvnPubKey) {
         LogPrintf("CreateNonceWithKey : key does not match node ID\n"
@@ -407,22 +410,22 @@ bool static CreateNonceWithKey(const uint256& hashUnsignedBlock, const CKey cvnP
     CHashWriter hasher(SER_GETHASH, 0);
     hasher << GetTimeMillis() << string("we need random nonces") << rand();
 
-    if (!cvnPrivKey.SchnorrCreateNoncePair(hashUnsignedBlock, noncePublic, pPrivateData, hasher.GetHash())) {
+    if (!cvnPrivKey.SchnorrCreateNoncePair(hashData, noncePublic, pPrivateData, hasher.GetHash())) {
         LogPrintf("CreateNonceWithKey : could not create block signature\n");
         return false;
     }
 
 #if POC_DEBUG
-    LogPrintf("CreateNonceWithKey : OK\n  Hash: %s\n  node: 0x%08x\n  pubk: %s\n  pubn: %s\n privn: %s\n",
-            hashUnsignedBlock.ToString(), noncePublic.nSignerId,
+    LogPrintf("CreateNonceWithKey : OK\n  Hash: %s\n  pubk: %s\n  pubn: %s\n privn: %s\n",
+            hashData.ToString(),
             cvnInfo.pubKey.ToString(),
             noncePublic.ToString(),
-            noncePrivate.ToString());
+            HexStr(pPrivateData));
 #endif
     return true;
 }
 
-static bool CreateNoncePairForHash(CSchnorrNonce& noncePublic, unsigned char *pPrivateData, const uint256& hashToSign, const uint32_t& nNodeId)
+static bool CreateNoncePairForHash(CSchnorrNonce& noncePublic, unsigned char *pPrivateData, const uint256& hashToSign, const uint32_t& nNodeId, const bool fUseFasito)
 {
     if (!nNodeId) {
         LogPrintf("CreateNoncePairForHash : CVN node not initialized\n");
@@ -441,13 +444,13 @@ static bool CreateNoncePairForHash(CSchnorrNonce& noncePublic, unsigned char *pP
 
     CCvnInfo cvnInfo = mapCVNs[nNodeId];
 
-    if (GetArg("-cvn", "") == "fasito") {
+    if (fUseFasito) {
 #ifdef USE_FASITO
-        if (!fFasitoUnlocked) {
-            LogPrint("cvn", "CreateNoncePairForHash : ERROR, smart card not unlocked. Make sure that -cvnpin, -cvnslot and -cvnkeyid are set correctly\n");
+        if (!fasito.fLoggedIn) {
+            LogPrint("cvn", "CreateNoncePairForHash : Fasito is not ready.\n");
             return false;
         }
-        if (!CreateNonceWithFasito(hashToSign, cvnPrivKey, pPrivateData, noncePublic, cvnInfo)) {
+        if (!CreateNonceWithFasito(hashToSign, fasito.nCVNKeyIndex, pPrivateData, noncePublic, cvnInfo)) {
             noncePublic.SetNull();
             return false;
         }
@@ -486,7 +489,7 @@ bool static CvnSignWithKey(const uint256& hashToSign, const CKey& cvnPrivKey, CS
     return true;
 }
 
-bool static CvnSignPartialWithKey(const uint256& hashUnsignedBlock, const CKey& cvnPrivKey, const CSchnorrPubKey& sumPublicNoncesOthers, CCvnPartialSignatureUnsinged& signature)
+bool static CvnSignPartialWithKey(const uint256& hashToSign, const CKey& cvnPrivKey, const CSchnorrPubKey& sumPublicNoncesOthers, CCvnPartialSignatureUnsinged& signature)
 {
     int nPoolOffset = chainActive.Tip()->nHeight - mapNoncePool[nCvnNodeId].nHeightAdded;
 
@@ -495,15 +498,15 @@ bool static CvnSignPartialWithKey(const uint256& hashUnsignedBlock, const CKey& 
         return false;
     }
 
-    if (!cvnPrivKey.SchnorrSignParial(hashUnsignedBlock, sumPublicNoncesOthers, vNoncePrivate[nPoolOffset], signature.signature)) {
+    if (!cvnPrivKey.SchnorrSignParial(hashToSign, sumPublicNoncesOthers, vNoncePrivate[nPoolOffset], signature.signature)) {
         LogPrintf("CvnSignPartialWithKey : could not create chain signature\n");
         return false;
     }
 
 #if POC_DEBUG
     LogPrintf("CvnSignPartialWithKey : OK\n  Hash: %s\nsigner: 0x%08x\n   sum: %s\n   sig: %s\n",
-            hashUnsignedBlock.ToString(), signature.nSignerId,
-            bin2hex(&sumPublicNoncesOthers.begin()[0], 64), signature.ToString());
+            hashToSign.ToString(), signature.nSignerId,
+            sumPublicNoncesOthers.ToString(), signature.ToString());
 #endif
     return true;
 }
@@ -511,12 +514,12 @@ bool static CvnSignPartialWithKey(const uint256& hashUnsignedBlock, const CKey& 
 bool CvnSignHash(const uint256 &hashToSign, CSchnorrSig& signature)
 {
     if (GetArg("-cvn", "") == "fasito") {
-#if 0
-        if (!fSmartCardUnlocked) {
-            LogPrint("cvn", "CvnSignHash : ERROR, smart card not unlocked. Make sure that -cvnpin, -cvnslot and -cvnkeyid are set correctly\n");
+#ifdef USE_FASITO
+        if (!fasito.fLoggedIn) {
+            LogPrintf("CreateNoncePairForHash : Fasito is not ready.\n");
             return false;
         }
-        return CvnSignWithSmartCard(hashToSign, signature, cvnInfo);
+        return CvnSignWithFasito(hashToSign, fasito.nCVNKeyIndex, signature);
 #else
         LogPrintf("CvnSignHash : ERROR, this wallet was not compiled with smart card support\n");
         return false;
@@ -635,13 +638,12 @@ bool CvnSignPartial(const uint256 &hashPrevBlock, CCvnPartialSignatureUnsinged &
 
     if (GetArg("-cvn", "") == "fasito") {
 #ifdef USE_FASITO
-        if (!fFasitoUnlocked) {
+        if (!fasito.fLoggedIn) {
             LogPrint("cvn", "CvnSignPartial : ERROR, smart card not unlocked. Make sure that -cvnpin, -cvnslot and -cvnkeyid are set correctly\n");
             return false;
         }
-        CCvnInfo cvnInfo = mapCVNs[nNodeId];
 
-        if (!CvnSignWithFasito(hashToSign, signature, cvnInfo))
+        if (!CvnSignPartialWithFasito(hashToSign, fasito.nCVNKeyIndex, sumPublicNoncesOthers, signature, chainActive.Tip()->nHeight))
             return false;
 #else
         LogPrintf("CvnSignPartial : ERROR, this wallet was not compiled with smart card support\n");
@@ -670,7 +672,7 @@ bool CvnSignBlock(CBlock& block)
 {
     CCvnInfo cvnInfo = mapCVNs[block.nCreatorId];
 
-    if (cvnInfo.pubKey != cvnPubKey) {
+    if (GetArg("-cvn", "") == "file" && cvnInfo.pubKey != cvnPubKey) {
         LogPrintf("CvnSignBlock : key does not match node ID\n"
                 "  block chain pubkey: %s\n"
                 "         FILE pubkey: %s\n", cvnInfo.pubKey.ToString(), cvnPubKey.ToString());
@@ -895,6 +897,7 @@ bool AddChainData(const CChainDataMsg& msg)
     LogPrintf("AddChainData : signed by %u (minimum %u) admins of %u to be added after blockHash %s\n",
             msg.vAdminIds.size(), dynParams.nMinAdminSigs, dynParams.nMaxAdminSigs, hashBlock.ToString());
 
+    LogPrintf("%s\n", msg.ToString());
     return true;
 }
 
@@ -1613,19 +1616,28 @@ void RelayNoncePool(const CNoncePool& msg)
 
 static bool SetUpNoncePool(const POCStateHolder& s)
 {
+    bool fUseFasito = GetArg("-cvn", "fasito") == "fasito";
     CNoncesPoolDB pooldb;
     CNoncePool pool;
-    if (!pooldb.Read(pool, vNoncePrivate))
+    if (!pooldb.Read(pool, vNoncePrivate, fasito.vNonceHandles))
         return false;
 
-    if (vNoncePrivate.size() != pool.vPublicNonces.size()) {
+    if (fUseFasito && fasito.vNonceHandles.size() != pool.vPublicNonces.size()) {
+        LogPrintf("SetUpNoncePool : number of private handle/public nonces mismatch: %d/%d\n", fasito.vNonceHandles.size(), pool.vPublicNonces.size());
+        fasito.vNonceHandles.clear();
+        return false;
+    }
+
+    if (!fUseFasito && vNoncePrivate.size() != pool.vPublicNonces.size()) {
         LogPrintf("SetUpNoncePool : number of private/public nonces mismatch: %d/%d\n", vNoncePrivate.size(), pool.vPublicNonces.size());
         vNoncePrivate.clear();
         return false;
     }
 
-    LOCK(cs_mapNoncePool);
-    mapNoncePool.erase(pool.nCvnId);
+    {
+        LOCK(cs_mapNoncePool);
+        mapNoncePool.erase(pool.nCvnId);
+    }
     return AddNoncePool(pool);
 }
 
@@ -1633,13 +1645,11 @@ static bool CreateNoncePoolFile(CNoncePool& pool, const uint16_t nPoolSize)
 {
     const uint256 hash4noncePool = pool.GetHash();
 
-    if (GetArg("-cvn", "") == "file")
-        vNoncePrivate.clear();
-
+    vNoncePrivate.clear();
     for (uint16_t i = 0 ; i < nPoolSize ; i++) {
         CSchnorrNonce nonce;
         unsigned char privateData[32];
-        if (!CreateNoncePairForHash(nonce, privateData, hash4noncePool, pool.nCvnId)) {
+        if (!CreateNoncePairForHash(nonce, privateData, hash4noncePool, pool.nCvnId, false)) {
             pool.vPublicNonces.clear();
             return false;
         }
@@ -1655,6 +1665,28 @@ static bool CreateNoncePoolFile(CNoncePool& pool, const uint16_t nPoolSize)
 #ifdef USE_FASITO
 static bool CreateNoncePoolFasito(CNoncePool& pool, const uint16_t nPoolSize)
 {
+    const uint256 hash4noncePool = pool.GetHash();
+
+    fasito.vNonceHandles.clear();
+    if (!fasito.sendCommand("CLRPOOL")) {
+        LogPrintf("could not clear nonce pool on Fasito\n");
+        return false;
+    }
+
+    for (uint16_t i = 0 ; i < nPoolSize ; i++) {
+        CSchnorrNonce nonce;
+        unsigned char privateData[32];
+        if (!CreateNoncePairForHash(nonce, privateData, hash4noncePool, pool.nCvnId, true)) {
+            pool.vPublicNonces.clear();
+            return false;
+        }
+
+        uint32_t *nHandle = (uint32_t *) &privateData[0];
+        fasito.vNonceHandles.push_back(*nHandle);
+        pool.vPublicNonces.push_back(nonce);
+        LogPrintf("CreateNoncePoolFasito : add to pool key #%d (handle: %d): %s\n", i, *nHandle, nonce.ToString());
+    }
+
     return false;
 }
 #endif
@@ -1679,6 +1711,11 @@ void CreateNewNoncePool(const POCStateHolder& s)
 #ifdef USE_FASITO
     else {
         CreateNoncePoolFasito(pool, nPoolSize);
+    }
+#else
+    else {
+        LogPrintf("can not create pool. Fasito support not compiled in.\n");
+        return false;
     }
 #endif
 
