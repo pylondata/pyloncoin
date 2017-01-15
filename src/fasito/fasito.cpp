@@ -397,13 +397,13 @@ uint32_t InitCVNWithFasito()
     if (nKeyIndex > 6) {
         LogPrintf("invalid value for -fasitocvnkeyindex\n");
         fasito.close();
-        return NULL;
+        return 0;
     }
 
     if (!fasito.mapKeys.count(nKeyIndex)) {
         LogPrintf("key #%d not configured on Fasito\n", nKeyIndex);
         fasito.close();
-        return NULL;
+        return 0;
     }
 
     fasito.nCVNKeyIndex = nKeyIndex;
@@ -427,13 +427,13 @@ uint32_t InitChainAdminWithFasito()
     if (nKeyIndex > 6) {
         LogPrintf("invalid value for -fasitoadminkeyindex\n");
         fasito.close();
-        return NULL;
+        return 0;
     }
 
     if (!fasito.mapKeys.count(nKeyIndex)) {
         LogPrintf("key #%d not configured on Fasito\n", nKeyIndex);
         fasito.close();
-        return NULL;
+        return 0;
     }
 
     fasito.nADMINKeyIndex = nKeyIndex;

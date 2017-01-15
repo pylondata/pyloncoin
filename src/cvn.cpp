@@ -143,7 +143,7 @@ uint32_t InitCVNWithCertificate()
     FILE* file = fopen(privkeyFile.string().c_str(), "r");
     if (!file) {
         LogPrintf("ERROR: key file not found: %s, is -cvnkeyfile set correctly?\n", privkeyFile);
-        return NULL;
+        return 0;
     }
 
     X509 *x509Cert = ParseCertificate(file, false);
@@ -162,7 +162,7 @@ uint32_t InitChainAdminWithCertificate()
     FILE* file = fopen(privkeyFile.string().c_str(), "r");
     if (!file) {
         LogPrintf("ERROR: key file not found: %s, is -adminkeyfile set correctly?\n", privkeyFile);
-        return NULL;
+        return 0;
     }
 
     X509 *x509Cert = ParseCertificate(file, true);
