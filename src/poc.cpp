@@ -392,10 +392,14 @@ void SaveNoncesPool()
         return;
 
     CNoncesPoolDB pooldb;
-    pooldb.Write(mapNoncePool[nCvnNodeId], vNoncePrivate, fasito.vNonceHandles);
+    vector<uint8_t> vNonceHandles;
+#ifdef USE_FASITO
+    vNonceHandles = fasito.vNonceHandles;
+#endif
+    pooldb.Write(mapNoncePool[nCvnNodeId], vNoncePrivate, vNonceHandles);
 
     LogPrint("cvnsig", "Flushed pool with %d public nonces and %d private nonces and %d nonces handles to pool.dat\n",
-            mapNoncePool[nCvnNodeId].vPublicNonces.size(), vNoncePrivate.size(), fasito.vNonceHandles.size());
+            mapNoncePool[nCvnNodeId].vPublicNonces.size(), vNoncePrivate.size(), vNonceHandles.size());
 }
 
 bool static CreateNonceWithKey(const uint256& hashData, const CKey& cvnPrivKey, unsigned char *pPrivateData, CSchnorrNonce& noncePublic, const CCvnInfo& cvnInfo)
@@ -1616,15 +1620,21 @@ void RelayNoncePool(const CNoncePool& msg)
 
 static bool SetUpNoncePool(const POCStateHolder& s)
 {
+#ifdef USE_FASITO
     bool fUseFasito = GetArg("-cvn", "fasito") == "fasito";
+    vector<uint8_t>& vNonceHandles = fasito.vNonceHandles;
+#else
+    vector<uint8_t> vNonceHandles;
+    bool fUseFasito = false;
+#endif
     CNoncesPoolDB pooldb;
     CNoncePool pool;
-    if (!pooldb.Read(pool, vNoncePrivate, fasito.vNonceHandles))
+    if (!pooldb.Read(pool, vNoncePrivate, vNonceHandles))
         return false;
 
-    if (fUseFasito && fasito.vNonceHandles.size() != pool.vPublicNonces.size()) {
-        LogPrintf("SetUpNoncePool : number of private handle/public nonces mismatch: %d/%d\n", fasito.vNonceHandles.size(), pool.vPublicNonces.size());
-        fasito.vNonceHandles.clear();
+    if (fUseFasito && vNonceHandles.size() != pool.vPublicNonces.size()) {
+        LogPrintf("SetUpNoncePool : number of private handle/public nonces mismatch: %d/%d\n", vNonceHandles.size(), pool.vPublicNonces.size());
+        vNonceHandles.clear();
         return false;
     }
 
@@ -1684,7 +1694,7 @@ static bool CreateNoncePoolFasito(CNoncePool& pool, const uint16_t nPoolSize)
         uint32_t *nHandle = (uint32_t *) &privateData[0];
         fasito.vNonceHandles.push_back(*nHandle);
         pool.vPublicNonces.push_back(nonce);
-        LogPrintf("CreateNoncePoolFasito : add to pool key #%d (handle: %d): %s\n", i, *nHandle, nonce.ToString());
+        LogPrint("cvnsig", "CreateNoncePoolFasito : add to pool key #%d (handle: %d): %s\n", i, *nHandle, nonce.ToString());
     }
 
     return false;
@@ -1714,8 +1724,8 @@ void CreateNewNoncePool(const POCStateHolder& s)
     }
 #else
     else {
-        LogPrintf("can not create pool. Fasito support not compiled in.\n");
-        return false;
+        LogPrintf("cannot create pool. Fasito support not compiled in.\n");
+        return;
     }
 #endif
 
