@@ -182,6 +182,7 @@ public:
     uint32_t nCreatorId; // the CVN node ID of the creator of the next block
     uint256 hashPrevBlock;
     CSchnorrSig signature;
+    bool isValidated; // memory only
 
     // contains the CVN IDs that did not co-sign (usually all in IDs in mapCVNs should sign)
     vector<uint32_t> vMissingSignerIds;
@@ -198,17 +199,8 @@ public:
         this->nCreatorId        = sig.nCreatorId;
         this->hashPrevBlock     = sig.hashPrevBlock;
         this->signature         = sig.signature;
+        this->isValidated       = false;
         this->vMissingSignerIds = sig.vMissingSignerIds;
-    }
-
-    CCvnPartialSignatureUnsinged(const uint32_t nSignerId, const uint32_t nCreatorId, const uint256 hashPrevBlock, const vector<uint32_t> vMissingSignerIds, const int32_t nVersion = CCvnPartialSignatureUnsinged::CURRENT_VERSION)
-    {
-        this->nVersion          = nVersion;
-        this->nSignerId         = nSignerId;
-        this->nCreatorId        = nCreatorId;
-        this->hashPrevBlock     = hashPrevBlock;
-        this->signature.SetNull();
-        this->vMissingSignerIds = vMissingSignerIds;
     }
 
     ADD_SERIALIZE_METHODS;
@@ -226,9 +218,10 @@ public:
 
     void SetNull()
     {
-        nVersion   = CCvnPartialSignatureUnsinged::CURRENT_VERSION;
-        nSignerId  = 0;
-        nCreatorId = 0;
+        nVersion    = CCvnPartialSignatureUnsinged::CURRENT_VERSION;
+        nSignerId   = 0;
+        nCreatorId  = 0;
+        isValidated = false;
         hashPrevBlock.SetNull();
         signature.SetNull();
         vMissingSignerIds.clear();

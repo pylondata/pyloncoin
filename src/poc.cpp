@@ -270,6 +270,23 @@ string CSignatureHolder::ToString()
     return s.str();
 }
 
+void CSignatureHolder::flushOldEntries(const uint256 &hashPrevBlock, const uint32_t nNextCreator)
+{
+    LOCK(cs_mapCvnSigs);
+
+    if (mapTip.empty() || !mapTip.count(hashPrevBlock))
+        return;
+
+    MapSigCreator& mapCreator = mapTip[hashPrevBlock];
+
+    BOOST_FOREACH(MapSigCreator::value_type &creator, mapCreator) {
+        if (creator.first != nNextCreator) {
+            MapMissing &missing = creator.second;
+            missing.clear();
+        }
+    }
+}
+
 CSignatureHolder sigHolder;
 
 static bool GetSignatureSet(MapSigSigner &sigs, POCStateHolder& s)
@@ -980,15 +997,14 @@ bool CvnVerifyPartialSignature(const CCvnPartialSignature& sig)
     return CvnVerifyPartialSignature(hasher.GetHash(), sig.signature, mapCVNs[sig.nSignerId].pubKey, sumPublicNoncesOthers);
 }
 
-bool AddCvnSignature(const CCvnPartialSignature& msg)
+bool AddCvnSignature(CCvnPartialSignature& msg)
 {
     if (!CvnVerifySignature(msg.GetHash(), msg.msgSig, msg.nSignerId))
         return false;
 
-    if (!CvnVerifyPartialSignature(msg)) {
-        LogPrintf("AddCvnSignature : invalid signature received for 0x%08x by 0x%08x, hash %s\n", msg.nCreatorId, msg.nSignerId, msg.hashPrevBlock.ToString());
-        return false;
-    }
+    msg.isValidated = CvnVerifyPartialSignature(msg);
+    if (!msg.isValidated)
+        LogPrintf("AddCvnSignature : invalid signature received for 0x%08x by 0x%08x, hash %s. Marked as invalid.\n", msg.nCreatorId, msg.nSignerId, msg.hashPrevBlock.ToString());
 
     sigHolder.AddSig(msg);
 
@@ -1066,7 +1082,7 @@ void UpdateCvnInfo(const CBlock* pblock)
 
     mapCVNs.clear();
 
-    BOOST_FOREACH(CCvnInfo cvnInfo, pblock->vCvns) {
+    BOOST_FOREACH(const CCvnInfo &cvnInfo, pblock->vCvns) {
         mapCVNs.insert(std::make_pair(cvnInfo.nNodeId, cvnInfo));
     }
 
@@ -1086,7 +1102,7 @@ void UpdateChainAdmins(const CBlock* pblock)
 
     mapChainAdmins.clear();
 
-    BOOST_FOREACH(CChainAdmin admin, pblock->vChainAdmins) {
+    BOOST_FOREACH(const CChainAdmin &admin, pblock->vChainAdmins) {
         mapChainAdmins.insert(std::make_pair(admin.nAdminId, admin));
     }
 
@@ -1855,12 +1871,20 @@ static void handleNoncePoolChanges(POCStateHolder& s)
         }
     }
 
-    BOOST_FOREACH(const CNoncePoolType::value_type& pt, mapNoncePool) {
-        const CNoncePool &p = pt.second;
-        const uint32_t nPoolAge = GetPoolAge(p, s.pindexPrev);
-        if (nPoolAge >= p.vPublicNonces.size()) {
-            LogPrintf("nonce pool expired, removing pool for 0x%08x.\n", pt.first);
-            mapNoncePool.erase(pt.first);
+    {
+        LOCK(cs_mapNoncePool);
+
+        CNoncePoolType::iterator it = mapNoncePool.begin();
+        while (it != mapNoncePool.end()) {
+            const pair<uint32_t, CNoncePool> &pt = *it;
+            const CNoncePool &p = pt.second;
+            const uint32_t nPoolAge = GetPoolAge(p, s.pindexPrev);
+            const CNoncePoolType::iterator itErase = it++;
+
+            if (nPoolAge >= p.vPublicNonces.size()) {
+                LogPrintf("nonce pool expired, removing pool for 0x%08x.\n", pt.first);
+                mapNoncePool.erase(itErase);
+            }
         }
     }
 
@@ -1973,6 +1997,7 @@ void static POCThread(const CChainParams& chainparams, const uint32_t& nNodeId)
             if ((s.NewTip() || s.BlockSpacingTimeout()) && s.state != WAITING_FOR_CVN_DATA) {
                 LogPrintf(s.NewTip() ? "new tip detected.\n" : "block spacing timeout detected.\n");
                 s.Reset(s.nNextCreator, s.pindexPrev);
+                sigHolder.flushOldEntries(s.GetPrevBlockHash(), s.nNextCreator);
             }
 
             if (s.state != lastState) {

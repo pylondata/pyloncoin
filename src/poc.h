@@ -161,6 +161,7 @@ public:
     bool GetSignature(CCvnPartialSignature &sig, const uint256 &hashPrevBlock, const uint32_t nNextCreator, const uint32_t nSignerId, const vector<uint32_t> &vMissingSignerIds);
     bool GetSignatures(MapSigSigner &sigs, const uint256 &hashPrevBlock, const uint32_t nNextCreator);
     bool GetMissing(MapMissing &missing, const uint256 &hashPrevBlock, const uint32_t nNextCreator);
+    void flushOldEntries(const uint256 &hashPrevBlock, const uint32_t nNextCreator);
 
     std::string ToString();
 };
@@ -180,7 +181,7 @@ extern bool CheckForDuplicateChainAdmins(const CBlock& block);
 extern bool CheckForDuplicateAdminSigs(const CBlock& block);
 extern bool CheckForDuplicateMissingChainSigs(const CBlock& block);
 extern bool SendCVNSignature(const CBlockIndex *pindexNew);
-extern bool AddCvnSignature(const CCvnPartialSignature& msg);
+extern bool AddCvnSignature(CCvnPartialSignature& msg);
 extern bool AddChainData(const CChainDataMsg& msg);
 extern bool CvnVerifyPartialSignature(const CCvnPartialSignature &sig);
 extern bool CvnVerifyPartialSignature(const uint256 &hash, const CSchnorrSig &sig, const CSchnorrPubKey &pubKey, const CSchnorrPubKey &sumPublicNoncesOthers);

@@ -431,7 +431,7 @@ bool DetermineBestSignatureSet(CBlockIndex * const pindexPrev, CBlock *pblock)
         {
             const CCvnPartialSignature& sig = entry.second;
 
-            if (!CvnVerifyPartialSignature(sig)) {
+            if (!sig.isValidated && !CvnVerifyPartialSignature(sig)) {
                 LogPrintf("Invalid signature found. Trying next set.\n%s\n", sig.ToString());
                 fAllSigsValid = false;
                 break;

@@ -339,15 +339,9 @@ static void RetrievePubKeys()
     }
 }
 
-static bool InitFasito(uint32_t nUnit)
+static bool InitFasito()
 {
-    if (nUnit > 9) {
-        LogPrintf("ERROR: invalid -fasitounit supplied (max: 9)\n");
-        return false;
-    }
-
-    string strDevice = "/dev/ttyACM#";
-    strDevice[11] = '0' + (char)nUnit;
+    const string strDevice = GetArg("-fasitodevice", "/dev/ttyACM0");
 
     try {
         fasito.open(strDevice);
@@ -389,7 +383,7 @@ static bool InitFasito(uint32_t nUnit)
 uint32_t InitCVNWithFasito()
 {
     if (!fasito.fInitialized) {
-        if (!InitFasito(GetArg("-fasitounit", 0)))
+        if (!InitFasito())
              return false;
     }
 
@@ -412,14 +406,14 @@ uint32_t InitCVNWithFasito()
     vector<unsigned char> vPubKey;
     fKey.pubKey.GetPubKeyDER(vPubKey);
 
-    LogPrintf("Using Fasito config for ADMIN ID 0x%08x with public key %s\n", fKey.nCvnId, HexStr(vPubKey));
+    LogPrintf("Using Fasito config for CVN ID 0x%08x with public key %s\n", fKey.nCvnId, HexStr(vPubKey));
     return fKey.nCvnId;
 }
 
 uint32_t InitChainAdminWithFasito()
 {
     if (!fasito.fInitialized) {
-        if (!InitFasito(GetArg("-fasitounit", 0)))
+        if (!InitFasito())
              return false;
     }
 
@@ -442,6 +436,6 @@ uint32_t InitChainAdminWithFasito()
     vector<unsigned char> vPubKey;
     fKey.pubKey.GetPubKeyDER(vPubKey);
 
-    LogPrintf("Using Fasito config for CVN ID 0x%08x with public key %s\n", fKey.nCvnId, HexStr(vPubKey));
+    LogPrintf("Using Fasito config for ADMIN ID 0x%08x with public key %s\n", fKey.nCvnId, HexStr(vPubKey));
     return fKey.nCvnId;
 }
