@@ -98,11 +98,22 @@ public:
     }
 };
 
+class CSchnorrRx : public poc_storage<32> {
+public:
+    CSchnorrRx() {}
+    CSchnorrRx(const poc_storage<32>& b) : poc_storage<32>(b) {}
+    explicit CSchnorrRx(const std::vector<unsigned char>& vch) : poc_storage<32>(vch) {}
+};
+
 class CSchnorrSig : public poc_storage<64> {
 public:
     CSchnorrSig() {}
     CSchnorrSig(const poc_storage<64>& b) : poc_storage<64>(b) {}
     explicit CSchnorrSig(const std::vector<unsigned char>& vch) : poc_storage<64>(vch) {}
+    const CSchnorrRx GetRx() const
+    {
+        return CSchnorrRx(data);
+    }
 };
 
 class CSchnorrNonce : public poc_storage<64> {
@@ -182,7 +193,7 @@ public:
     uint32_t nCreatorId; // the CVN node ID of the creator of the next block
     uint256 hashPrevBlock;
     CSchnorrSig signature;
-    bool isValidated; // memory only
+    bool fValidated; // memory only
 
     // contains the CVN IDs that did not co-sign (usually all in IDs in mapCVNs should sign)
     vector<uint32_t> vMissingSignerIds;
@@ -199,7 +210,7 @@ public:
         this->nCreatorId        = sig.nCreatorId;
         this->hashPrevBlock     = sig.hashPrevBlock;
         this->signature         = sig.signature;
-        this->isValidated       = false;
+        this->fValidated        = sig.fValidated;
         this->vMissingSignerIds = sig.vMissingSignerIds;
     }
 
@@ -218,10 +229,10 @@ public:
 
     void SetNull()
     {
-        nVersion    = CCvnPartialSignatureUnsinged::CURRENT_VERSION;
-        nSignerId   = 0;
-        nCreatorId  = 0;
-        isValidated = false;
+        nVersion   = CCvnPartialSignatureUnsinged::CURRENT_VERSION;
+        nSignerId  = 0;
+        nCreatorId = 0;
+        fValidated = false;
         hashPrevBlock.SetNull();
         signature.SetNull();
         vMissingSignerIds.clear();

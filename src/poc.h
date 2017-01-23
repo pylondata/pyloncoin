@@ -21,12 +21,12 @@
 typedef std::map<uint32_t, CCvnInfo> CvnMapType;
 typedef std::map<uint32_t, CChainAdmin> ChainAdminMapType;
 typedef std::map<uint32_t, CNoncePool> CNoncePoolType;
-typedef std::map<uint256, CChainDataMsg> ChainDataMapType;
+typedef std::map<const uint256, CChainDataMsg> ChainDataMapType;
 
 typedef std::map<uint32_t, CCvnPartialSignature> MapSigSigner;
-typedef std::map<vector<uint32_t>, MapSigSigner> MapMissing;
-typedef std::map<uint32_t, MapMissing> MapSigCreator;
-typedef std::map<uint256, MapSigCreator> MapSigTip;
+typedef std::map<const CSchnorrRx, MapSigSigner> MapSigCommonR;
+typedef std::map<uint32_t, MapSigCommonR> MapSigCreator;
+typedef std::map<const uint256, MapSigCreator> MapSigTip;
 
 typedef boost::unordered_set<uint32_t> TimeWeightSetType;
 typedef std::vector<uint32_t>::reverse_iterator CandidateIterator;
@@ -91,6 +91,7 @@ public:
     uint32_t nSleep;
 
     vector<uint32_t> vMissingSignatures;
+    CSchnorrRx commonRx;
 
     CBlockIndex *pindexLastTip, *pindexPrev;
     const CChainParams& chainparams;
@@ -108,6 +109,7 @@ public:
         pindexPrev    = pindexPrevIn;
         pindexLastTip = pindexPrevIn;
         vMissingSignatures.clear();
+        commonRx.SetNull();
     }
 
     void Reset(uint32_t nNextCreatorIn, CBlockIndex *pindexPrevIn)
@@ -119,6 +121,7 @@ public:
         pindexPrev    = pindexPrevIn;
         nSleep        = 0;
         vMissingSignatures.clear();
+        commonRx.SetNull();
     }
 
     bool NewTip() const
@@ -157,10 +160,10 @@ public:
     }
 
     void AddSig(const CCvnPartialSignature &sig);
-    bool GetSignatureSet(MapSigSigner &sigs, const vector<uint32_t> &vMissingSignerIds, const uint256 &hashPrevBlock, const uint32_t nNextCreator);
-    bool GetSignature(CCvnPartialSignature &sig, const uint256 &hashPrevBlock, const uint32_t nNextCreator, const uint32_t nSignerId, const vector<uint32_t> &vMissingSignerIds);
-    bool GetSignatures(MapSigSigner &sigs, const uint256 &hashPrevBlock, const uint32_t nNextCreator);
-    bool GetMissing(MapMissing &missing, const uint256 &hashPrevBlock, const uint32_t nNextCreator);
+    MapSigSigner* GetSignatureSet(const CSchnorrRx &commonRx, const uint256 &hashPrevBlock, const uint32_t nNextCreator);
+    CCvnPartialSignature* GetSignature(const uint256 &hashPrevBlock, const uint32_t nNextCreator, const uint32_t nSignerId, const CSchnorrRx &commonRx);
+    bool GetSignatures(vector<CCvnPartialSignature> &sigs, const uint256 &hashPrevBlock, const uint32_t nNextCreator);
+    MapSigCommonR* GetCommonR(const uint256 &hashPrevBlock, const uint32_t nNextCreator);
     void flushOldEntries(const uint256 &hashPrevBlock, const uint32_t nNextCreator);
 
     std::string ToString();

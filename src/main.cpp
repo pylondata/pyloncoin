@@ -4409,6 +4409,23 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
     }
 }
 
+void static AdvertiseSigsAndNonces(CNode *pfrom)
+{
+    const CBlockIndex *tip = chainActive.Tip();
+    uint32_t nNextCreator = CheckNextBlockCreator(tip, GetAdjustedTime());
+
+    vector<CCvnPartialSignature> sigs;
+    if (sigHolder.GetSignatures(sigs, tip->GetBlockHash(), nNextCreator)) {
+        BOOST_FOREACH(const CCvnPartialSignature &s, sigs) {
+            pfrom->PushInventory(CInv(MSG_CVN_SIGNATURE, s.GetHash()));
+        }
+    }
+
+    BOOST_FOREACH(const CNoncePoolType::value_type &p, mapNoncePool) {
+        pfrom->PushInventory(CInv(MSG_CVN_PUB_NONCE_POOL, p.second.GetHash()));
+    }
+}
+
 bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, int64_t nTimeReceived, const CChainParams& chainparams)
 {
     LogPrint("net", "received: %s (%u bytes) peer=%d\n", SanitizeString(strCommand), vRecv.size(), pfrom->id);
@@ -4520,15 +4537,6 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                     LogPrint("net", "ProcessMessages: advertising address %s\n", addr.ToString());
                     pfrom->PushAddress(addr);
                 }
-
-#if 0
-                // request peers chain signatures
-                uint32_t nNextCreator = CheckNextBlockCreator(chainActive.Tip(), GetAdjustedTime());
-                if (nNextCreator && !IsInitialBlockDownload()) {
-                    pfrom->PushMessage(NetMsgType::GETNONCES, chainActive.Tip()->GetBlockHash(), nNextCreator);
-                    pfrom->PushMessage(NetMsgType::GETSIGLIST, chainActive.Tip()->GetBlockHash(), nNextCreator);
-                }
-#endif
             }
 
             // Get recent addresses
@@ -4545,15 +4553,11 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                 addrman.Good(addrFrom);
             }
         }
-#if 1
-        // TODO: tmp remove from here
-        // request peers chain signatures
-        uint32_t nNextCreator = CheckNextBlockCreator(chainActive.Tip(), GetAdjustedTime());
-        if (nNextCreator && !IsInitialBlockDownload()) {
-            pfrom->PushMessage(NetMsgType::GETNONCES, chainActive.Tip()->GetBlockHash(), nNextCreator);
-            pfrom->PushMessage(NetMsgType::GETSIGLIST, chainActive.Tip()->GetBlockHash(), nNextCreator);
-        }
-#endif
+
+        // Advertise the partial signatures and public nonces we've got
+        if (!IsInitialBlockDownload())
+            AdvertiseSigsAndNonces(pfrom);
+
         // Relay alerts
         {
             LOCK(cs_mapAlerts);
@@ -4733,13 +4737,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                     LogPrint("net", "getheaders (%d) %s to peer=%d\n", pindexBestHeader->nHeight, inv.hash.ToString(), pfrom->id);
                 }
             }
-            else if (!IsInitialBlockDownload() && (inv.type == MSG_CVN_PUB_NONCE_POOL || inv.type == MSG_CVN_SIGNATURE)) {
-                if (mapNoncePool.empty())
-                    pfrom->PushMessage(NetMsgType::GETNONCES, chainActive.Tip()->GetBlockHash(), CheckNextBlockCreator(chainActive.Tip(), GetAdjustedTime()));
-                else if (!fAlreadyHave && !fImporting && !fReindex)
-                    pfrom->AskFor(inv);
-            }
-            else if (!IsInitialBlockDownload() && inv.type == MSG_POC_CHAIN_DATA) {
+            else if (!IsInitialBlockDownload() && (inv.type == MSG_CVN_PUB_NONCE_POOL || inv.type == MSG_CVN_SIGNATURE || inv.type == MSG_POC_CHAIN_DATA)) {
                 if (!fAlreadyHave && !fImporting && !fReindex)
                     pfrom->AskFor(inv);
             }
@@ -4966,124 +4964,6 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             }
         } else
             LogPrint("net", "AlreadyHave sig %s\n", msg.hashPrevBlock.ToString());
-    }
-
-
-    else if (strCommand == NetMsgType::GETNONCES)
-    {
-        LogPrint("net", "peer %d requests CVN nonce pools\n", pfrom->id);
-
-        LOCK(cs_mapNoncePool);
-
-        if (!mapNoncePool.empty()) {
-            vector<CNoncePool> vPoolList(mapNoncePool.size());
-
-            int i = 0;
-            BOOST_FOREACH(const CNoncePoolType::value_type& pool, mapNoncePool) {
-                if (mapBannedCVNs.count(pool.first))
-                    continue;
-                vPoolList[i++] = pool.second;
-            }
-
-            if (vPoolList.size())
-                pfrom->PushMessage(NetMsgType::NONCEPOOLS, vPoolList);
-        }
-    }
-
-
-    else if (strCommand == NetMsgType::NONCEPOOLS)
-    {
-        vector<CNoncePool> vPoolList;
-
-        vRecv >> vPoolList;
-
-        LogPrint("net", "received %u CVN nonce pools from peer %d\n", vPoolList.size(), pfrom->id);
-
-        if (vPoolList.size()) {
-            bool fPoolValid = true, fPoolFromBanned = false;
-            for (uint32_t i = 0; i < vPoolList.size() ; i++) {
-                if (mapBannedCVNs.count(vPoolList[i].nCvnId)) {
-                    LogPrintf("Ignoring from list nonce pool of banned CvnID 0x%08x\n", vPoolList[i].nCvnId);
-                    fPoolFromBanned = true;
-                    continue;
-                }
-                if (!AddNoncePool(vPoolList[i]))
-                    fPoolValid = false;
-            }
-
-            if (!fPoolValid && !IsInitialBlockDownload())
-                Misbehaving(pfrom->GetId(), 50);
-
-            if (fPoolFromBanned)
-                Misbehaving(pfrom->GetId(), 20);
-        } else {
-            // received empty list
-            Misbehaving(pfrom->GetId(), 20);
-        }
-    }
-
-
-    else if (strCommand == NetMsgType::GETSIGLIST)
-    {
-        uint256 hashPeersTip;
-        uint32_t nNextCreator;
-
-        vRecv >> hashPeersTip >> nNextCreator;
-
-        LogPrint("net", "peer %d requests CVN signature list for 0x%08x tip: %s\n", pfrom->id, nNextCreator, hashPeersTip.ToString());
-
-        MapSigSigner mapSigsBySigner;
-        if (sigHolder.GetSignatures(mapSigsBySigner, hashPeersTip, nNextCreator)) {
-            vector<CCvnPartialSignature> vSigList;
-
-            BOOST_FOREACH(const MapSigSigner::value_type& sig, mapSigsBySigner) {
-                if (mapBannedCVNs.count(sig.first)) {
-                    continue;
-                }
-                vSigList.push_back(sig.second);
-            }
-
-            if (vSigList.size())
-                pfrom->PushMessage(NetMsgType::SIGLIST, hashPeersTip, nNextCreator, vSigList);
-        }
-    }
-
-
-    else if (strCommand == NetMsgType::SIGLIST)
-    {
-        vector<CCvnPartialSignature> vSigList;
-        uint256 hashPeersTip;
-        uint32_t nNextCreator;
-
-        vRecv >> hashPeersTip;
-        vRecv >> nNextCreator;
-        vRecv >> vSigList;
-
-        LogPrint("net", "received %u CVN signatures for hash %s from peer %d\n", vSigList.size(), hashPeersTip.ToString(), pfrom->id);
-
-        if (hashPeersTip != chainActive.Tip()->GetBlockHash())
-            LogPrintf("received outdated CVN signature list from peer %d for block %s\n", pfrom->id, hashPeersTip.ToString());
-        else {
-            if (vSigList.size()) {
-                bool fAllSigsVaild = true;
-                for (uint32_t i = 0; i < vSigList.size() ; i++) {
-                    if (!mapBannedCVNs.count(vSigList[i].nSignerId)) {
-                        if (!AddCvnSignature(vSigList[i])) {
-                            fAllSigsVaild = false;
-                        }
-                    } else {
-                        LogPrintf("Ignoring from list chain signature of banned CvnID 0x%08x\n", vSigList[i].nSignerId);
-                        fAllSigsVaild = false;
-                    }
-                }
-
-                if (!fAllSigsVaild)
-                    Misbehaving(pfrom->GetId(), 20);
-            } else {
-                // received empty list
-                Misbehaving(pfrom->GetId(), 20);
-            }
-        }
     }
 
 

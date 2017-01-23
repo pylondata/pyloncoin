@@ -139,76 +139,72 @@ void CSignatureHolder::AddSig(const CCvnPartialSignature &sig)
     LOCK(cs_mapCvnSigs);
 
     MapSigCreator& mapCreator = mapTip[sig.hashPrevBlock];
-    MapMissing& mapMissing    = mapCreator[sig.nCreatorId];
-    MapSigSigner& mapSigner   = mapMissing[sig.vMissingSignerIds];
+    MapSigCommonR& mapCommonR = mapCreator[sig.nCreatorId];
+    MapSigSigner& mapSigner   = mapCommonR[sig.signature.GetRx()];
 
-    mapSigner[sig.nSignerId] = sig;
+    mapSigner[sig.nSignerId]  = sig;
 }
 
-bool CSignatureHolder::GetSignatureSet(MapSigSigner &sigs, const vector<uint32_t> &vMissingSignerIds, const uint256 &hashPrevBlock, const uint32_t nNextCreator)
+MapSigSigner* CSignatureHolder::GetSignatureSet(const CSchnorrRx &commonRx, const uint256 &hashPrevBlock, const uint32_t nNextCreator)
 {
     LOCK(cs_mapCvnSigs);
 
     if (!mapTip.count(hashPrevBlock)) {
         LogPrintf("GetSignatureSet : no hashPrevBlock=%s, mapTip.size=%u\n", hashPrevBlock.ToString(), mapTip.size());
-        return false;
+        return NULL;
     }
 
     MapSigCreator& mapCreator = mapTip[hashPrevBlock];
     if (!mapCreator.count(nNextCreator)) {
         LogPrintf("GetSignatureSet : no nNextCreator=%08x, mapMissing.size=%u\n", nNextCreator, mapCreator.size());
-        return false;
+        return NULL;
     }
 
-    MapMissing& mapMissing = mapCreator[nNextCreator];
-    if (!mapMissing.count(vMissingSignerIds)) {
-        LogPrintf("GetSignatureSet : no vMissingSignerIds.size=%u, mapMissing.size=%u\n", vMissingSignerIds.size(), mapMissing.size());
-        LogPrintf("Could not find: %s\nBut we have:\n", CreateSignerIdList(vMissingSignerIds));
+    MapSigCommonR& mapCommonR = mapCreator[nNextCreator];
+    if (!mapCommonR.count(commonRx)) {
+        LogPrintf("GetSignatureSet : no commonRx=%s, mapCommonR.size=%u\n", commonRx.ToString(), mapCommonR.size());
 
-        BOOST_FOREACH(const MapMissing::value_type& entry, mapMissing)
+        BOOST_FOREACH(const MapSigCommonR::value_type& entry, mapCommonR)
         {
-            LogPrintf("  : %s\n", CreateSignerIdList(entry.first));
+            LogPrintf("  : %s\n", entry.first.ToString());
         }
 
-        return false;
+        return NULL;
     }
 
-    MapSigSigner& mapSigner = mapMissing[vMissingSignerIds];
+    MapSigSigner& mapSigner = mapCommonR[commonRx];
     if (mapSigner.empty()) {
-        LogPrintf("GetSignatureSet : no vMissingSignerIds=%s, mapSigner.size=%u\n", CreateSignerIdList(vMissingSignerIds), mapSigner.size());
-        return false;
+        LogPrintf("GetSignatureSet : no commonRx=%s, mapSigner.size=%u\n", commonRx.ToString(), mapSigner.size());
+        return NULL;
     }
 
-    sigs = mapSigner;
-
-    return true;
+    return &mapCommonR[commonRx];
 }
 
-bool CSignatureHolder::GetSignature(CCvnPartialSignature &sig, const uint256 &hashPrevBlock, const uint32_t nNextCreator, const uint32_t nSignerId, const vector<uint32_t> &vMissingSignerIds)
+CCvnPartialSignature* CSignatureHolder::GetSignature(const uint256 &hashPrevBlock, const uint32_t nNextCreator, const uint32_t nSignerId, const CSchnorrRx &commonRx)
 {
     LOCK(cs_mapCvnSigs);
 
     if (!mapTip.count(hashPrevBlock))
-        return false;
+        return NULL;
 
     MapSigCreator& mapCreator = mapTip[hashPrevBlock];
     if (!mapCreator.count(nNextCreator))
-        return false;
+        return NULL;
 
-    MapMissing& mapMissing = mapCreator[nNextCreator];
-    if (!mapMissing.count(vMissingSignerIds))
-        return false;
+    MapSigCommonR& mapCommonR = mapCreator[nNextCreator];
+    if (!mapCommonR.count(commonRx))
+        return NULL;
 
-    MapSigSigner& mapSigner = mapMissing[vMissingSignerIds];
+    MapSigSigner& mapSigner = mapCommonR[commonRx];
 
     if (!mapSigner.count(nSignerId))
-        return false;
+        return NULL;
 
-    sig = mapSigner[nSignerId];
-    return true;
+    return &mapSigner[nSignerId];
 }
 
-bool CSignatureHolder::GetSignatures(MapSigSigner &sigs, const uint256 &hashPrevBlock, const uint32_t nNextCreator)
+bool CSignatureHolder::GetSignatures(vector<CCvnPartialSignature> &sigs, const uint256 &hashPrevBlock, const uint32_t nNextCreator)
 {
     LOCK(cs_mapCvnSigs);
 
@@ -219,33 +215,35 @@ bool CSignatureHolder::GetSignatures(MapSigSigner &sigs, const uint256 &hashPrev
     if (!mapCreator.count(nNextCreator))
         return false;
 
-    MapMissing& mapMissing = mapCreator[nNextCreator];
-    if (mapMissing.empty())
+    MapSigCommonR& mapCommonR = mapCreator[nNextCreator];
+    if (mapCommonR.empty())
         return false;
 
-    MapSigSigner& mapSigner = mapMissing.begin()->second;
+    MapSigSigner& mapSigner = mapCommonR.begin()->second;
     if (mapSigner.empty())
         return false;
 
-    sigs = mapSigner;
+    BOOST_FOREACH(const MapSigCommonR::value_type &entry, mapCommonR) {
+        BOOST_FOREACH(const MapSigSigner::value_type &s, entry.second) {
+            sigs.push_back(s.second);
+        }
+    }
 
-    return true;
+    return !sigs.empty();
 }
 
-bool CSignatureHolder::GetMissing(MapMissing &missing, const uint256 &hashPrevBlock, const uint32_t nNextCreator)
+MapSigCommonR* CSignatureHolder::GetCommonR(const uint256 &hashPrevBlock, const uint32_t nNextCreator)
 {
     LOCK(cs_mapCvnSigs);
 
     if (mapTip.empty() || !mapTip.count(hashPrevBlock))
-        return false;
+        return NULL;
 
     MapSigCreator& mapCreator = mapTip[hashPrevBlock];
     if (!mapCreator.count(nNextCreator))
-        return false;
+        return NULL;
 
-    missing = mapCreator[nNextCreator];
-
-    return true;
+    return &mapCreator[nNextCreator];
 }
 
 
@@ -258,9 +256,9 @@ string CSignatureHolder::ToString()
         s << strprintf("tip           (%02d): %s\n", mapTip.size(), tip.first.ToString());
         BOOST_FOREACH(const MapSigCreator::value_type& creator, tip.second) {
             s << strprintf(" next creator (%02d): 0x%08x\n", creator.second.size(), creator.first);
-            BOOST_FOREACH(const MapMissing::value_type& missing, creator.second) {
-                s << strprintf("  missing     (%02d): %s\n", missing.second.size(), CreateSignerIdList(missing.first));
-                BOOST_FOREACH(const MapSigSigner::value_type& signer, missing.second) {
+            BOOST_FOREACH(const MapSigCommonR::value_type& commonRx, creator.second) {
+                s << strprintf("  commonRx    (%02d): %s\n", commonRx.second.size(), commonRx.first.ToString());
+                BOOST_FOREACH(const MapSigSigner::value_type& signer, commonRx.second) {
                     s << strprintf("   signer         : 0x%08x (%s)\n", signer.first, signer.second.ToString());
                 }
             }
@@ -281,7 +279,7 @@ void CSignatureHolder::flushOldEntries(const uint256 &hashPrevBlock, const uint3
 
     BOOST_FOREACH(MapSigCreator::value_type &creator, mapCreator) {
         if (creator.first != nNextCreator) {
-            MapMissing &missing = creator.second;
+            MapSigCommonR &missing = creator.second;
             missing.clear();
         }
     }
@@ -289,15 +287,14 @@ void CSignatureHolder::flushOldEntries(const uint256 &hashPrevBlock, const uint3
 
 CSignatureHolder sigHolder;
 
-static bool GetSignatureSet(MapSigSigner &sigs, POCStateHolder& s)
+static MapSigSigner* GetSignatureSet(POCStateHolder& s)
 {
-    return sigHolder.GetSignatureSet(sigs, s.vMissingSignatures, s.GetPrevBlockHash(), s.nNextCreator);
+    return sigHolder.GetSignatureSet(s.commonRx, s.GetPrevBlockHash(), s.nNextCreator);
 }
 
 //
-// CPrivNoncesDB
+// CNoncesPoolDB
 //
-
 CNoncesPoolDB::CNoncesPoolDB()
 {
     pathNonces = GetDataDir() / "pool.dat";
@@ -1002,8 +999,8 @@ bool AddCvnSignature(CCvnPartialSignature& msg)
     if (!CvnVerifySignature(msg.GetHash(), msg.msgSig, msg.nSignerId))
         return false;
 
-    msg.isValidated = CvnVerifyPartialSignature(msg);
-    if (!msg.isValidated)
+    msg.fValidated = CvnVerifyPartialSignature(msg);
+    if (!msg.fValidated)
         LogPrintf("AddCvnSignature : invalid signature received for 0x%08x by 0x%08x, hash %s. Marked as invalid.\n", msg.nCreatorId, msg.nSignerId, msg.hashPrevBlock.ToString());
 
     sigHolder.AddSig(msg);
@@ -1051,6 +1048,7 @@ bool SendCVNSignature(POCStateHolder &s)
         RelayCvnSignature(msg);
 
     s.vMissingSignatures = msg.vMissingSignerIds;
+    s.commonRx = msg.signature.GetRx();
 
     return true;
 }
@@ -1758,8 +1756,8 @@ void CreateNewNoncePool(const POCStateHolder& s)
 
 static void handleCreateSignature(POCStateHolder& s)
 {
-    CCvnPartialSignature sig;
-    if (!sigHolder.GetSignature(sig, s.GetPrevBlockHash(), s.nNextCreator, s.nNodeId, s.vMissingSignatures)) {
+    CCvnPartialSignature *sig = sigHolder.GetSignature(s.GetPrevBlockHash(), s.nNextCreator, s.nNodeId, s.commonRx);
+    if (!sig) {
         if (SendCVNSignature(s)) {
             s.state  = WAITING_FOR_SIGNATURES;
             if (GetAdjustedTime() - s.pindexPrev->nTime > dynParams.nBlockSpacing)
@@ -1771,8 +1769,8 @@ static void handleCreateSignature(POCStateHolder& s)
 
 static void handleWaitingForSignatures(POCStateHolder& s)
 {
-    MapSigSigner sigs;
-    if (GetSignatureSet(sigs, s) && sigs.size() == mapNoncePool.size() - s.vMissingSignatures.size()) {
+    MapSigSigner *sigs = GetSignatureSet(s);
+    if (sigs && sigs->size() == mapNoncePool.size() - s.vMissingSignatures.size()) {
         s.state = WAITING_FOR_BLOCK;
         return;
     }
@@ -1782,9 +1780,9 @@ static void handleWaitingForSignatures(POCStateHolder& s)
     if ((nLastBlockSeconds > (int32_t)(dynParams.nBlockSpacing / 3) + NONCE_POOL_WAIT_TIME && nLastBlockSeconds < (int32_t)dynParams.nBlockSpacing) ||
             (nLastBlockSeconds >= (int32_t)dynParams.nBlockSpacing && s.vMissingSignatures.empty())) {
         //TODO: for debugging only, remove...
-        if (!sigs.count(s.nNodeId)) {
-            LogPrintf("---------> SHOULD NOT HAPPEN: sigs.size()=%u\n%s\n", sigs.size(), sigHolder.ToString());
-            BOOST_FOREACH(const MapSigSigner::value_type& sDebug, sigs) {
+        if (sigs && !sigs->count(s.nNodeId)) {
+            LogPrintf("---------> SHOULD NOT HAPPEN: sigs.size()=%u\n%s\n", sigs->size(), sigHolder.ToString());
+            BOOST_FOREACH(const MapSigSigner::value_type& sDebug, *sigs) {
                 LogPrintf(" :: %08x != %08x\n", sDebug.first, s.nNodeId);
             }
             s.state = CREATE_SIGNATURE;
@@ -1794,7 +1792,7 @@ static void handleWaitingForSignatures(POCStateHolder& s)
         /* We have not received all the expected partial signatures.
          * Find the missing node and re-try without it. */
         BOOST_FOREACH(const CNoncePoolType::value_type& p, mapNoncePool) {
-            if (sigs.count(p.first))
+            if (sigs && sigs->count(p.first))
                 continue;
 
             s.vMissingSignatures.push_back(p.first);
@@ -1817,7 +1815,7 @@ static void handleWaitingForSignatures(POCStateHolder& s)
                     s.state = WAITING_FOR_NEW_TIP;
                 }
             } else {
-                LogPrintf("Unable to find any usable signatures!\n");
+                LogPrintf("Unable to find any usable signature set!\n");
                 s.nSleep = 4;
             }
         }
@@ -1829,8 +1827,7 @@ static void handleWaitingForBlock(POCStateHolder& s)
     if (s.NewTip())
         s.Reset(s.nNextCreator, chainActive.Tip());
 
-    MapSigSigner sigs;
-    if (s.nNextCreator == s.nNodeId && GetSignatureSet(sigs, s)) {
+    if (s.nNextCreator == s.nNodeId && GetSignatureSet(s)) {
         int32_t nBlockTime = GetAdjustedTime() - s.pindexPrev->nTime;
         if (nBlockTime >= (int32_t)dynParams.nBlockSpacing && HasEnoughSignatures(s.pindexPrev, s.pindexLastTip->GetNumChainSigs() - s.vMissingSignatures.size())) {
             if (CreateBlock(s)) {

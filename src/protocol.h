@@ -228,25 +228,9 @@ extern const char *NONCEPOOL;
  */
 extern const char *SIG;
 /**
- * The getsiglist requests the complete cvn signature list for the given Tip()
- */
-extern const char *GETSIGLIST;
-/**
- * The siglist sends the complete cvn signature list for the given Tip()
- */
-extern const char *SIGLIST;
-/**
  * The chaindata sends chain data that a chain admin compiled
  */
 extern const char *CHAINDATA;
-/**
- * The getnonces requests the complete cvn nonces list for the given Tip()
- */
-extern const char *GETNONCES;
-/**
- * The noncepools sends a list of all known cvn nonces pools
- */
-extern const char *NONCEPOOLS;
 };
 
 /* Get a vector of all valid message types (see above) */
