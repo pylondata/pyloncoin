@@ -414,7 +414,8 @@ bool DetermineBestSignatureSet(CBlockIndex * const pindexPrev, CBlock *pblock)
             continue;
         }
 
-        if (signatures->size() + commonR.first.size() < mapNoncePool.size()) {
+        const CCvnPartialSignature &firstSig = commonR.second.begin()->second;
+        if (signatures->size() + firstSig.vMissingSignerIds.size() < mapNoncePool.size()) {
             LogPrintf("Not enough signatures found. Trying next set.\n");
             continue;
         }
@@ -429,8 +430,7 @@ bool DetermineBestSignatureSet(CBlockIndex * const pindexPrev, CBlock *pblock)
         uint8_t *sigs[MAX_NUMBER_OF_CVNS];
         set<uint32_t> setSigners;
 
-        BOOST_FOREACH(const MapSigSigner::value_type& entry, *signatures)
-        {
+        BOOST_FOREACH(const MapSigSigner::value_type& entry, *signatures) {
             const CCvnPartialSignature& sig = entry.second;
 
             if (!sig.fValidated && !CvnVerifyPartialSignature(sig)) {
@@ -462,8 +462,10 @@ bool DetermineBestSignatureSet(CBlockIndex * const pindexPrev, CBlock *pblock)
         pblock->chainMultiSig = allsig;
 
         BOOST_FOREACH(const CvnMapType::value_type &i, mapCVNs) {
-            if (setSigners.find(i.first) == setSigners.end())
+            if (setSigners.find(i.first) == setSigners.end()) {
                 pblock->vMissingSignerIds.push_back(i.first);
+                LogPrintf("adding 0x%08x to the list of missing nodes\n", i.first);
+            }
         }
 
         return true;
@@ -535,7 +537,7 @@ static bool CreateNewBlock(CBlockTemplate& blockTemplate)
     // final tests
     CValidationState state;
     if (!TestBlockValidity(state, blockTemplate.chainparams, *pblock, blockTemplate.pindexPrev, true, false)) {
-        LogPrintf("TestBlockValidity failed: %s\n", FormatStateMessage(state));
+        LogPrintf("TestBlockValidity failed: %s\n%s\n", FormatStateMessage(state), pblock->ToString());
         return false;
     }
 

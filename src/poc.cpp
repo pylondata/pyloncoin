@@ -33,6 +33,7 @@
 
 uint32_t nCvnNodeId = 0;
 uint32_t nChainAdminId = 0;
+bool fNoncePoolInitialsed = false;
 
 CCriticalSection cs_mapChainAdmins;
 ChainAdminMapType mapChainAdmins;
@@ -402,7 +403,7 @@ bool CNoncesPoolDB::Read(CNoncePool& pool, vector<CSchnorrPrivNonce>& vPrivateNo
 
 void SaveNoncesPool()
 {
-    if (!nCvnNodeId || !mapNoncePool.count(nCvnNodeId))
+    if (!nCvnNodeId || !mapNoncePool.count(nCvnNodeId) || !fNoncePoolInitialsed)
         return;
 
     CNoncesPoolDB pooldb;
@@ -760,7 +761,7 @@ bool CvnVerifyChainSignature(const CBlockHeader& block)
 
     CSchnorrPubKey pubK(sumOfAllSignersPubkeys.data);
     if (!CvnVerifySignature(hash, block.chainMultiSig, pubK))
-        return error("could not verify chain signature for block %s: %s", hash.ToString(), block.chainMultiSig.ToString());
+        return error("could not verify chain signature for block %s: %s (missing: %d)", hash.ToString(), block.chainMultiSig.ToString(), block.vMissingSignerIds.size());
 
     return true;
 }
@@ -1632,7 +1633,7 @@ void RelayNoncePool(const CNoncePool& msg)
     }
 }
 
-static bool SetUpNoncePool(const POCStateHolder& s)
+static bool SetUpNoncePool()
 {
 #ifdef USE_FASITO
     bool fUseFasito = GetArg("-cvn", "fasito") == "fasito";
@@ -1799,11 +1800,12 @@ static void handleWaitingForSignatures(POCStateHolder& s)
         }
 
         if (!s.vMissingSignatures.empty()) {
+            s.commonRx.SetNull();
             if (HasEnoughSignatures(s.pindexPrev, mapCVNs.size() - s.vMissingSignatures.size())) {
                 s.state = CREATE_SIGNATURE;
             }
         }
-        LogPrintf("Did not receive all sigs for set. Trying reduced signature set with %d members.\n", mapCVNs.size() - s.vMissingSignatures.size());
+        LogPrintf("Did not receive all sigs for set. Trying signature set with reduced number of members: %d/%d\n", mapCVNs.size() - s.vMissingSignatures.size(), mapCVNs.size());
     } else if (nLastBlockSeconds >= (int32_t)dynParams.nBlockSpacing) {
         if (s.nNextCreator == s.nNodeId) {
             CBlock dummy;
@@ -1913,13 +1915,14 @@ static void handleInit(POCStateHolder& s)
     s.nSleep = 2;
 
     if (mapCVNs.count(s.nNodeId)) {
-        if (SetUpNoncePool(s)) {
+        if (SetUpNoncePool()) {
             LogPrintf("Using saved nonces pool\n");
             RelayNoncePool(mapNoncePool[s.nNodeId]);
         } else
             CreateNewNoncePool(s);
 
         s.state = NONCE_POOL_CHANGES;
+        fNoncePoolInitialsed = true;
     } else {
         LogPrintf("Your node (0x%08x) has been removed from the network.\n", s.nNodeId);
         s.state = WAITING_FOR_CVN_DATA;
@@ -1986,7 +1989,8 @@ void static POCThread(const CChainParams& chainparams, const uint32_t& nNodeId)
             stateHandlers[s.state](s);
 
             if (s.nSleep) {
-                MilliSleep(s.nSleep * 1000);
+                while (s.nSleep-- && !ShutdownRequested())
+                    MilliSleep(1000);
                 s.nSleep = 0;
             } else
                 MilliSleep(1000);
