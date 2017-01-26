@@ -146,7 +146,7 @@ private:
 
 public:
     MapSigTip mapTip;     // map per block hash
-    CCriticalSection cs_mapCvnSigs;
+    CCriticalSection cs_sigHolder;
 
     CSignatureHolder()
     {
@@ -155,7 +155,7 @@ public:
 
     void SetNull()
     {
-        LOCK(cs_mapCvnSigs);
+        LOCK(cs_sigHolder);
         mapTip.clear();
     }
 

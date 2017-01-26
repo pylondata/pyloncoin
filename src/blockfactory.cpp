@@ -399,6 +399,8 @@ void printHex(const uint8_t *buf, const size_t len, const bool addLF = false)
 
 bool DetermineBestSignatureSet(CBlockIndex * const pindexPrev, CBlock *pblock)
 {
+    LOCK(sigHolder.cs_sigHolder);
+
     MapSigCommonR *mapCommonR = sigHolder.GetCommonR(pblock->hashPrevBlock, pblock->nCreatorId);
 
     if (!mapCommonR) {
@@ -485,33 +487,32 @@ static bool CreateNewBlock(CBlockTemplate& blockTemplate)
     pblock->nTime = blockTemplate.nCurrentTime;
 
     uint256 hashBlock = pblock->hashPrevBlock;
-    {
-        if (mapCVNs.size() == 1) {
-            /* if we only have one CVN available (e.g. during bootstrap) we use a plain Schnorr signature */
-            MapSigCommonR *mapCommonR = sigHolder.GetCommonR(pblock->hashPrevBlock, pblock->nCreatorId);
+    if (mapCVNs.size() == 1) {
+        LOCK(sigHolder.cs_sigHolder);
+        MapSigCommonR *mapCommonR = sigHolder.GetCommonR(pblock->hashPrevBlock, pblock->nCreatorId);
 
-            if (!mapCommonR->empty() && !mapCommonR->begin()->second.empty()) {
-                MapSigSigner &mapSigner = mapCommonR->begin()->second;
-                if (!mapSigner.empty()) {
-                    CCvnPartialSignature &singleSig = mapSigner.begin()->second;
-                    pblock->chainMultiSig = singleSig.signature;
-                }
+        /* if we only have one CVN available (e.g. during bootstrap) we use a plain Schnorr signature */
+        if (!mapCommonR->empty() && !mapCommonR->begin()->second.empty()) {
+            MapSigSigner &mapSigner = mapCommonR->begin()->second;
+            if (!mapSigner.empty()) {
+                CCvnPartialSignature &singleSig = mapSigner.begin()->second;
+                pblock->chainMultiSig = singleSig.signature;
             }
-
-            if (pblock->chainMultiSig.IsNull()) {
-                LogPrintf("cannot create block. Signature not available\n");
-                return false;
-            }
-        } else {
-            if (!DetermineBestSignatureSet(blockTemplate.pindexPrev, pblock))
-                return false;
         }
 
-        if (blockTemplate.pindexPrev->GetNumChainSigs() > 1 && ((float)blockTemplate.pindexPrev->GetNumChainSigs() / (float)2 >= (float)pblock->GetNumChainSigs())) {
-            LogPrintf("cannot create block. Not enough signatures available. Prev: %u, This: %u\n",
-                    blockTemplate.pindexPrev->GetNumChainSigs(), pblock->GetNumChainSigs());
+        if (pblock->chainMultiSig.IsNull()) {
+            LogPrintf("cannot create block. Signature not available\n");
             return false;
         }
+    } else {
+        if (!DetermineBestSignatureSet(blockTemplate.pindexPrev, pblock))
+            return false;
+    }
+
+    if (blockTemplate.pindexPrev->GetNumChainSigs() > 1 && ((float)blockTemplate.pindexPrev->GetNumChainSigs() / (float)2 >= (float)pblock->GetNumChainSigs())) {
+        LogPrintf("cannot create block. Not enough signatures available. Prev: %u, This: %u\n",
+                blockTemplate.pindexPrev->GetNumChainSigs(), pblock->GetNumChainSigs());
+        return false;
     }
 
     {
