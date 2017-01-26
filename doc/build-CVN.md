@@ -1,13 +1,14 @@
 # How to build a CVN
-In this HOWTO we suppose that you are going to install into the folder /opt/faircoin. You do not need to run any steps of this guide as root user except for the first two steps.
+In this HOWTO we suppose that you are going to install into the folder /opt/faircoin. You do not need to run any step of this guide as root user except for the first two steps.
 ```
 sudo mkdir /opt/faircoin
 sudo chown <insertYourUserName>.<insertYourUserName> /opt/faircoin
 ```
 ## 1 Compile the FairCoin2 wallet
+This document assumes that you have all the required development packages already installed on your system.
 ```
 cd /opt/faircoin
-git clone https://github.com/FairCoinTeam/faircoin2
+git clone https://github.com/faircoin/faircoin2
 cd faircoin2
 ./autogen.sh
 ./configure --disable-tests --disable-bench --with-incompatible-bdb --with-gui=qt4 --with-fasito

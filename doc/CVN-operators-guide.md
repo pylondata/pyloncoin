@@ -5,18 +5,18 @@ This document describes the requirements for setting up and operating a CVN (cer
 For online discussion and support please join the FairCoin CVN Operators telegram group here: https://telegram.me/joinchat/Bumu8gbZmAhnXoxCBr3WHg
 
 ## 1 About CVNs
-The aim of a CVN is to secure the network by validating all the transactions that had been sent to the network and put them into a transaction block chain. Blocks are created every 3 minutes (180 sec.). Transactions are confirmed after they have been added to a block. A CVN is a standard FairCoin core client configured to use a signature token (Fasito) for continuously signing certain pieces of data of the FairCoin network with certification data issued by FairCoop. Every node will be assigned a unique id called the CVN ID.
+The aim of a CVN is to secure the network by validating all the transactions that had been sent to the network and put them into a transaction block chain. Blocks are created every 3 minutes (180 sec.). Transactions are confirmed after they have been added to a block. A CVN is a standard FairCoin core client configured to use a signature token (Fasito) for continuously signing certain pieces of data of the FairCoin network. Every node will be assigned a unique id called the CVN ID in the form of 0x12345678.
 
 ## 2 Technical information for running a CVN
 
 ### 2.1 System requirements
-A secure and stable operating system is crucial for reliably running a CVN. Therefore all requirements shown in the following list need to be met by the CVN operator.
+A secure and stable operating system is crucial for reliably running a CVN. Therefore all requirements shown in the following list must be met by the CVN operator.
 
 1. A Linux operating system with a current distribution is required to run a CVN. We recommend using Ubuntu or Debian. All available system updates must be applied on a regular basis.
 2. The system must provide at least 1GB of free hard drive space, the more the better.
 3. The FairCoin wallet software needs be updated as official releases are made available by the development team.
-4. The system must be connected to the Internet all the time (24/7) and the TCP port 40404 must be reachable by all remote nodes from the Internet. Avoid using a wireless connection as this would result in additional network latency and potential unstable internet connection.
-5. The system must use a public NTP server to synchronize its system time to, e.g. pool.ntp.org to ensure that the system time is always correct. NTP means Networking Time Protocol and is intended to synchronize all participating computers to within a few milliseconds of Coordinated Universal Time (UTC).
+4. The system must be connected to the Internet all the time (24/7) and the TCP port 40404 must be reachable by all remote nodes from the Internet. You must not use a wireless connection as this would result in additional network latency and potential unstable internet connection.
+5. The system must use a public NTP server to synchronize its system time to, e.g. pool.ntp.org to ensure that the system time is always correct. NTP means Networking Time Protocol and is intended to synchronize the system time to an accurate clock source.
 6. The hardware must provide a USB 2.0 port which takes up the Fasito USB token. Please avoid using a USB-hub for the token.
 7. Although not absolutely necessary, a UPS (uninterruptible power supply) would be appreciated. Note that all network related equipment should also be hooked up to the UPS to keep the network connection up in the event of a power outage.
 
@@ -26,7 +26,7 @@ To build the FairCoin wallet software you need to install some software packages
 ```sudo apt-get update```  
 ```sudo apt-get install -y build-essential libtool autotools-dev autoconf pkg-config libssl-dev libboost-all-dev git libdb5.3-dev libdb5.3++-dev libqt4-core libqt4-gui libqt4-dev libqrencode-dev libprotobuf-dev protobuf-compiler libevent-dev libpcsclite-dev pcscd```
 
-Please note that the package names and/or versions can differ depending on your operatin system. E. g. your system might provide a different version of libdb. If it doesn't find version 5.3 try version 5.1.
+Please note that the package names and/or versions can differ depending on your operating system. E. g. your system might provide a different version of libdb. If it doesn't find version 5.3 try version 5.1.
 After package installation has completed successfully proceed by following the instructions provided here:
 https://github.com/faircoin/faircoin2/blob/faircoin2/doc/build-CVN.md
 
@@ -35,7 +35,7 @@ Make sure your Fasito is connected to your system and is working properly. You c
 minicom -D /dev/ttyACM0
 ```
 
-First type ```HELP``` (all uppercase!) and press enter. This will display a list of all commands.
+First type ```HELP``` (all upper-case!) and press enter. This will display a list of all commands.
 
 ### 2.3 The first start of your node
 Create a configuration file in the data directory of FairCoin and copy-and-paste the following command sequence in your terminal:
@@ -48,8 +48,14 @@ logtimestamps=1
 logips=1
 gen=1
 cvn=fasito
-cvnpin=123456
 EOF
+```
+
+In order to connect to Fasito the wallet opens the device located here: /dev/ttyACM0. If this path is already assigned to a different device on your system you can change the default value using the following option in the config file. E.g.:
+```
+...
+fasitodevice=/dev/ttyACS1
+...
 ```
 
 Now start the FairCoin wallet with:
@@ -58,9 +64,9 @@ Now start the FairCoin wallet with:
 ```
 
 It will then start to download the block chain, which will take some time. The progress bar at the lower left corner of the wallet software displays the download status.
-When it is finished, quit the wallet software.
+When it is finished, quit the wallet software.  
 
-### 2.4 Normal startup of a CVN
+### 2.4 Normal start-up of a CVN
 You start your CVN with the following command. In terminal or by pressing Alt+F2 on your desktop:
 ```
 /opt/faircoin/faircoin2/src/qt/faircoin-qt
@@ -115,4 +121,4 @@ The removal of a CVN will be performed by the chain administrators.
 ### 4.6 How to join
 If you are interested in setting up a CVN, write us at cvn@fair-coin.org.
 
-More information and discussion is avaiable here: https://fair.coop/groups/faircoop-community/faircoin/faircoin2/
+More information and discussion is available here: https://fair.coop/groups/faircoop-community/faircoin/faircoin2/
