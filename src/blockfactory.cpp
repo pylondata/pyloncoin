@@ -75,7 +75,7 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
 
     // -regtest only: allow overriding block.nVersion with
     // -blockversion=N to test forking scenarios
-    if (blocktemplate.chainparams.MineBlocksOnDemand())
+    if (blocktemplate.chainparams.CreateBlocksOnDemand())
         pblock->nVersion = GetArg("-blockversion", pblock->nVersion);
 
     // Set block type TX_BLOCK

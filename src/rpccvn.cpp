@@ -163,7 +163,7 @@ UniValue setgenerate(const UniValue& params, bool fHelp)
             + HelpExampleCli("setgenerate", "false")
         );
 
-    if (Params().MineBlocksOnDemand())
+    if (Params().CreateBlocksOnDemand())
         throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Use the generate method instead of setgenerate on this network");
 
     if (!nCvnNodeId)

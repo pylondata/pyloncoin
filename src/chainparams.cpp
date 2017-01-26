@@ -70,8 +70,8 @@ public:
         pchMessageStart[2] = 0xb5;
         pchMessageStart[3] = 0xda;
         vAlertPubKey = ParseHex("04b06af4982ca3edc2c040cc2cde05fa5b33264af4a98712ceb29d196e7390b4753eb7264dc5f383f29a44d63e70dbbd8d9e46a0a60f80ef62fd1911291ec388e4");
-        nDefaultPort = 30404;
-        nMaxTipAge = 60 * 60; // 1h
+        nDefaultPort = 40404;
+        nMaxTipAge = 30 * 60; // 30 min.
         nPruneAfterHeight = 100000;
 
         CDynamicChainParams dynParams;
@@ -121,10 +121,9 @@ public:
 
         vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_main, pnSeed6_main + ARRAYLEN(pnSeed6_main));
 
-        fMiningRequiresPeers = false; //TODO: set to true again
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
-        fMineBlocksOnDemand = false;
+        fCreateBlocksOnDemand = false;
         fTestnetToBeDeprecatedFieldRPC = false;
 
 #if 0
@@ -205,10 +204,9 @@ public:
 
         vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_test, pnSeed6_test + ARRAYLEN(pnSeed6_test));
 
-        fMiningRequiresPeers = true;
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
-        fMineBlocksOnDemand = false;
+        fCreateBlocksOnDemand = false;
         fTestnetToBeDeprecatedFieldRPC = true;
 
 #if 0
@@ -275,10 +273,9 @@ public:
         vFixedSeeds.clear(); //! Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();  //! Regtest mode doesn't have any DNS seeds.
 
-        fMiningRequiresPeers = false;
         fDefaultConsistencyChecks = true;
         fRequireStandard = false;
-        fMineBlocksOnDemand = true;
+        fCreateBlocksOnDemand = true;
         fTestnetToBeDeprecatedFieldRPC = false;
 
         checkpointData = (CCheckpointData){

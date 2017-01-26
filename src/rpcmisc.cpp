@@ -435,7 +435,7 @@ UniValue setmocktime(const UniValue& params, bool fHelp)
             "   Pass 0 to go back to using the system time."
         );
 
-    if (!Params().MineBlocksOnDemand())
+    if (!Params().CreateBlocksOnDemand())
         throw runtime_error("setmocktime for regression testing (-regtest mode) only");
 
     // cs_vNodes is locked and node send/receive times are updated
