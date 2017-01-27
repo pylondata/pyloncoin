@@ -1911,7 +1911,7 @@ static void handleWaitingForCvnData(POCStateHolder& s)
 static void handleInit(POCStateHolder& s)
 {
     int nCount = 0;
-    while(vNodes.size() < 2 && !ShutdownRequested()) {
+    while (vNodes.size() < 2 && !ShutdownRequested()) {
         if (!(nCount++ % 10))
             LogPrintf("Waiting for peers. Delaying to start the POC thread.\n");
         MilliSleep(1000);
