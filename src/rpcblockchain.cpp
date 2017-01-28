@@ -77,7 +77,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const u
     result.push_back(Pair("nSignatures", (uint64_t)block.GetNumChainSigs()));
     result.push_back(Pair("nAdminSignatures", (uint64_t)block.vAdminIds.size()));
     result.push_back(Pair("chainSignature", block.chainMultiSig.ToString()));
-    result.push_back(Pair("adminMultiSig", block.adminMultiSig.ToString()));
+    result.push_back(Pair("adminMultiSig", block.adminMultiSig.IsNull() ? "" : block.adminMultiSig.ToString()));
 
     ///////// MISSING CHAIN SIGNERS
     UniValue missingSigners(UniValue::VARR);
