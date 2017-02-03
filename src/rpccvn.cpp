@@ -81,13 +81,14 @@ static void AddChainAdminToMsg(CChainDataMsg &msg, const uint32_t nAdminId, cons
     msg.vChainAdmins[index] = admin;
 }
 
-static void AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
+static bool AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
 {
     LogPrintf("AddDynParamsToMsg : adding %u parameters\n", jsonParams.getKeys().size());
-    msg.nPayload |= CChainDataMsg::CHAIN_PARAMETERS_PAYLOAD;
+    msg.nPayload = CChainDataMsg::CHAIN_PARAMETERS_PAYLOAD;
 
     CDynamicChainParams& params = msg.dynamicChainParams;
 
+    params.nVersion                     = dynParams.nVersion;
     params.nBlockSpacing                = dynParams.nBlockSpacing;
     params.nBlockSpacingGracePeriod     = dynParams.nBlockSpacingGracePeriod;
     params.nTransactionFee              = dynParams.nTransactionFee;
@@ -99,31 +100,37 @@ static void AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
     params.nPercentageOfSignaturesMean  = dynParams.nPercentageOfSignaturesMean;
     params.nMaxBlockSize                = dynParams.nMaxBlockSize;
 
+    bool fAllGood = true;
     vector<string> paramsList = jsonParams.getKeys();
     BOOST_FOREACH(const string& key, paramsList) {
         LogPrintf("AddDynParamsToMsg : adding %s: %u\n", key, jsonParams[key].getValStr());
         if (key == "nBlockSpacing") {
             params.nBlockSpacing = jsonParams[key].get_int();
-        } else if (key == "nBlockSpacingGracePeriod") {
+        } else if (key == "blockSpacingGracePeriod") {
             params.nBlockSpacingGracePeriod = jsonParams[key].get_int();
-        } else if (key == "nTransactionFee") {
+        } else if (key == "transactionFee") {
             params.nTransactionFee = AmountFromValue(jsonParams[key]);
-        } else if (key == "nDustThreshold") {
+        } else if (key == "dustThreshold") {
             params.nDustThreshold = AmountFromValue(jsonParams[key]);
-        } else if (key == "nMaxAdminSigs") {
+        } else if (key == "maxAdminSigs") {
             params.nMaxAdminSigs = jsonParams[key].get_int();
-        } else if (key == "nMinAdminSigs") {
+        } else if (key == "minAdminSigs") {
             params.nMinAdminSigs = jsonParams[key].get_int();
-        } else if (key == "nMinSuccessiveSignatures") {
+        } else if (key == "minSuccessiveSignatures") {
             params.nMinSuccessiveSignatures = jsonParams[key].get_int();
-        } else if (key == "nBlocksToConsiderForSigCheck") {
+        } else if (key == "blocksToConsiderForSigCheck") {
             params.nBlocksToConsiderForSigCheck = jsonParams[key].get_int();
-        } else if (key == "nPercentageOfSignaturesMean") {
+        } else if (key == "percentageOfSignaturesMean") {
             params.nPercentageOfSignaturesMean = jsonParams[key].get_int();
-        } else if (key == "nMaxBlockSize") {
+        } else if (key == "maxBlockSize") {
             params.nMaxBlockSize = jsonParams[key].get_int();
+        } else {
+            LogPrintf("parameter %s is invalid\n", key);
+            fAllGood = false;
         }
     }
+
+    return fAllGood;
 }
 
 UniValue getgenerate(const UniValue& params, bool fHelp)
@@ -191,7 +198,6 @@ UniValue addcvn(const UniValue& params, bool fHelp)
             "3. \"pubkey\"             (string, required but can be empty) The public key of the new CVN or Chain Admin (in hex).\n"
             "4. \"[nAdminIds]\"        (string, required) The adminIds that created the multi signature\n"
             "5. \"adminMultiSig\"      (string, required) The combined admin signature\n"
-            "6. \"{\"key\":\"val\"}]\" (string, optional) The dynamic chain parameters to set)\n"
             "\nResult:\n"
             "{\n"
                 "  \"type\":\"type of added info\",             (string) The type of the added info (c=CVNInfo, a=ChainAdmin)\n"
@@ -204,7 +210,7 @@ UniValue addcvn(const UniValue& params, bool fHelp)
              "}\n"
             "\nExamples:\n"
             "\nAdd a new CVN\n"
-            + HelpExampleCli("addcvn", "c 0x123488 1461056246 \"04...00\" [\\\"0x87654321:a1b5..9093\\\",\\\"0xdeadcafe:0432..12aa\\\"] \"{\\\"nParapm1\\\":\\\"123\\\",\\\"nParapm2\\\":\\\"456\\\"}")
+            + HelpExampleCli("addcvn", "c 0x123488 1461056246 \"04...00\" [\\\"0x87654321:a1b5..9093\\\",\\\"0xdeadcafe:0432..12aa\\\"]")
         );
 
     LOCK(cs_main);
@@ -220,7 +226,7 @@ UniValue addcvn(const UniValue& params, bool fHelp)
 
     vector<unsigned char> vPubKey = ParseHex(params[2].get_str());
 
-    if (vPubKey.size() != 65 && params[5].isNull())
+    if (vPubKey.size() != 65)
         throw runtime_error(" Invalid public key: " + params[2].get_str());
 
     CSchnorrPubKey pubKey;
@@ -237,11 +243,8 @@ UniValue addcvn(const UniValue& params, bool fHelp)
             AddChainAdminToMsg(msg, nNodeId, chainActive.Tip()->nHeight + 1, pubKey);
     }
 
-    if (!params[5].isNull() && params[5].isObject() && !params[5].get_obj().getKeys().empty())
-        AddDynParamsToMsg(msg, params[5].get_obj());
-
     // if no signatures are supplied we print out the CChainDataMsg's hash to sign
-    if (params[4].isNull())
+    if (params[4].empty())
         return msg.GetHash().ToString();
 
     if (!AddAdminSignatures(msg, adminIds, params[4].get_str()))
@@ -257,11 +260,6 @@ UniValue addcvn(const UniValue& params, bool fHelp)
         LogPrintf("about to add CVN 0x%08x with pubKey %s (%s) to the network\n", nNodeId, pubKey.ToString(), address.ToString());
         result.push_back(Pair("pubKey", pubKey.ToString()));
         result.push_back(Pair("address", address.ToString()));
-    }
-
-    if (msg.HasChainParameters()) {
-        LogPrintf("about to update dynamic chain parameters on the network\n   %s\n", msg.dynamicChainParams.ToString());
-        result.push_back(Pair("dynamicChainParams", msg.dynamicChainParams.ToString()));
     }
 
     if (msg.HasChainAdmins()) {
@@ -532,6 +530,60 @@ void DynamicChainparametersToJSON(CDynamicChainParams& cp, UniValue& result)
     result.push_back(Pair("blocksToConsiderForSigCheck", (int)cp.nBlocksToConsiderForSigCheck));
     result.push_back(Pair("percentageOfSignaturesMean", (int)cp.nPercentageOfSignaturesMean));
     result.push_back(Pair("maxBlockSize", (int)cp.nMaxBlockSize));
+}
+
+UniValue setchainparameters(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() < 1 || params.size() > 3)
+        throw runtime_error(
+            "setchainparameters {\"nParam1\":123,\"nParam2\":456} [\"n:sigs\",...]\n"
+            "\nSet new dynamic chain parameters for FairCoin network\n"
+            "\nArguments:\n"
+            "1. \"{\"key\":\"val\"}]\" (string, required) The dynamic chain parameters to set\n"
+            "2. \"[nAdminIds,...]\"    (string, optional) The adminIds that created the multi signature\n"
+            "3. \"adminMultiSig\"      (string, optional) The combined admin signature\n"
+            "\nResult:\n"
+            "{\n"
+                "  \"prevBlockHash\":\"hash (hex)\",            (string) The timestamp of the block\n"
+                "  \"chainParams\":\"serialized params\"        (string) The serialized representation of CDynamicChainParams.\n"
+             "}\n"
+            "\nExamples:\n"
+            "\nSet chain parameters\n"
+            + HelpExampleCli("setchainparameters", "\"{\\\"blockSpacing\\\":\\\"180\\\",\\\"blockSpacingGracePeriod\\\":\\\"60\\\"} [\"0xadminID01\",\"0xadminId02\"] \"44...55\"")
+        );
+
+    if (IsInitialBlockDownload())
+        return "wait for block chain download to finish";
+
+    LOCK(cs_main);
+
+    CChainDataMsg msg;
+    msg.hashPrevBlock = chainActive.Tip()->GetBlockHash();
+
+    if (!AddDynParamsToMsg(msg, params[0].get_obj()))
+        return "invlaid parameter detcted";
+
+    UniValue result(UniValue::VOBJ);
+    // if no signatures are supplied we print out the CChainDataMsg's hash to sign
+    if (params[1].isNull() || params[2].isNull())
+        return msg.GetHash().ToString();
+
+    if (!AddAdminSignatures(msg, params[1].get_array(), params[2].get_str()))
+        return "error in signatures";
+
+    LogPrintf("about to update dynamic chain parameters on the network\n   %s\n", msg.dynamicChainParams.ToString());
+    result.push_back(Pair("hashToSign", msg.GetHash().ToString()));
+    result.push_back(Pair("hashPrevBlock", msg.hashPrevBlock.ToString()));
+    result.push_back(Pair("dynamicChainParams", msg.dynamicChainParams.ToString()));
+
+    if (AddChainData(msg)) {
+        RelayChainData(msg);
+    } else {
+        LogPrintf("ERROR\n%s\n", msg.ToString());
+        return "could not add chain data, see error log";
+    }
+
+    return result;
 }
 
 UniValue getchainparameters(const UniValue& params, bool fHelp)
