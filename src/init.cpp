@@ -1153,7 +1153,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
 #if 0
         CBlock genesis = chainparams.GenesisBlock();
-        UpdateCvnInfo(&genesis);
+        UpdateCvnInfo(&genesis, 0);
         UpdateChainAdmins(&genesis);
 
         CSchnorrSig chainAdminSig;
@@ -1225,6 +1225,12 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     // sanitize comments per BIP-0014, format user agent and check total size
     std::vector<string> uacomments;
+#if 1
+    //TODO: remove this; for development only
+    if (nCvnNodeId) {
+        uacomments.push_back(strprintf("0x%08x", nCvnNodeId));
+    }
+#endif
     BOOST_FOREACH(string cmt, mapMultiArgs["-uacomment"])
     {
         if (cmt != SanitizeString(cmt, SAFE_CHARS_UA_COMMENT))
@@ -1355,7 +1361,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     // initialize CVN and chain parameters
     LogPrintf("Initialize CVN and chain parameters\n");
     CBlock genesis = chainparams.GenesisBlock();
-    UpdateCvnInfo(&genesis);
+    UpdateCvnInfo(&genesis, 0);
     UpdateChainParameters(&genesis);
     UpdateChainAdmins(&genesis);
 

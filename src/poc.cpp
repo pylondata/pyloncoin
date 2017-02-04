@@ -35,6 +35,8 @@ uint32_t nCvnNodeId = 0;
 uint32_t nChainAdminId = 0;
 bool fNoncePoolInitialsed = false;
 
+CvnInfoCacheType mapCVNInfoCache;
+
 CCriticalSection cs_mapChainAdmins;
 ChainAdminMapType mapChainAdmins;
 
@@ -91,6 +93,60 @@ void printHex(const uint8_t *buf, const size_t len, const bool addLF = false)
 }
 #endif
 
+static bool GetCvnInfoCache(CvnInfoCache **cache, const uint32_t nHeight)
+{
+    if (mapCVNInfoCache.empty()) {
+        LogPrintf("GetCvnInfoCache : fatal, CVN info cache is empty\n");
+        return false;
+    }
+
+    if (!nHeight) { // genesis block
+        *cache = &mapCVNInfoCache[0];
+        return true;
+    }
+
+    CvnInfoCacheType::reverse_iterator it = mapCVNInfoCache.rbegin();
+
+    while (it != mapCVNInfoCache.rend()) {
+        if (it->first < nHeight) {
+            *cache = &it->second;
+            return true;
+        }
+        it++;
+    }
+
+    return false;
+}
+
+uint32_t GetNumChainSigs(const CBlockIndex *pindex)
+{
+    CvnInfoCache *info;
+    if (!GetCvnInfoCache(&info, pindex->nHeight)) {
+        LogPrintf("could not find CVN information\n");
+        return 0;
+    }
+
+    return info->nActiveCvns - pindex->vMissingSignerIds.size();
+}
+
+uint32_t GetNumChainSigs(const CBlock *pblock)
+{
+    BlockMap::iterator miPrev = mapBlockIndex.find(pblock->hashPrevBlock);
+    if (miPrev == mapBlockIndex.end()) {
+        LogPrintf("GetNumChainSigs : prev block not found in block index: %s\n", pblock->hashPrevBlock.ToString());
+        return 0;
+    }
+
+    CBlockIndex *pindexPrev = (*miPrev).second;
+    CvnInfoCache *info;
+    if (!GetCvnInfoCache(&info, pindexPrev->nHeight + 1)) {
+        LogPrintf("could not find CVN information\n");
+        return 0;
+    }
+
+    return info->nActiveCvns - pblock->vMissingSignerIds.size();
+}
+
 static const string CreateSignerIdList(const std::vector<uint32_t>& vNodeIds)
 {
     std::stringstream s;
@@ -132,6 +188,12 @@ static bool GetFeeScript(CReserveScript &script)
     }
 
     return true;
+}
+
+void CvnInfoCache::SetNull()
+{
+    nActiveCvns = 0;
+    memset(sumOfAllpubKeys.data, 0, sizeof(sumOfAllpubKeys.data));
 }
 
 void CSignatureHolder::AddSig(const CCvnPartialSignature &sig)
@@ -700,13 +762,13 @@ bool CvnSignBlock(CBlock& block)
         return false;
     }
 
-    if (!CvnSignHash(block.GetHash(), block.creatorSignature))
+    if (!CvnSignHash(block.GetCreatorHash(), block.creatorSignature))
         return false;
 
     return true;
 }
 
-bool CvnVerifyChainSignature(const CBlockHeader& block)
+bool CvnVerifyChainSignature(const CBlock& block)
 {
     CHashWriter hasher(SER_GETHASH, 0);
     hasher << block.hashPrevBlock << block.nCreatorId;
@@ -726,34 +788,46 @@ bool CvnVerifyChainSignature(const CBlockHeader& block)
         }
     }
 
-    int count = 0;
-    secp256k1_pubkey *allSignersPubkeys[MAX_NUMBER_OF_CVNS];
-    const vector<uint32_t>& vMissingChainIds = block.vMissingSignerIds;
-
-    // TODO: we should really cache this somehow...
-    BOOST_FOREACH(const CvnMapType::value_type& cvn, mapCVNs)
-    {
-        if (!vMissingChainIds.empty() && find(vMissingChainIds.begin(), vMissingChainIds.end(), cvn.first) != vMissingChainIds.end())
-            continue;
-
-        allSignersPubkeys[count++] = (secp256k1_pubkey *)&cvn.second.pubKey.begin()[0];
-    }
-
+    const vector<uint32_t>& vMissingSignersIds = block.vMissingSignerIds;
     secp256k1_pubkey sumOfAllSignersPubkeys;
-    if (!secp256k1_ec_pubkey_combine(secp256k1_context_none, &sumOfAllSignersPubkeys, allSignersPubkeys, count))
-        return error("could not combine signers public keys");
 
-    if (!vMissingChainIds.empty()) {
-        BOOST_FOREACH(const uint32_t& nMissingId, vMissingChainIds) {
+    /* if there are no missing signatures we can use the cached
+     * combined pubkeys from the CvnInfoCache, otherwise we combine
+     * them
+     */
+    if (vMissingSignersIds.empty()) {
+        BlockMap::iterator mi = mapBlockIndex.find(block.GetHash());
+        if (mi == mapBlockIndex.end())
+            return false;
+
+        CvnInfoCache *cache;
+        GetCvnInfoCache(&cache, (*mi).second->nHeight);
+        sumOfAllSignersPubkeys = cache->sumOfAllpubKeys;
+    } else {
+        int count = 0;
+        secp256k1_pubkey *allSignersPubkeys[MAX_NUMBER_OF_CVNS];
+
+        BOOST_FOREACH(const CvnMapType::value_type& cvn, mapCVNs)
+        {
+            if (!vMissingSignersIds.empty() && find(vMissingSignersIds.begin(), vMissingSignersIds.end(), cvn.first) != vMissingSignersIds.end())
+                continue;
+
+            allSignersPubkeys[count++] = (secp256k1_pubkey *)&cvn.second.pubKey.begin()[0];
+        }
+
+        if (!secp256k1_ec_pubkey_combine(secp256k1_context_none, &sumOfAllSignersPubkeys, allSignersPubkeys, count))
+            return error("CvnVerifyChainSignature : could not combine signers public keys");
+
+        BOOST_FOREACH(const uint32_t& nMissingId, vMissingSignersIds) {
             hasher << nMissingId;
         }
     }
 
     uint256 hash = hasher.GetHash();
 
-    CSchnorrPubKey pubK(sumOfAllSignersPubkeys.data);
-    if (!CvnVerifySignature(hash, block.chainMultiSig, pubK))
-        return error("could not verify chain signature for block %s: %s (missing: %d)", hash.ToString(), block.chainMultiSig.ToString(), block.vMissingSignerIds.size());
+    CSchnorrPubKey pubKey(sumOfAllSignersPubkeys.data);
+    if (!CvnVerifySignature(hash, block.chainMultiSig, pubKey))
+        return error("CvnVerifyChainSignature : could not verify chain signature for block %s: %s (missing: %d)", hash.ToString(), block.chainMultiSig.ToString(), block.vMissingSignerIds.size());
 
     return true;
 }
@@ -822,7 +896,7 @@ bool CvnVerifyAdminSignature(const vector<uint32_t> &vAdminIds, const uint256& h
     int count = 0;
     secp256k1_pubkey *allSignersPubkeys[MAX_NUMBER_OF_CHAIN_ADMINS];
 
-    // TODO: we should really cache this somehow...
+    // TODO: we should really cache this...
     BOOST_FOREACH(const ChainAdminMapType::value_type& entry, mapChainAdmins)
     {
         if (find(vAdminIds.begin(), vAdminIds.end(), entry.first) == vAdminIds.end())
@@ -835,8 +909,8 @@ bool CvnVerifyAdminSignature(const vector<uint32_t> &vAdminIds, const uint256& h
     if (!secp256k1_ec_pubkey_combine(secp256k1_context_none, &sumOfAllSignersPubkeys, allSignersPubkeys, count))
         return error("could not combine admin signers public keys");
 
-    CSchnorrPubKey pubK(sumOfAllSignersPubkeys.data);
-    if (!CvnVerifySignature(hashAdmin, sig, pubK))
+    CSchnorrPubKey pubKey(sumOfAllSignersPubkeys.data);
+    if (!CvnVerifySignature(hashAdmin, sig, pubKey))
         return error("could not verify admin signature: %s", hashAdmin.ToString());
 
     return true;
@@ -1065,9 +1139,9 @@ void PrintAllChainAdmins()
     }
 }
 
-void UpdateCvnInfo(const CBlock* pblock)
+void UpdateCvnInfo(const CBlock* pblock, const uint32_t nHeight)
 {
-    LogPrint("cvn", "UpdateCvnInfo : updating CVN data\n");
+    LogPrint("cvn", "UpdateCvnInfo : updating CVN data at height %d\n", nHeight);
 
     if (!pblock->HasCvnInfo()) {
         LogPrint("cvn", "UpdateCvnInfo : ERROR, block is not of type CVN\n");
@@ -1077,10 +1151,19 @@ void UpdateCvnInfo(const CBlock* pblock)
     LOCK(cs_mapCVNs);
 
     mapCVNs.clear();
+    int count = 0;
+    secp256k1_pubkey *allSignersPubkeys[MAX_NUMBER_OF_CVNS];
 
     BOOST_FOREACH(const CCvnInfo &cvnInfo, pblock->vCvns) {
         mapCVNs.insert(std::make_pair(cvnInfo.nNodeId, cvnInfo));
+        allSignersPubkeys[count++] = (secp256k1_pubkey *)&cvnInfo.pubKey.begin()[0];
     }
+
+    secp256k1_pubkey sumOfAllSignersPubkeys;
+    if (!secp256k1_ec_pubkey_combine(secp256k1_context_none, &sumOfAllSignersPubkeys, allSignersPubkeys, count))
+        LogPrintf("could not combine signers public keys");
+
+    mapCVNInfoCache[nHeight] = CvnInfoCache(sumOfAllSignersPubkeys, mapCVNs.size());
 
     PrintAllCVNs();
 }
@@ -1170,7 +1253,7 @@ void UpdateChainParameters(const CBlock* pblock)
     ::minRelayTxFee = CFeeRate(dynParams.nTransactionFee);
 }
 
-bool CheckProofOfCooperation(const CBlockHeader& block, const Consensus::Params& params)
+bool CheckProofOfCooperation(const CBlock& block, const Consensus::Params& params)
 {
     uint256 hashBlock = block.GetHash();
 
@@ -1194,34 +1277,42 @@ bool CheckProofOfCooperation(const CBlockHeader& block, const Consensus::Params&
     uint32_t nBlockCreator = CheckNextBlockCreator(mapBlockIndex[block.hashPrevBlock], block.nTime);
 
     if (!nBlockCreator)
-        return error("FATAL: can not determine block creator for %s", hashBlock.ToString());
+        return error("CheckProofOfCooperation : FATAL: can not determine block creator for %s", hashBlock.ToString());
 
     if (nBlockCreator != block.nCreatorId)
-        return error("block %s can not be created by 0x%08x but by 0x%08x", hashBlock.ToString(), block.nCreatorId, nBlockCreator);
+        return error("CheckProofOfCooperation : block %s can not be created by 0x%08x but by 0x%08x", hashBlock.ToString(), block.nCreatorId, nBlockCreator);
 
 
     CBlockIndex* pindexPrev = (*mi).second;
+    uint32_t nChainSigs = GetNumChainSigs(&block);
+    uint32_t nPrevChainSigs = GetNumChainSigs(pindexPrev);
+
+    if (!nChainSigs || !nPrevChainSigs) {
+        LogPrintf("CheckProofOfCooperation : could not determine number of signatures: %d|%d\n", nChainSigs, nPrevChainSigs);
+        return false;
+    }
 
     LogPrint("cvn", "CheckProofOfCooperation : checking # sigs (prev: %u, this: %u) of block %s created by 0x%08x\n",
-            pindexPrev->GetNumChainSigs(), block.GetNumChainSigs(), hashBlock.ToString(), block.nCreatorId);
+            nPrevChainSigs, nChainSigs, hashBlock.ToString(), block.nCreatorId);
 
     // only do advanced checks if we have a decrease in the number of signatures
-    if (pindexPrev->GetNumChainSigs() > block.GetNumChainSigs()) {
+    if (nPrevChainSigs > nChainSigs) {
         // this block requires at least dynParams.nPercentageOfSignatureMean of the number of nSignatureMean
-        if (!HasEnoughSignatures(pindexPrev, block.GetNumChainSigs())) {
-            LogPrintf("ContextualCheckBlockHeader : past signatures [");
+        if (!HasEnoughSignatures(pindexPrev, nChainSigs)) {
+            LogPrintf("CheckProofOfCooperation : past signatures [");
             CBlockIndex *pindexDebug = pindexPrev;
             uint32_t i = 0, nSignatures = 0;
             while (i < dynParams.nBlocksToConsiderForSigCheck && pindexDebug != NULL) {
-                nSignatures += pindexDebug->GetNumChainSigs();
-                LogPrintf("%s%02u", i ? ", " : " ", pindexDebug->GetNumChainSigs());
+                uint32_t nDebugSigs = GetNumChainSigs(pindexDebug);
+                nSignatures += nDebugSigs;
+                LogPrintf("%s%02u", i ? ", " : " ", nDebugSigs);
                 pindexDebug = pindexDebug->pprev;
                 i++;
             }
             float nSignaturesMean = i ? (float) nSignatures / (float) i : 0.0f;
             LogPrintf(" ], nSignatureMean: %f, nBlock: %u\n", nSignaturesMean, i);
             return error("%s: not enough signatures available in block %s. Mean: %f, This: %u", __func__,
-                    block.GetHash().ToString(), nSignaturesMean, block.GetNumChainSigs());
+                    block.GetHash().ToString(), nSignaturesMean, nChainSigs);
         }
     }
 
@@ -1417,7 +1508,7 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
         // record the number of signatures within the nMinSuccessiveSignatures range
         if (nMinSignatures) {
             nMinSignatures--;
-            vector<uint32_t> vMissing = pindex->vMissingCreatorIds;
+            vector<uint32_t> vMissing = pindex->vMissingSignerIds;
             BOOST_FOREACH(const CvnMapType::value_type& cvn, mapCVNs)
             {
                 if (!vMissing.empty() && find(vMissing.begin(), vMissing.end(), cvn.first) != vMissing.end())
@@ -1532,10 +1623,6 @@ void POC_destroy_secp256k1_context()
     if (ctx) {
         secp256k1_context_destroy(ctx);
     }
-}
-
-uint32_t CBlockHeader::GetNumChainSigs() const {
-    return mapCVNs.size() - vMissingSignerIds.size();
 }
 
 static int32_t GetPoolAge(const CNoncePool &pool, CBlockIndex *pTip)
@@ -1836,7 +1923,8 @@ static void handleWaitingForBlock(POCStateHolder& s)
 
     if (s.nNextCreator == s.nNodeId && GetSignatureSet(s)) {
         int32_t nBlockTime = GetAdjustedTime() - s.pindexPrev->nTime;
-        if (nBlockTime >= (int32_t)dynParams.nBlockSpacing && HasEnoughSignatures(s.pindexPrev, s.pindexLastTip->GetNumChainSigs() - s.vMissingSignatures.size())) {
+        uint32_t nSigs = GetNumChainSigs(s.pindexLastTip);
+        if (nBlockTime >= (int32_t)dynParams.nBlockSpacing && HasEnoughSignatures(s.pindexPrev, nSigs - s.vMissingSignatures.size())) {
             if (CreateBlock(s)) {
                 s.state = WAITING_FOR_NEW_TIP;
             }
@@ -1911,7 +1999,7 @@ static void handleWaitingForCvnData(POCStateHolder& s)
 static void handleInit(POCStateHolder& s)
 {
     int nCount = 0;
-    while (vNodes.size() < 2 && !ShutdownRequested()) {
+    while (GetBoolArg("-cvnwaitforpeers", true) && vNodes.size() < 2 && !ShutdownRequested()) {
         if (!(nCount++ % 10))
             LogPrintf("Waiting for peers. Delaying to start the POC thread.\n");
         MilliSleep(1000);

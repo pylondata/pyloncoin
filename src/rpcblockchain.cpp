@@ -45,8 +45,6 @@ UniValue blockheaderToJSON(const CBlockIndex* blockindex)
     result.push_back(Pair("time", (int64_t)blockindex->nTime));
     result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
     result.push_back(Pair("creator", strprintf("0x%08x", blockindex->nCreatorId)));
-    result.push_back(Pair("signatures", (uint64_t)blockindex->GetNumChainSigs()));
-    result.push_back(Pair("adminSignatures", (uint64_t)blockindex->vAdminIds.size()));
 
     if (blockindex->pprev)
         result.push_back(Pair("previousblockhash", blockindex->pprev->GetBlockHash().GetHex()));
@@ -70,11 +68,12 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const u
     result.push_back(Pair("version", block.nVersion));
     result.push_back(Pair("payload", blockindex->GetPayloadString()));
     result.push_back(Pair("merkleroot", block.hashMerkleRoot.GetHex()));
+    result.push_back(Pair("hashCreatorSig", block.GetCreatorHash().GetHex()));
     result.push_back(Pair("time", block.GetBlockTime()));
     result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
     result.push_back(Pair("creator", strprintf("0x%08x", blockindex->nCreatorId)));
     result.push_back(Pair("creatorSignature", block.creatorSignature.ToString()));
-    result.push_back(Pair("nSignatures", (uint64_t)block.GetNumChainSigs()));
+    result.push_back(Pair("nSignatures", (uint64_t)GetNumChainSigs(blockindex)));
     result.push_back(Pair("nAdminSignatures", (uint64_t)block.vAdminIds.size()));
     result.push_back(Pair("chainSignature", block.chainMultiSig.ToString()));
     result.push_back(Pair("adminMultiSig", block.adminMultiSig.IsNull() ? "" : block.adminMultiSig.ToString()));

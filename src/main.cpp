@@ -1400,7 +1400,8 @@ bool IsInitialBlockDownload()
 
 arith_uint256 GetBlockProof(const CBlockIndex& block)
 {
-    arith_uint256 bnSignatures(block.GetNumChainSigs());
+    uint32_t nSigs = GetNumChainSigs(&block);
+    arith_uint256 bnSignatures(nSigs);
 
     return bnSignatures;
 }
@@ -2258,12 +2259,12 @@ void static UpdateTip(CBlockIndex *pindexNew)
     nTimeBestReceived = GetTime();
     mempool.AddTransactionsUpdated(1);
 
-    LogPrintf("%s: new best=%s height=%d creator=%08x pl=%s work=%.8g tx=%lu date=%s progress=%f cache=%.1fMiB(%utx) sigs=%u admSigs=%u\n", __func__,
+    LogPrintf("%s: new best=%s height=%d creator=%08x pl=%s work=%.8g tx=%lu date=%s progress=%f cache=%.1fMiB(%utx)\n", __func__,
       chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(), pindexNew->nCreatorId, pindexNew->GetPayloadString(),
       log(chainActive.Tip()->nChainWork.getdouble())/log(2.0), (unsigned long)chainActive.Tip()->nChainTx,
       DateTimeStrFormat("%Y-%m-%d %H:%M:%S", pindexNew->nTime),
       Checkpoints::GuessVerificationProgress(chainParams.Checkpoints(), chainActive.Tip()), pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)),
-      pcoinsTip->GetCacheSize(), pindexNew->GetNumChainSigs(), pindexNew->vAdminIds.size());
+      pcoinsTip->GetCacheSize());
 
     cvBlockChange.notify_all();
 
@@ -2408,7 +2409,7 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
     LogPrint("bench", "- Connect block: %.2fms [%.2fs]\n", (nTime6 - nTime1) * 0.001, nTimeTotal * 0.000001);
 
     if (pblock->HasCvnInfo())
-        UpdateCvnInfo(pblock);
+        UpdateCvnInfo(pblock, pindexNew->nHeight);
 
     if (pblock->HasChainParameters())
         UpdateChainParameters(pblock);
@@ -2725,7 +2726,7 @@ bool ReconsiderBlock(CValidationState& state, CBlockIndex *pindex) {
     return true;
 }
 
-CBlockIndex* AddToBlockIndex(const CBlockHeader& block)
+CBlockIndex* AddToBlockIndex(const CBlockHeader& block, const vector<uint32_t>* vMissingSignerIds)
 {
     // Check for duplicate
     uint256 hash = block.GetHash();
@@ -2734,7 +2735,7 @@ CBlockIndex* AddToBlockIndex(const CBlockHeader& block)
         return it->second;
 
     // Construct new block index object
-    CBlockIndex* pindexNew = new CBlockIndex(block);
+    CBlockIndex* pindexNew = new CBlockIndex(block, vMissingSignerIds);
     assert(pindexNew);
     // We assign the sequence id to blocks only when the full data is available,
     // to avoid miners withholding blocks but broadcasting headers, to get a
@@ -2906,10 +2907,6 @@ bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, bool f
                                      REJECT_INVALID, "banned-cvn", true);
     }
 
-    if (fCheckPOC && !CheckProofOfCooperation(block, Params().GetConsensus()))
-        return state.DoS(50, error("CheckBlockHeader(): proof of cooperation failed"),
-                         REJECT_INVALID, "poc-failed");
-
     // Check timestamp
     if (block.GetBlockTime() > GetAdjustedTime() + dynParams.nBlockSpacing + 30)
         return state.Invalid(error("CheckBlockHeader(): block timestamp too far in the future"),
@@ -2932,9 +2929,13 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOC, bo
 
     if (fCheckPOC) {
         // check for correct signature of the block hash by the creator
-        if (!CvnVerifySignature(block.GetHash(), block.creatorSignature, block.nCreatorId))
+        if (!CvnVerifySignature(block.GetCreatorHash(), block.creatorSignature, block.nCreatorId))
             return state.DoS(100, error("CheckBlock(): invalid creator signature"),
                                          REJECT_INVALID, "bad-creator-sig", true);
+
+        if (!CheckProofOfCooperation(block, Params().GetConsensus()))
+            return state.DoS(2, error("CheckBlock(): poc failed"),
+                    REJECT_INVALID, "poc-failed", true);;
 
         if (block.HasAdminPayload()) {
             if (!CheckForDuplicateAdminSigs(block))
@@ -3055,7 +3056,7 @@ bool HasEnoughSignatures(CBlockIndex * const pindexPrev, const uint32_t nSignatu
     // calculate the mean of the number of the signatures from
     // the last dynParams.nBlocksToConsiderForSigCheck blocks
     while (nBlocks < dynParams.nBlocksToConsiderForSigCheck && pindex != NULL) {
-        nSignatures += pindex->GetNumChainSigs();
+        nSignatures += GetNumChainSigs(pindex);
         pindex = pindex->pprev;
         nBlocks++;
     }
@@ -3102,7 +3103,7 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, CBlockIn
     return true;
 }
 
-static bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex=NULL)
+static bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, const vector<uint32_t>* vMissingSignerIds=NULL)
 {
     AssertLockHeld(cs_main);
     // Check for duplicate
@@ -3118,6 +3119,13 @@ static bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state
                 *ppindex = pindex;
             if (pindex->nStatus & BLOCK_FAILED_MASK)
                 return state.Invalid(error("%s: block is marked invalid", __func__), 0, "duplicate");
+
+            // if we have received the header first vMissingSignerIds was not set
+            if (vMissingSignerIds) {
+                LogPrintf("AcceptBlockHeader : updating missing signers on block header: %s\n", pindex->GetBlockHash().ToString());
+                pindex->vMissingSignerIds = *vMissingSignerIds;
+            }
+
             return true;
         }
 
@@ -3144,7 +3152,7 @@ static bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state
             return false;
     }
     if (pindex == NULL)
-        pindex = AddToBlockIndex(block);
+        pindex = AddToBlockIndex(block, vMissingSignerIds);
 
     if (ppindex)
         *ppindex = pindex;
@@ -3159,7 +3167,7 @@ static bool AcceptBlock(const CBlock& block, CValidationState& state, const CCha
 
     CBlockIndex *&pindex = *ppindex;
 
-    if (!AcceptBlockHeader(block, state, chainparams, &pindex))
+    if (!AcceptBlockHeader(block, state, chainparams, &pindex, &block.vMissingSignerIds))
         return false;
 
     // Try to process all requested blocks that we don't have, but only
@@ -3294,7 +3302,7 @@ bool ProcessNewBlock(CValidationState& state, const CChainParams& chainparams, c
     return true;
 }
 
-bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams, const CBlock& block, CBlockIndex* pindexPrev, bool fCheckPOW, bool fCheckMerkleRoot)
+bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams, const CBlock& block, CBlockIndex* pindexPrev)
 {
     AssertLockHeld(cs_main);
     assert(pindexPrev && pindexPrev == chainActive.Tip());
@@ -3302,14 +3310,14 @@ bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams,
         return error("%s: CheckIndexAgainstCheckpoint(): %s", __func__, state.GetRejectReason().c_str());
 
     CCoinsViewCache viewNew(pcoinsTip);
-    CBlockIndex indexDummy(block);
+    CBlockIndex indexDummy(block, &block.vMissingSignerIds);
     indexDummy.pprev = pindexPrev;
     indexDummy.nHeight = pindexPrev->nHeight + 1;
 
     // NOTE: CheckBlockHeader is called by CheckBlock
     if (!ContextualCheckBlockHeader(block, state, pindexPrev, true))
         return false;
-    if (!CheckBlock(block, state, fCheckPOW, fCheckMerkleRoot))
+    if (!CheckBlock(block, state, true, true))
         return false;
     if (!ContextualCheckBlock(block, state, pindexPrev))
         return false;
@@ -3514,9 +3522,9 @@ bool static LoadBlockIndexDB()
         CBlockIndex* pindex = item.second;
         pindex->nChainWork = (pindex->pprev ? pindex->pprev->nChainWork : 0) + GetBlockProof(*pindex);
 #if 0
-        LogPrintf("LoadBlockIndexDB : nVersion: 0x%08x, nHeight: %u, nChainwork: %s, nStatus: %u, blockHash: %s, sigs: %u, adminSigs: %u\n",
+        LogPrintf("LoadBlockIndexDB : nVersion: 0x%08x, nHeight: %u, nChainwork: %s, nStatus: %u, blockHash: %s, sigs: %u\n",
                 pindex->nVersion, pindex->nHeight, pindex->nChainWork.ToString(), pindex->nStatus, pindex->GetBlockHash().ToString(),
-                pindex->GetNumChainSigs(), pindex->vAdminIds.size());
+                GetNumChainSigs(pindex));
 #endif
         // We can link the chain of blocks for which we've received transactions at some point.
         // Pruned nodes may have deleted the block.
@@ -3626,12 +3634,11 @@ bool CVerifyDB::SetMostRecentCVNData(const CChainParams& chainparams, CBlockInde
     {
         if (pindex->nVersion & (CBlock::CVN_PAYLOAD | CBlock::CHAIN_PARAMETERS_PAYLOAD | CBlock::CHAIN_ADMINS_PAYLOAD)) {
             CBlock block;
-            // check level 0: read from disk
             if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus()))
                 return error("SetMostrecentCVNData(): *** ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
 
             if (!fFoundCvnInfoPayload && block.HasCvnInfo()) {
-                UpdateCvnInfo(&block);
+                UpdateCvnInfo(&block, pindex->nHeight);
                 fFoundCvnInfoPayload = true;
             }
 
@@ -3746,7 +3753,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
                 return error("VerifyDB(): *** found unconnectable block at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
 
             if (block.HasCvnInfo())
-                UpdateCvnInfo(&block);
+                UpdateCvnInfo(&block, pindex->nHeight);
 
             if (block.HasChainParameters())
                 UpdateChainParameters(&block);
@@ -3831,7 +3838,7 @@ bool InitBlockIndex(const CChainParams& chainparams)
                 return error("LoadBlockIndex(): FindBlockPos failed");
             if (!WriteBlockToDisk(block, blockPos, chainparams.MessageStart()))
                 return error("LoadBlockIndex(): writing genesis block to disk failed");
-            CBlockIndex *pindex = AddToBlockIndex(block);
+            CBlockIndex *pindex = AddToBlockIndex(block, &block.vMissingSignerIds);
             if (!ReceivedBlockTransactions(block, state, pindex, blockPos))
                 return error("LoadBlockIndex(): genesis block not accepted");
             if (!ActivateBestChain(state, chainparams, &block))
@@ -4441,13 +4448,8 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                strCommand == NetMsgType::FILTERADD ||
                strCommand == NetMsgType::FILTERCLEAR))
     {
-        if (pfrom->nVersion >= NO_BLOOM_VERSION) {
-            Misbehaving(pfrom->GetId(), 100);
-            return false;
-        } else if (GetBoolArg("-enforcenodebloom", false)) {
-            pfrom->fDisconnect = true;
-            return false;
-        }
+        Misbehaving(pfrom->GetId(), 100);
+        return false;
     }
 
 
@@ -4476,8 +4478,6 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             return false;
         }
 
-        if (pfrom->nVersion == 10300)
-            pfrom->nVersion = 300;
         if (!vRecv.empty())
             vRecv >> addrFrom >> nNonce;
         if (!vRecv.empty()) {
@@ -4540,11 +4540,9 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             }
 
             // Get recent addresses
-            if (pfrom->fOneShot || pfrom->nVersion >= CADDR_TIME_VERSION || addrman.size() < 1000)
-            {
-                pfrom->PushMessage(NetMsgType::GETADDR);
-                pfrom->fGetAddr = true;
-            }
+            pfrom->PushMessage(NetMsgType::GETADDR);
+            pfrom->fGetAddr = true;
+
             addrman.Good(pfrom->addr);
         } else {
             if (((CNetAddr)pfrom->addr) == (CNetAddr)addrFrom)
@@ -4600,13 +4598,11 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             State(pfrom->GetId())->fCurrentlyConnected = true;
         }
 
-        if (pfrom->nVersion >= SENDHEADERS_VERSION) {
-            // Tell our peer we prefer to receive headers rather than inv's
-            // We send this to non-NODE NETWORK peers as well, because even
-            // non-NODE NETWORK peers can announce blocks (such as pruning
-            // nodes)
-            pfrom->PushMessage(NetMsgType::SENDHEADERS);
-        }
+        // Tell our peer we prefer to receive headers rather than inv's
+        // We send this to non-NODE NETWORK peers as well, because even
+        // non-NODE NETWORK peers can announce blocks (such as pruning
+        // nodes)
+        pfrom->PushMessage(NetMsgType::SENDHEADERS);
     }
 
 
@@ -4615,9 +4611,6 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         vector<CAddress> vAddr;
         vRecv >> vAddr;
 
-        // Don't want addr from older versions unless seeding
-        if (pfrom->nVersion < CADDR_TIME_VERSION && addrman.size() > 1000)
-            return true;
         if (vAddr.size() > 1000)
         {
             Misbehaving(pfrom->GetId(), 20);
@@ -4652,8 +4645,6 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                     multimap<uint256, CNode*> mapMix;
                     BOOST_FOREACH(CNode* pnode, vNodes)
                     {
-                        if (pnode->nVersion < CADDR_TIME_VERSION)
-                            continue;
                         unsigned int nPointer;
                         memcpy(&nPointer, &pnode, sizeof(nPointer));
                         uint256 hashKey = ArithToUint256((arith_uint256)(UintToArith256(hashRand) ^ nPointer));
@@ -5269,23 +5260,20 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
     else if (strCommand == NetMsgType::PING)
     {
-        if (pfrom->nVersion > BIP0031_VERSION)
-        {
-            uint64_t nonce = 0;
-            vRecv >> nonce;
-            // Echo the message back with the nonce. This allows for two useful features:
-            //
-            // 1) A remote node can quickly check if the connection is operational
-            // 2) Remote nodes can measure the latency of the network thread. If this node
-            //    is overloaded it won't respond to pings quickly and the remote node can
-            //    avoid sending us more work, like chain download requests.
-            //
-            // The nonce stops the remote getting confused between different pings: without
-            // it, if the remote node sends a ping once per second and this node takes 5
-            // seconds to respond to each, the 5th ping the remote sends would appear to
-            // return very quickly.
-            pfrom->PushMessage(NetMsgType::PONG, nonce);
-        }
+        uint64_t nonce = 0;
+        vRecv >> nonce;
+        // Echo the message back with the nonce. This allows for two useful features:
+        //
+        // 1) A remote node can quickly check if the connection is operational
+        // 2) Remote nodes can measure the latency of the network thread. If this node
+        //    is overloaded it won't respond to pings quickly and the remote node can
+        //    avoid sending us more work, like chain download requests.
+        //
+        // The nonce stops the remote getting confused between different pings: without
+        // it, if the remote node sends a ping once per second and this node takes 5
+        // seconds to respond to each, the 5th ping the remote sends would appear to
+        // return very quickly.
+        pfrom->PushMessage(NetMsgType::PONG, nonce);
     }
 
 
@@ -5626,14 +5614,8 @@ bool SendMessages(CNode* pto)
             }
             pto->fPingQueued = false;
             pto->nPingUsecStart = GetTimeMicros();
-            if (pto->nVersion > BIP0031_VERSION) {
-                pto->nPingNonceSent = nonce;
-                pto->PushMessage(NetMsgType::PING, nonce);
-            } else {
-                // Peer is too old to support ping command with nonce, pong will never arrive.
-                pto->nPingNonceSent = 0;
-                pto->PushMessage(NetMsgType::PING);
-            }
+            pto->nPingNonceSent = nonce;
+            pto->PushMessage(NetMsgType::PING, nonce);
         }
 
         TRY_LOCK(cs_main, lockMain); // Acquire cs_main for IsInitialBlockDownload() and CNodeState()

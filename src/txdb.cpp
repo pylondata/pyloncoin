@@ -198,14 +198,10 @@ bool CBlockTreeDB::LoadBlockIndexGuts()
                 pindexNew->hashMerkleRoot     = diskindex.hashMerkleRoot;
                 pindexNew->nTime              = diskindex.nTime;
                 pindexNew->nCreatorId         = diskindex.nCreatorId;
-                pindexNew->vMissingCreatorIds = diskindex.vMissingCreatorIds;
-                pindexNew->chainMultiSig      = diskindex.chainMultiSig;
-                pindexNew->vAdminIds          = diskindex.vAdminIds;
-                pindexNew->adminMultiSig      = diskindex.adminMultiSig;
+                pindexNew->vMissingSignerIds  = diskindex.vMissingSignerIds;
                 pindexNew->nStatus            = diskindex.nStatus;
                 pindexNew->nTx                = diskindex.nTx;
 
-                //TODO: put CVN checks here
                 pcursor->Next();
             } else {
                 return error("LoadBlockIndex() : failed to read value");
