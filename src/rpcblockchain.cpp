@@ -68,7 +68,6 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const u
     result.push_back(Pair("version", block.nVersion));
     result.push_back(Pair("payload", blockindex->GetPayloadString()));
     result.push_back(Pair("merkleroot", block.hashMerkleRoot.GetHex()));
-    result.push_back(Pair("hashCreatorSig", block.GetCreatorHash().GetHex()));
     result.push_back(Pair("time", block.GetBlockTime()));
     result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
     result.push_back(Pair("creator", strprintf("0x%08x", blockindex->nCreatorId)));

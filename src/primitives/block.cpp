@@ -49,20 +49,6 @@ uint256 CBlock::GetChainAdminDataHash() const
     return Hash(hashes.begin(), hashes.end());
 }
 
-uint256 CBlock::GetCreatorHash() const
-{
-    CHashWriter ss(SER_GETHASH, nVersion);
-    ss << GetHash() << chainMultiSig;
-
-    if (vMissingSignerIds.size())
-        ss << vMissingSignerIds;
-
-    if (HasAdminPayload())
-        ss << adminMultiSig << vAdminIds;
-
-    return ss.GetHash();
-}
-
 std::string CBlock::ToString() const
 {
     std::stringstream s, payload;

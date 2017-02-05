@@ -108,6 +108,8 @@ public:
 class CBlock : public CBlockHeader
 {
 public:
+    std::vector<CTransaction> vtx;
+
     // network and disk
     CSchnorrSig chainMultiSig;
     /* contains the CVN IDs of all the currently active CVN that failed
@@ -122,7 +124,6 @@ public:
     vector<uint32_t> vAdminIds;
 
     CSchnorrSig creatorSignature;
-    std::vector<CTransaction> vtx;
     std::vector<CCvnInfo> vCvns;
     std::vector<CChainAdmin> vChainAdmins;
     CDynamicChainParams dynamicChainParams;
@@ -147,6 +148,7 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(*(CBlockHeader*)this);
+        READWRITE(vtx);
         READWRITE(chainMultiSig);
         READWRITE(vMissingSignerIds);
         if (HasAdminPayload()) {
@@ -155,8 +157,6 @@ public:
         }
         READWRITE(creatorSignature);
 
-        if (HasTx())
-            READWRITE(vtx);
         if (HasCvnInfo())
             READWRITE(vCvns);
         if (HasChainAdmins())
@@ -170,12 +170,12 @@ public:
     void SetNull()
     {
         CBlockHeader::SetNull();
+        vtx.clear();
         chainMultiSig.SetNull();
         vMissingSignerIds.clear();
         adminMultiSig.SetNull();
         vAdminIds.clear();
         creatorSignature.SetNull();
-        vtx.clear();
         vCvns.clear();
         vChainAdmins.clear();
         dynamicChainParams = CDynamicChainParams();
@@ -195,8 +195,6 @@ public:
     }
 
     std::string ToString() const;
-
-    uint256 GetCreatorHash() const;
 
     uint256 HashCVNs() const;
 

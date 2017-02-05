@@ -1989,7 +1989,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     CAmount nFees = 0;
     int nInputs = 0;
     unsigned int nSigOps = 0;
-    CDiskTxPos pos(pindex->GetBlockPos(), GetSizeOfCompactSize(block.vtx.size()) + GetSerializeSize(block.creatorSignature, SER_DISK, CLIENT_VERSION));
+    CDiskTxPos pos(pindex->GetBlockPos(), GetSizeOfCompactSize(block.vtx.size()));
     std::vector<std::pair<uint256, CDiskTxPos> > vPos;
     vPos.reserve(block.vtx.size());
     if (block.HasTx())
@@ -2929,7 +2929,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOC, bo
 
     if (fCheckPOC) {
         // check for correct signature of the block hash by the creator
-        if (!CvnVerifySignature(block.GetCreatorHash(), block.creatorSignature, block.nCreatorId))
+        if (!CvnVerifySignature(block.GetHash(), block.creatorSignature, block.nCreatorId))
             return state.DoS(100, error("CheckBlock(): invalid creator signature"),
                                          REJECT_INVALID, "bad-creator-sig", true);
 
@@ -3881,7 +3881,7 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
                     continue;
                 // read size
                 blkdat >> nSize;
-                if (nSize < 80 || nSize > MAX_SIZE_OF_BLOCK)
+                if (nSize < 76 || nSize > MAX_SIZE_OF_BLOCK)
                     continue;
             } catch (const std::exception&) {
                 // no valid block header found; don't complain

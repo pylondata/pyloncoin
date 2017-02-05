@@ -762,7 +762,7 @@ bool CvnSignBlock(CBlock& block)
         return false;
     }
 
-    if (!CvnSignHash(block.GetCreatorHash(), block.creatorSignature))
+    if (!CvnSignHash(block.GetHash(), block.creatorSignature))
         return false;
 
     return true;
