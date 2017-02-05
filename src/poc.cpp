@@ -796,12 +796,12 @@ bool CvnVerifyChainSignature(const CBlock& block)
      * them
      */
     if (vMissingSignersIds.empty()) {
-        BlockMap::iterator mi = mapBlockIndex.find(block.GetHash());
+        BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
         if (mi == mapBlockIndex.end())
-            return false;
+            return error("could not find block in index");
 
         CvnInfoCache *cache;
-        GetCvnInfoCache(&cache, (*mi).second->nHeight);
+        GetCvnInfoCache(&cache, (*mi).second->nHeight + 1);
         sumOfAllSignersPubkeys = cache->sumOfAllpubKeys;
     } else {
         int count = 0;

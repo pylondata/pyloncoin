@@ -244,7 +244,7 @@ UniValue addcvn(const UniValue& params, bool fHelp)
     }
 
     // if no signatures are supplied we print out the CChainDataMsg's hash to sign
-    if (params[4].empty())
+    if (params[3].isNull() || params[3].empty() || params[4].isNull())
         return msg.GetHash().ToString();
 
     if (!AddAdminSignatures(msg, adminIds, params[4].get_str()))
