@@ -1991,6 +1991,7 @@ static void handleWaitingForCvnData(POCStateHolder& s)
         s.nSleep = 0;
 
         CreateNewNoncePool(s);
+        fNoncePoolInitialsed = true;
     } else {
         s.nSleep = 3;
     }
