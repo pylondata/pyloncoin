@@ -158,7 +158,30 @@ uint256 BlockMerkleRoot(const CBlock& block, bool* mutated)
     for (size_t s = 0; s < block.vtx.size(); s++) {
         leaves[s] = block.vtx[s].GetHash();
     }
-    return ComputeMerkleRoot(leaves, mutated);
+    uint256 hashRawMerkleRoot = ComputeMerkleRoot(leaves, mutated);
+
+    /* also all non-transaction data must be represented by the merkle hash */
+    CHashWriter hasher(SER_GETHASH, 0);
+    hasher << hashRawMerkleRoot << block.vMissingSignerIds << block.chainMultiSig;
+
+    if (block.HasAdminPayload())
+        hasher << block.vAdminIds << block.adminMultiSig;
+
+    if (block.HasCvnInfo())
+        hasher << block.vCvns;
+
+    if (block.HasChainAdmins())
+        hasher << block.vChainAdmins;
+
+    if (block.HasChainParameters())
+        hasher << block.dynamicChainParams;
+
+#ifdef ENABLE_COINSUPPLY
+    if (block.HasCoinSupplyPayload())
+        hasher << block.coinSupply;
+#endif
+
+    return hasher.GetHash();
 }
 
 std::vector<uint256> BlockMerkleBranch(const CBlock& block, uint32_t position)

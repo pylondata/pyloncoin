@@ -115,16 +115,9 @@ void CBlockIndex::BuildSkip()
 
 string CBlockIndex::ToString() const
 {
-    return strprintf("CBlockIndex(pprev=%p, nHeight=%d, pl=%s, nCreatorId=%08x, merkle=%s, hashBlock=%s, nTime=%u, nStatus=%08x, signatures=%u, adminSignatures=%u)",
+    return strprintf("CBlockIndex(pprev=%p, nHeight=%d, pl=%s, nCreatorId=%08x, merkle=%s, hashBlock=%s, nTime=%u, nStatus=%08x)",
         pprev, nHeight, GetPayloadString(), nCreatorId,
         hashMerkleRoot.ToString(),
         GetBlockHash().ToString(),
-        nTime, nStatus,
-        GetNumChainSigs(),
-        vAdminIds.size());
-}
-
-uint32_t CBlockIndex::GetNumChainSigs() const
-{
-    return mapCVNs.size() - vMissingCreatorIds.size();
+        nTime, nStatus);
 }

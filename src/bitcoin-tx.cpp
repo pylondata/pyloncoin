@@ -677,7 +677,8 @@ int main(int argc, char* argv[])
     return ret;
 }
 
-/* just a dummy */
-uint32_t CBlockHeader::GetNumChainSigs() const {
-    return vMissingSignerIds.size();
+// dummy
+uint32_t GetNumChainSigs(const CBlock *pblock)
+{
+    return 0;
 }

@@ -270,7 +270,7 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
         }
         nLastBlockTx = nBlockTx;
         nLastBlockSize = nBlockSize;
-        LogPrintf("PopulateBlock(): total size %u txs: %u fees: %ld sigops %d\n", nBlockSize, nBlockTx, nFees, nBlockSigOps);
+        LogPrintf("PopulateBlock : total size %u txs: %u fees: %ld sigops %d\n", nBlockSize, nBlockTx, nFees, nBlockSigOps);
 
         // Compute final coinbase transaction.
         txNew.vout[0].nValue = nFees + (pindexPrev->GetBlockHash() == blocktemplate.chainparams.GetConsensus().hashGenesisBlock ? MAX_MONEY : 0);
@@ -300,12 +300,13 @@ static void UpdateCoinbase(CBlock* pblock, const CBlockIndex* pindexPrev, const 
     assert(txCoinbase.vin[0].scriptSig.size() <= 100);
 
     pblock->vtx[0] = txCoinbase;
-    pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
 }
 
 static bool ProcessCVNBlock(const CBlock* pblock, const CChainParams& chainparams)
 {
-    LogPrintf("%s", pblock->ToString());
+    if (GetBoolArg("-printcreatedblock", true))
+        LogPrintf("%s", pblock->ToString());
+
     LogPrintf("fees collected: %s\n", FormatMoney(pblock->vtx[0].vout[0].nValue));
 
     {
@@ -369,7 +370,6 @@ static bool AddChainDataToBlock(CBlock *pblock, const CChainDataMsg& msg)
         tx.vout.push_back(CTxOut(msg.coinSupply.nValue, msg.coinSupply.scriptDestination));
 
         pblock->vtx[0] = tx;
-        pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
     }
 
     return true;
@@ -501,7 +501,7 @@ static bool CreateNewBlock(CBlockTemplate& blockTemplate)
         }
 
         if (pblock->chainMultiSig.IsNull()) {
-            LogPrintf("cannot create block. Signature not available\n");
+            LogPrintf("CreateNewBlock : cannot create block. Signature not available\n");
             return false;
         }
     } else {
@@ -509,9 +509,17 @@ static bool CreateNewBlock(CBlockTemplate& blockTemplate)
             return false;
     }
 
-    if (blockTemplate.pindexPrev->GetNumChainSigs() > 1 && ((float)blockTemplate.pindexPrev->GetNumChainSigs() / (float)2 >= (float)pblock->GetNumChainSigs())) {
-        LogPrintf("cannot create block. Not enough signatures available. Prev: %u, This: %u\n",
-                blockTemplate.pindexPrev->GetNumChainSigs(), pblock->GetNumChainSigs());
+    uint32_t nSigsPrevBlock = GetNumChainSigs(blockTemplate.pindexPrev);
+    uint32_t nSigsBlock = mapCVNs.size() - pblock->vMissingSignerIds.size();
+
+    if (!nSigsPrevBlock || !nSigsBlock) {
+        LogPrintf("CreateNewBlock : could not determine number of signatures: %d|%d\n", nSigsPrevBlock, nSigsBlock);
+        return false;
+    }
+
+    if (nSigsPrevBlock > 1 && ((float)nSigsPrevBlock / (float)2 >= (float)nSigsBlock)) {
+        LogPrintf("CreateNewBlock : cannot create block. Not enough signatures available. Prev: %u, This: %u\n",
+                nSigsPrevBlock, nSigsBlock);
         return false;
     }
 
@@ -520,30 +528,32 @@ static bool CreateNewBlock(CBlockTemplate& blockTemplate)
         if (mapChainData.count(hashBlock)) {
             CChainDataMsg& msg = mapChainData[hashBlock];
             if (!AddChainDataToBlock(pblock, msg)) {
-                LogPrintf("could not add chain data to block\n");
+                LogPrintf("CreateNewBlock : could not add chain data to block\n");
             }
         }
     }
 
+    pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
+
     if (!CvnSignBlock(*pblock)) {
-        LogPrintf("could not sign block %s\n", pblock->GetHash().ToString());
+        LogPrintf("CreateNewBlock : could not sign block %s\n", pblock->GetHash().ToString());
         return false;
     }
 
     LogPrintf("creating new block with %u transactions, %u CvnInfo, %u signatures, %u bytes\n",
             pblock->vtx.size(), pblock->vCvns.size(),
-            pblock->GetNumChainSigs(),
+            nSigsBlock,
             ::GetSerializeSize(*pblock, SER_NETWORK, PROTOCOL_VERSION));
 
     // final tests
     CValidationState state;
-    if (!TestBlockValidity(state, blockTemplate.chainparams, *pblock, blockTemplate.pindexPrev, true, false)) {
-        LogPrintf("TestBlockValidity failed: %s\n%s\n", FormatStateMessage(state), pblock->ToString());
+    if (!TestBlockValidity(state, blockTemplate.chainparams, *pblock, blockTemplate.pindexPrev)) {
+        LogPrintf("CreateNewBlock : TestBlockValidity failed: %s\n%s\n", FormatStateMessage(state), pblock->ToString());
         return false;
     }
 
     if (!ProcessCVNBlock(pblock, blockTemplate.chainparams)) {
-        LogPrintf("block not accepted %s\n", pblock->GetHash().ToString());
+        LogPrintf("CreateNewBlock : block not accepted %s\n", pblock->GetHash().ToString());
         return false;
     }
 
