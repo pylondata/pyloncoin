@@ -21,32 +21,28 @@ uint256 CBlockHeader::GetHash() const
     return SerializeHash(*this);
 }
 
-uint256 CBlock::HashCVNs() const
+uint256 CBlock::GetPayloadHash(const bool fAdminDataOnly) const
 {
-    return SerializeHash(this->vCvns);
-}
+    CHashWriter hasher(SER_GETHASH, 0);
+    hasher << hashPrevBlock;
 
-uint256 CBlock::HashChainAdmins() const
-{
-    return SerializeHash(this->vChainAdmins);
-}
-
-uint256 CBlock::GetChainAdminDataHash() const
-{
-    std::vector<uint256> hashes;
-
-    hashes.push_back(hashPrevBlock);
+    if (!fAdminDataOnly) {
+        hasher << vMissingSignerIds << chainMultiSig;
+        if (HasAdminPayload())
+            hasher << vAdminIds << adminMultiSig;
+    }
 
     if (HasCvnInfo())
-        hashes.push_back(HashCVNs());
+        hasher << vCvns;
     if (HasChainParameters())
-        hashes.push_back(dynamicChainParams.GetHash());
+        hasher << dynamicChainParams;
     if (HasChainAdmins())
-        hashes.push_back(HashChainAdmins());
+        hasher << vChainAdmins;
+#ifdef ENABLE_COINSUPPLY
     if (HasCoinSupplyPayload())
-        hashes.push_back(coinSupply.GetHash());
-
-    return Hash(hashes.begin(), hashes.end());
+        hasher << coinSupply;
+#endif
+    return hasher.GetHash();
 }
 
 std::string CBlock::ToString() const
@@ -64,11 +60,12 @@ std::string CBlock::ToString() const
     if (HasCoinSupplyPayload())
         payload << strprintf("%ssupply", (payload.tellp() > 0) ? "|" : "");
 
-    s << strprintf("CBlock(hash=%s, ver=%d, payload=%s, hashPrevBlock=%s, hashMerkleRoot=%s, nTime=%u, nCreatorId=0x%08x, vtx=%u, missing=%u)\n",
+    s << strprintf("CBlock(hash=%s, ver=%d, payload=%s, hashPrevBlock=%s, hashMerkleRoot=%s, hashPayload=%s, nTime=%u, nCreatorId=0x%08x, vtx=%u, missing=%u)\n",
         GetHash().ToString(),
         nVersion & 0xff, payload.str(),
         hashPrevBlock.ToString(),
         hashMerkleRoot.ToString(),
+        hashPayload.ToString(),
         nTime, nCreatorId,
 		vtx.size(), vMissingSignerIds.size());
     if (HasAdminPayload())

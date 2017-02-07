@@ -2942,10 +2942,14 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOC, bo
                 return state.DoS(100, error("CheckBlock(): invalid number of chain admin signatures"),
                                              REJECT_INVALID, "bad-admin-sig", true);
 
-            if (!CheckAdminSignature(block.vAdminIds, block.GetChainAdminDataHash(), block.adminMultiSig, block.HasCoinSupplyPayload()))
+            if (!CheckAdminSignature(block.vAdminIds, block.GetPayloadHash(true), block.adminMultiSig, block.HasCoinSupplyPayload()))
                 return state.DoS(100, error("CheckBlock(): invalid chain admin signature"),
                                              REJECT_INVALID, "bad-admin-sig", true);
         }
+
+        if (block.hashPayload != block.GetPayloadHash())
+            return state.DoS(100, error("CheckBlock(): hashPayload mismatch"),
+                                     REJECT_INVALID, "bad-payload-hash", true);
     }
 
     // Check the merkle root.

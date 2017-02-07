@@ -115,9 +115,9 @@ void CBlockIndex::BuildSkip()
 
 string CBlockIndex::ToString() const
 {
-    return strprintf("CBlockIndex(pprev=%p, nHeight=%d, pl=%s, nCreatorId=%08x, merkle=%s, hashBlock=%s, nTime=%u, nStatus=%08x)",
+    return strprintf("CBlockIndex(pprev=%p, nHeight=%d, pl=%s, nCreatorId=%08x, merkle=%s, payload=%s, hashBlock=%s, nTime=%u, nStatus=%08x)",
         pprev, nHeight, GetPayloadString(), nCreatorId,
-        hashMerkleRoot.ToString(),
+        hashMerkleRoot.ToString(), hashPayload.ToString(),
         GetBlockHash().ToString(),
         nTime, nStatus);
 }

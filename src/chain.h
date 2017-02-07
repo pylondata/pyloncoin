@@ -141,6 +141,7 @@ public:
     //! block header
     int nVersion;
     uint256 hashMerkleRoot;
+    uint256 hashPayload;
     unsigned int nTime;
     unsigned int nCreatorId;
 
@@ -166,6 +167,7 @@ public:
 
         nVersion       = 0;
         hashMerkleRoot = uint256();
+        hashPayload    = uint256();
         nTime          = 0;
         nCreatorId     = 0;
     }
@@ -181,6 +183,7 @@ public:
 
         nVersion           = block.nVersion;
         hashMerkleRoot     = block.hashMerkleRoot;
+        hashPayload        = block.hashPayload;
         nTime              = block.nTime;
         nCreatorId         = block.nCreatorId;
         if (vMissingSignerIdsIn)
@@ -214,6 +217,7 @@ public:
         if (pprev)
             block.hashPrevBlock  = pprev->GetBlockHash();
         block.hashMerkleRoot     = hashMerkleRoot;
+        block.hashPayload        = hashPayload;
         block.nTime              = nTime;
         block.nCreatorId         = nCreatorId;
         return block;
@@ -331,6 +335,7 @@ public:
         READWRITE(this->nVersion);
         READWRITE(hashPrev);
         READWRITE(hashMerkleRoot);
+        READWRITE(hashPayload);
         READWRITE(nTime);
         READWRITE(nCreatorId);
     }
@@ -341,6 +346,7 @@ public:
         block.nVersion           = nVersion;
         block.hashPrevBlock      = hashPrev;
         block.hashMerkleRoot     = hashMerkleRoot;
+        block.hashPayload        = hashPayload;
         block.nTime              = nTime;
         block.nCreatorId         = nCreatorId;
         return block.GetHash();

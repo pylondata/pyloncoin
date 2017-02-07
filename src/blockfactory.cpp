@@ -359,8 +359,11 @@ static bool AddChainDataToBlock(CBlock *pblock, const CChainDataMsg& msg)
         pblock->vChainAdmins = msg.vChainAdmins;
     }
     if (msg.HasChainParameters()) {
-        pblock->nVersion |= CBlock::CHAIN_PARAMETERS_PAYLOAD;
-        pblock->dynamicChainParams = msg.dynamicChainParams;
+        if (CheckDynamicChainParameters(msg.dynamicChainParams)) {
+            pblock->nVersion |= CBlock::CHAIN_PARAMETERS_PAYLOAD;
+            pblock->dynamicChainParams = msg.dynamicChainParams;
+        } else
+            LogPrintf("received invalid chain params, ignoring it\n%s\n%s", msg.ToString(), msg.dynamicChainParams.ToString());
     }
     if (msg.HasCoinSupplyPayload()) {
         pblock->nVersion |= CBlock::COIN_SUPPLY_PAYLOAD;
@@ -529,11 +532,14 @@ static bool CreateNewBlock(CBlockTemplate& blockTemplate)
             CChainDataMsg& msg = mapChainData[hashBlock];
             if (!AddChainDataToBlock(pblock, msg)) {
                 LogPrintf("CreateNewBlock : could not add chain data to block\n");
+            } else if (!CheckDynamicChainParameters(pblock->dynamicChainParams)) {
+                LogPrintf("CreateNewBlock : received invalied chain parameters\n");
             }
         }
     }
 
     pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
+    pblock->hashPayload    = pblock->GetPayloadHash();
 
     if (!CvnSignBlock(*pblock)) {
         LogPrintf("CreateNewBlock : could not sign block %s\n", pblock->GetHash().ToString());

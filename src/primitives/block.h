@@ -33,6 +33,7 @@ public:
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
+    uint256 hashPayload;
     uint32_t nTime;
     uint32_t nCreatorId;
 
@@ -49,6 +50,7 @@ public:
         nVersion = this->nVersion;
         READWRITE(hashPrevBlock);
         READWRITE(hashMerkleRoot);
+        READWRITE(hashPayload);
         READWRITE(nTime);
         READWRITE(nCreatorId);
     }
@@ -58,6 +60,7 @@ public:
         nVersion = CBlockHeader::CURRENT_VERSION;
         hashPrevBlock.SetNull();
         hashMerkleRoot.SetNull();
+        hashPayload.SetNull();
         nTime = 0;
         nCreatorId = 0;
     }
@@ -189,6 +192,7 @@ public:
         block.nVersion           = nVersion;
         block.hashPrevBlock      = hashPrevBlock;
         block.hashMerkleRoot     = hashMerkleRoot;
+        block.hashPayload        = hashPayload;
         block.nTime              = nTime;
         block.nCreatorId         = nCreatorId;
         return block;
@@ -196,11 +200,7 @@ public:
 
     std::string ToString() const;
 
-    uint256 HashCVNs() const;
-
-    uint256 HashChainAdmins() const;
-
-    uint256 GetChainAdminDataHash() const;
+    uint256 GetPayloadHash(const bool fAdminDataOnly = false) const;
 };
 
 
