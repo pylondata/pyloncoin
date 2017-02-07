@@ -42,7 +42,7 @@ Create a configuration file in the data directory of FairCoin and copy-and-paste
 
 ```
 mkdir ~/.faircoin2
-cat > ~/.faircoin2/faircoin2.conf <<EOF
+cat > ~/.faircoin2/faircoin.conf <<EOF
 #FairCoin CVN configuration file
 logtimestamps=1
 logips=1
