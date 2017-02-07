@@ -105,18 +105,18 @@ uint256 CChainDataMsg::HashCVNs() const
 uint256 CChainDataMsg::GetHash() const
 {
     CHashWriter hasher(SER_GETHASH, 0);
-
     hasher << hashPrevBlock;
 
     if (HasCvnInfo())
-        hasher << HashCVNs();
-    if (HasChainAdmins())
-        hasher << HashChainAdmins();
+        hasher << vCvns;
     if (HasChainParameters())
-        hasher << dynamicChainParams.GetHash();
+        hasher << dynamicChainParams;
+    if (HasChainAdmins())
+        hasher << vChainAdmins;
+#ifdef ENABLE_COINSUPPLY
     if (HasCoinSupplyPayload())
-        hasher << coinSupply.GetHash();
-
+        hasher << coinSupply;
+#endif
     return hasher.GetHash();
 }
 
