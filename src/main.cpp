@@ -3125,10 +3125,8 @@ static bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state
                 return state.Invalid(error("%s: block is marked invalid", __func__), 0, "duplicate");
 
             // if we have received the header first vMissingSignerIds was not set
-            if (vMissingSignerIds) {
-                LogPrintf("AcceptBlockHeader : updating missing signers on block header: %s\n", pindex->GetBlockHash().ToString());
+            if (vMissingSignerIds && !vMissingSignerIds->empty())
                 pindex->vMissingSignerIds = *vMissingSignerIds;
-            }
 
             return true;
         }
@@ -4491,7 +4489,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         if (pfrom->nVersion < MIN_PEER_PROTO_VERSION)
         {
             // disconnect from peers older than this proto version
-            LogPrintf("peer=%d using obsolete version %i; disconnecting\n", pfrom->id, pfrom->nVersion);
+            LogPrintf("peer=%d (%s) using obsolete version %i; disconnecting\n", pfrom->id, pfrom->nVersion, fLogIPs ? pfrom->addr.ToString() : "-");
             pfrom->PushMessage(NetMsgType::REJECT, strCommand, REJECT_OBSOLETE,
                                strprintf("Version must be %d or greater", MIN_PEER_PROTO_VERSION));
             pfrom->fDisconnect = true;
