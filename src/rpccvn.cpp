@@ -84,6 +84,16 @@ static void AddChainAdminToMsg(CChainDataMsg &msg, const uint32_t nAdminId, cons
 static bool AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
 {
     LogPrintf("AddDynParamsToMsg : adding %u parameters\n", jsonParams.getKeys().size());
+
+    UniValue flushSigholder = find_value(jsonParams, "flushSigholder");
+    if (!flushSigholder.isNull()) {
+        if (flushSigholder.isTrue()) {
+            msg.nPayload = CChainDataMsg::FLUSH_SIGHOLDER_PAYLOAD;
+            return true;
+        } else
+            return false;
+    }
+
     msg.nPayload = CChainDataMsg::CHAIN_PARAMETERS_PAYLOAD;
 
     CDynamicChainParams& params = msg.dynamicChainParams;

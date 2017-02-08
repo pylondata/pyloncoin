@@ -471,6 +471,8 @@ public:
     static const int32_t     CHAIN_ADMINS_PAYLOAD = 1 << 1;
     static const int32_t CHAIN_PARAMETERS_PAYLOAD = 1 << 2;
     static const int32_t      COIN_SUPPLY_PAYLOAD = 1 << 3;
+    static const int32_t  FLUSH_SIGHOLDER_PAYLOAD = 1 << 4;
+    static const int32_t       BLOCK_PAYLOAD_MASK = CVN_PAYLOAD | CHAIN_ADMINS_PAYLOAD | CHAIN_PARAMETERS_PAYLOAD | COIN_SUPPLY_PAYLOAD;
     uint32_t nPayload;
 
     // this chain data must be contained in the block after this hash
@@ -553,6 +555,11 @@ public:
     bool HasCoinSupplyPayload() const
     {
         return (nPayload & COIN_SUPPLY_PAYLOAD);
+    }
+
+    bool HasFlushSigholderPayload() const
+    {
+        return (nPayload & FLUSH_SIGHOLDER_PAYLOAD);
     }
 };
 

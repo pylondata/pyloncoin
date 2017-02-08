@@ -3524,6 +3524,22 @@ bool static LoadBlockIndexDB()
     BOOST_FOREACH(const PAIRTYPE(int, CBlockIndex*)& item, vSortedByHeight)
     {
         CBlockIndex* pindex = item.second;
+
+        if (pindex->nVersion & CBlock::CVN_PAYLOAD) {
+            CachedCvnType::iterator it = mapChachedCVNInfoBlocks.find(pindex->GetBlockHash());
+
+            if (it == mapChachedCVNInfoBlocks.end()) {
+                CBlock block;
+                if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus())) {
+                    LogPrintf("FATAL: Failed to read block %s\n", pindex->GetBlockHash().ToString());
+                    return false;
+                }
+                mapChachedCVNInfoBlocks[pindex->GetBlockHash()] = block.vCvns;
+                if (!AddToCvnInfoCache(&block, pindex->nHeight))
+                    return false;
+            }
+        }
+
         pindex->nChainWork = (pindex->pprev ? pindex->pprev->nChainWork : 0) + GetBlockProof(*pindex);
 #if 0
         LogPrintf("LoadBlockIndexDB : nVersion: 0x%08x, nHeight: %u, nChainwork: %s, nStatus: %u, blockHash: %s, sigs: %u\n",
@@ -3706,7 +3722,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
         if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus()))
             return error("VerifyDB(): *** ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
         // find the most recent CVN and ChainParams block
-        if (pindex->pprev && (block.HasCvnInfo() || block.HasChainParameters() || block.HasChainAdmins()))
+        if (pindex->pprev && block.HasAdminPayload() && !block.HasCoinSupplyPayload())
             if (!SetMostRecentCVNData(chainparams, pindex->pprev))
                 return error("VerifyDB(): *** SetMostRecentCVNData failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
         // check level 1: verify block validity

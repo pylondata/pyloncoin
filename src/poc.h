@@ -75,6 +75,7 @@ public:
 };
 
 typedef std::map<uint32_t, CvnInfoCache> CvnInfoCacheType;
+typedef std::map<uint256, vector<CCvnInfo> > CachedCvnType;
 
 extern CvnInfoCacheType mapCVNInfoCache;
 
@@ -95,6 +96,7 @@ extern CCriticalSection cs_mapBlockIndexByPrevHash;
 extern BlockIndexByPrevHashType mapBlockIndexByPrevHash;
 extern CCriticalSection cs_mapBannedCVNs;
 extern BannedCVNMapType mapBannedCVNs;
+extern CachedCvnType mapChachedCVNInfoBlocks;
 
 enum POCState {
     INIT,
@@ -196,6 +198,7 @@ public:
 
 extern CSignatureHolder sigHolder;
 
+extern bool AddToCvnInfoCache(const CBlock *pblock, const uint32_t nHeight);
 extern uint32_t GetNumChainSigs(const CBlockIndex *pindex);
 extern uint32_t GetNumChainSigs(const CBlock *pblock);
 extern bool CvnSignHash(const uint256 &hashToSign, CSchnorrSig& signature);

@@ -36,6 +36,7 @@ uint32_t nChainAdminId = 0;
 bool fNoncePoolInitialsed = false;
 
 CvnInfoCacheType mapCVNInfoCache;
+CachedCvnType mapChachedCVNInfoBlocks;
 
 CCriticalSection cs_mapChainAdmins;
 ChainAdminMapType mapChainAdmins;
@@ -92,6 +93,34 @@ void printHex(const uint8_t *buf, const size_t len, const bool addLF = false)
         cout << "\n";
 }
 #endif
+
+bool AddToCvnInfoCache(const CBlock *pblock, const uint32_t nHeight)
+{
+    if (!pblock->HasCvnInfo())
+        return false;
+
+    LOCK(cs_mapCVNs);
+
+    mapCVNs.clear();
+    int count = 0;
+    secp256k1_pubkey *allSignersPubkeys[MAX_NUMBER_OF_CVNS];
+
+    BOOST_FOREACH(const CCvnInfo &cvnInfo, pblock->vCvns) {
+        mapCVNs.insert(std::make_pair(cvnInfo.nNodeId, cvnInfo));
+        allSignersPubkeys[count++] = (secp256k1_pubkey *)&cvnInfo.pubKey.begin()[0];
+    }
+
+    secp256k1_pubkey sumOfAllSignersPubkeys;
+    if (count == 1) {
+        memcpy(sumOfAllSignersPubkeys.data, &pblock->vCvns[0].pubKey.begin()[0], 64);
+    } else {
+        if (!secp256k1_ec_pubkey_combine(secp256k1_context_none, &sumOfAllSignersPubkeys, allSignersPubkeys, count))
+            return error("AddToCvnInfoCache : could not combine signers public keys");
+    }
+
+    mapCVNInfoCache[nHeight] = CvnInfoCache(sumOfAllSignersPubkeys, mapCVNs.size());
+    return true;
+}
 
 static bool GetCvnInfoCache(CvnInfoCache **cache, const uint32_t nHeight)
 {
@@ -971,18 +1000,25 @@ bool AddChainData(const CChainDataMsg& msg)
 
     uint256 hashBlock = msg.hashPrevBlock;
 
-    LOCK(cs_mapChainData);
-    if (mapChainData.count(hashBlock)) {
-        LogPrintf("received duplicate chain data for block %s: %s\n", hashBlock.ToString(), msg.ToString());
+    if (!msg.HasFlushSigholderPayload()) {
+        LOCK(cs_mapChainData);
+        if (mapChainData.count(hashBlock)) {
+            LogPrintf("received duplicate chain data for block %s: %s\n", hashBlock.ToString(), msg.ToString());
+            return false;
+        }
+
+        mapChainData.insert(std::make_pair(hashBlock, msg));
+
+        LogPrintf("AddChainData : signed by %u (minimum %u) admins of %u to be added after blockHash %s\n",
+                msg.vAdminIds.size(), dynParams.nMinAdminSigs, dynParams.nMaxAdminSigs, hashBlock.ToString());
+    } else if(msg.nPayload & CChainDataMsg::BLOCK_PAYLOAD_MASK) {
+        LogPrintf("AddChainData : cannor mix FLUSH payload with any other payload, ignoreing...\n");
         return false;
+    } else {
+        LogPrintf("flushing all entries from sigHolder due to admins request.\n");
+        sigHolder.SetNull();
     }
 
-    mapChainData.insert(std::make_pair(hashBlock, msg));
-
-    LogPrintf("AddChainData : signed by %u (minimum %u) admins of %u to be added after blockHash %s\n",
-            msg.vAdminIds.size(), dynParams.nMinAdminSigs, dynParams.nMaxAdminSigs, hashBlock.ToString());
-
-    LogPrintf("%s\n", msg.ToString());
     return true;
 }
 
@@ -1148,23 +1184,7 @@ void UpdateCvnInfo(const CBlock* pblock, const uint32_t nHeight)
         return;
     }
 
-    LOCK(cs_mapCVNs);
-
-    mapCVNs.clear();
-    int count = 0;
-    secp256k1_pubkey *allSignersPubkeys[MAX_NUMBER_OF_CVNS];
-
-    BOOST_FOREACH(const CCvnInfo &cvnInfo, pblock->vCvns) {
-        mapCVNs.insert(std::make_pair(cvnInfo.nNodeId, cvnInfo));
-        allSignersPubkeys[count++] = (secp256k1_pubkey *)&cvnInfo.pubKey.begin()[0];
-    }
-
-    secp256k1_pubkey sumOfAllSignersPubkeys;
-    if (!secp256k1_ec_pubkey_combine(secp256k1_context_none, &sumOfAllSignersPubkeys, allSignersPubkeys, count))
-        LogPrintf("could not combine signers public keys");
-
-    mapCVNInfoCache[nHeight] = CvnInfoCache(sumOfAllSignersPubkeys, mapCVNs.size());
-
+    AddToCvnInfoCache(pblock, nHeight);
     PrintAllCVNs();
 }
 
@@ -1375,9 +1395,6 @@ bool CheckForDuplicateChainAdmins(const CBlock& block)
     return true;
 }
 
-typedef map<uint256, vector<CCvnInfo> > CachedCvnType;
-static CachedCvnType mapChachedCVNInfoBlocks;
-
 static uint32_t FindNewlyAddedCVN(const CBlockIndex* pindexStart)
 {
     const CChainParams& chainparams = Params();
@@ -1420,7 +1437,7 @@ static uint32_t FindNewlyAddedCVN(const CBlockIndex* pindexStart)
         }
     }
 
-    if (!nLastAddedNode || !pindexFound) // should not happen
+    if (!nLastAddedNode || !pindexFound)
         return 0;
 
     // if the last added node has created a block there is no new CVN that needs to be bootstrapped
@@ -1525,7 +1542,7 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
     uint32_t nNextCreatorId = FindNewlyAddedCVN(pindexStart);
 
     if (nNextCreatorId) {
-        LogPrintf("CheckNextBlockCreator : CVN 0x%08x needs to be bootstrapped\n", nNextCreatorId);
+        LogPrint("cvn", "CheckNextBlockCreator : CVN 0x%08x needs to be bootstrapped\n", nNextCreatorId);
         vCreatorCandidates.push_back(nNextCreatorId);
     } else if (vCreatorCandidates.size() < nRegisteredCVNs) {
         nNextCreatorId = FindDormantNode(pindexStart, mapLastSignatures, setCreatorCandidates, dynParams.nMinSuccessiveSignatures);

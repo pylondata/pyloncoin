@@ -338,6 +338,7 @@ public:
         READWRITE(hashPayload);
         READWRITE(nTime);
         READWRITE(nCreatorId);
+        READWRITE(vMissingSignerIds);
     }
 
     uint256 GetBlockHash() const
