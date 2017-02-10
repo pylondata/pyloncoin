@@ -41,8 +41,8 @@ UniValue blockheaderToJSON(const CBlockIndex* blockindex)
     result.push_back(Pair("height", blockindex->nHeight));
     result.push_back(Pair("version", blockindex->nVersion));
     result.push_back(Pair("payload", blockindex->GetPayloadString()));
-    result.push_back(Pair("merkleroot", blockindex->hashMerkleRoot.GetHex()));
     result.push_back(Pair("payloadhash", blockindex->hashPayload.GetHex()));
+    result.push_back(Pair("merkleroot", blockindex->hashMerkleRoot.GetHex()));
     result.push_back(Pair("time", (int64_t)blockindex->nTime));
     result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
     result.push_back(Pair("creator", strprintf("0x%08x", blockindex->nCreatorId)));
@@ -68,6 +68,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const u
     result.push_back(Pair("height", blockindex->nHeight));
     result.push_back(Pair("version", block.nVersion));
     result.push_back(Pair("payload", blockindex->GetPayloadString()));
+    result.push_back(Pair("payloadhash", blockindex->hashPayload.ToString()));
     result.push_back(Pair("merkleroot", block.hashMerkleRoot.GetHex()));
     result.push_back(Pair("time", block.GetBlockTime()));
     result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
@@ -377,14 +378,15 @@ UniValue getblockheader(const UniValue& params, bool fHelp)
 
 UniValue getblock(const UniValue& params, bool fHelp)
 {
-    if (fHelp || params.size() < 1 || params.size() > 2)
+    if (fHelp || params.size() < 1 || params.size() > 3)
         throw runtime_error(
-            "getblock \"hash\" ( verbose )\n"
+            "getblock \"hash\" ( verbose ) ( verbose mode )\n"
             "\nIf verbose is false, returns a string that is serialized, hex-encoded data for block 'hash'.\n"
             "If verbose is true, returns an Object with information about block <hash>.\n"
             "\nArguments:\n"
             "1. \"hash\"          (string, required) The block hash\n"
             "2. verbose           (boolean, optional, default=true) true for a json object, false for the hex encoded data\n"
+            "3. verbose mode      (numeric, optional, default=1) details for a json object\n"
             "\nResult (for verbose = true):\n"
             "{\n"
             "  \"hash\" : \"hash\",     (string) the block hash (same as provided)\n"
@@ -418,9 +420,13 @@ UniValue getblock(const UniValue& params, bool fHelp)
     std::string strHash = params[0].get_str();
     uint256 hash(uint256S(strHash));
 
-    uint32_t nMode = 0;
+    bool fVerbose = true;
     if (params.size() > 1)
-        nMode = params[1].get_int();
+        fVerbose = params[1].get_bool();
+
+    uint32_t nMode = 0;
+    if (params.size() > 2)
+        nMode = params[2].get_int();
 
     if (mapBlockIndex.count(hash) == 0)
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
@@ -434,7 +440,7 @@ UniValue getblock(const UniValue& params, bool fHelp)
     if(!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Can't read block from disk");
 
-    if (!nMode)
+    if (!fVerbose)
     {
         CDataStream ssBlock(SER_NETWORK, PROTOCOL_VERSION);
         ssBlock << block;
