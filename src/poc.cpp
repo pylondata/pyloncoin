@@ -1993,9 +1993,12 @@ static void handleNoncePoolChanges(POCStateHolder& s)
         const uint32_t nPoolAge = GetPoolAge(p, s.pindexPrev);
 
         if (nPoolAge + 1 >= p.vPublicNonces.size()) {
-            LogPrint("cvnsig", "nonce pool expired, creating new pool.\n");
+            LogPrint("cvnsig", "local nonce pool expired, creating new pool.\n");
             CreateNewNoncePool(s);
         }
+    } else {
+        /* if it got cleared by a previous call to ExpireNoncePools() */
+        CreateNewNoncePool(s);
     }
 
     ExpireNoncePools(s.pindexPrev);
