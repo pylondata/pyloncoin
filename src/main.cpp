@@ -2417,8 +2417,10 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
     if (pblock->HasChainAdmins())
         UpdateChainAdmins(pblock);
 
-    if (!IsInitialBlockDownload())
+    if (!IsInitialBlockDownload()) {
         sigHolder.SetNull();
+        ExpireNoncePools(pindexNew);
+    }
 
     return true;
 }
@@ -4436,7 +4438,7 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
 
 void static AdvertiseSigsAndNonces(CNode *pfrom)
 {
-    const CBlockIndex *tip = chainActive.Tip();
+    CBlockIndex *tip = chainActive.Tip();
     uint32_t nNextCreator = CheckNextBlockCreator(tip, GetAdjustedTime());
 
     vector<CCvnPartialSignature> sigs;
@@ -4447,6 +4449,10 @@ void static AdvertiseSigsAndNonces(CNode *pfrom)
     }
 
     BOOST_FOREACH(const CNoncePoolType::value_type &p, mapNoncePool) {
+        if (GetPoolAge(p.second, tip) < 0) {
+            LogPrintf("AdvertiseSigsAndNonces : not sending expired nonce pool from height %d of CVN 0x%08x\n", p.second.nHeightAdded, p.second.nCvnId);
+            continue;
+        }
         pfrom->PushInventory(CInv(MSG_CVN_PUB_NONCE_POOL, p.second.GetHash()));
     }
 }

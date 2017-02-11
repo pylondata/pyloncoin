@@ -1642,7 +1642,7 @@ void POC_destroy_secp256k1_context()
     }
 }
 
-static int32_t GetPoolAge(const CNoncePool &pool, CBlockIndex *pTip)
+int32_t GetPoolAge(const CNoncePool &pool, CBlockIndex *pTip)
 {
     uint32_t nPoolAge = 0;
     CBlockIndex *pindexTip = pTip;
@@ -1957,6 +1957,24 @@ static void handleWaitingForNewTip(POCStateHolder& s)
     return;
 }
 
+void ExpireNoncePools(CBlockIndex *pindex)
+{
+    LOCK(cs_mapNoncePool);
+
+    CNoncePoolType::iterator it = mapNoncePool.begin();
+    while (it != mapNoncePool.end()) {
+        const pair<uint32_t, CNoncePool> &pt = *it;
+        const CNoncePool &p = pt.second;
+        const uint32_t nPoolAge = GetPoolAge(p, pindex);
+        const CNoncePoolType::iterator itErase = it++;
+
+        if (nPoolAge >= p.vPublicNonces.size()) {
+            LogPrintf("nonce pool expired, removing pool for 0x%08x.\n", pt.first);
+            mapNoncePool.erase(itErase);
+        }
+    }
+}
+
 static void handleNoncePoolChanges(POCStateHolder& s)
 {
     if (!mapCVNs.count(s.nNodeId)) {
@@ -1980,22 +1998,7 @@ static void handleNoncePoolChanges(POCStateHolder& s)
         }
     }
 
-    {
-        LOCK(cs_mapNoncePool);
-
-        CNoncePoolType::iterator it = mapNoncePool.begin();
-        while (it != mapNoncePool.end()) {
-            const pair<uint32_t, CNoncePool> &pt = *it;
-            const CNoncePool &p = pt.second;
-            const uint32_t nPoolAge = GetPoolAge(p, s.pindexPrev);
-            const CNoncePoolType::iterator itErase = it++;
-
-            if (nPoolAge >= p.vPublicNonces.size()) {
-                LogPrintf("nonce pool expired, removing pool for 0x%08x.\n", pt.first);
-                mapNoncePool.erase(itErase);
-            }
-        }
-    }
+    ExpireNoncePools(s.pindexPrev);
 
     s.state = CREATE_SIGNATURE;
 }
