@@ -1880,7 +1880,7 @@ static void handleWaitingForSignatures(POCStateHolder& s)
     LOCK(sigHolder.cs_sigHolder);
 
     MapSigSigner *sigs = GetSignatureSet(s);
-    if (sigs && sigs->size() == mapNoncePool.size() - s.vMissingSignatures.size()) {
+    if (sigs && sigs->size() == mapCVNs.size() - s.vMissingSignatures.size()) {
         s.state = WAITING_FOR_BLOCK;
         return;
     }
@@ -1912,9 +1912,9 @@ static void handleWaitingForSignatures(POCStateHolder& s)
             s.commonRx.SetNull();
             if (HasEnoughSignatures(s.pindexPrev, mapCVNs.size() - s.vMissingSignatures.size())) {
                 s.state = CREATE_SIGNATURE;
+                LogPrintf("Did not receive all sigs for set. Trying signature set with reduced number of members: %d/%d\n", mapCVNs.size() - s.vMissingSignatures.size(), mapCVNs.size());
             }
         }
-        LogPrintf("Did not receive all sigs for set. Trying signature set with reduced number of members: %d/%d\n", mapCVNs.size() - s.vMissingSignatures.size(), mapCVNs.size());
     } else if (nLastBlockSeconds >= (int32_t)dynParams.nBlockSpacing) {
         if (s.nNextCreator == s.nNodeId) {
             CBlock dummy;
