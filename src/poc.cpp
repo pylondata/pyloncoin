@@ -1901,6 +1901,7 @@ static void handleWaitingForSignatures(POCStateHolder& s)
         
         /* We have not received all the expected partial signatures.
          * Find the missing node and re-try without it. */
+        s.vMissingSignatures.clear();
         BOOST_FOREACH(const CNoncePoolType::value_type& p, mapNoncePool) {
             if (sigs && sigs->count(p.first))
                 continue;
@@ -1909,8 +1910,8 @@ static void handleWaitingForSignatures(POCStateHolder& s)
         }
 
         if (!s.vMissingSignatures.empty()) {
-            s.commonRx.SetNull();
             if (HasEnoughSignatures(s.pindexPrev, mapCVNs.size() - s.vMissingSignatures.size())) {
+                s.commonRx.SetNull();
                 s.state = CREATE_SIGNATURE;
                 LogPrintf("Did not receive all sigs for set. Trying signature set with reduced number of members: %d/%d\n", mapCVNs.size() - s.vMissingSignatures.size(), mapCVNs.size());
             }
