@@ -78,6 +78,9 @@ const std::string CLIENT_NAME("Oscar");
 const std::string CLIENT_BUILD(BUILD_DESC CLIENT_VERSION_SUFFIX);
 const std::string CLIENT_DATE(BUILD_DATE);
 
+#define GIT_COMMIT_FROM_SUFFIX(c) DO_STRINGIZE(c)
+const std::string GIT_COMMIT(GIT_COMMIT_FROM_SUFFIX(BUILD_SUFFIX_RAW));
+
 static std::string FormatVersion(int nVersion)
 {
     if (nVersion % 100 == 0)
@@ -89,6 +92,11 @@ static std::string FormatVersion(int nVersion)
 std::string FormatFullVersion()
 {
     return CLIENT_BUILD;
+}
+
+std::string GitCommit()
+{
+    return GIT_COMMIT;
 }
 
 /** 

@@ -1228,7 +1228,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 #if 1
     //TODO: remove this; for development only
     if (nCvnNodeId) {
-        uacomments.push_back(strprintf("0x%08x", nCvnNodeId));
+        uacomments.push_back(strprintf("0x%08x-%s", nCvnNodeId, GitCommit()));
     }
 #endif
     BOOST_FOREACH(string cmt, mapMultiArgs["-uacomment"])
