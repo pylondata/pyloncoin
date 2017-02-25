@@ -31,7 +31,7 @@ static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nCreatorId, const CDyn
     txNew.nVersion = 1;
     txNew.vin.resize(1);
     txNew.vout.resize(1);
-    txNew.vin[0].scriptSig = CScript() << OP_0 << GENESIS_NODE_ID << OP_0; // Serialised block height + genesis node ID + zero
+    txNew.vin[0].scriptSig = CScript() << OP_0 << CScriptNum(GENESIS_NODE_ID) << OP_0; // Serialised block height + genesis node ID + zero
     txNew.vout[0].nValue = 0;
     txNew.vout[0].scriptPubKey = CScript() << OP_RETURN << std::vector<uint8_t>((uint8_t*)genesisMessage, (uint8_t*)genesisMessage + strlen(genesisMessage));
 
@@ -148,16 +148,16 @@ class CTestNetParams : public CChainParams {
 public:
     CTestNetParams() {
         strNetworkID = "test";
-        pchMessageStart[0] = 0x0b;
-        pchMessageStart[1] = 0x11;
-        pchMessageStart[2] = 0x09;
-        pchMessageStart[3] = 0x07;
+        pchMessageStart[0] = 0x0c;
+        pchMessageStart[1] = 0x12;
+        pchMessageStart[2] = 0x0a;
+        pchMessageStart[3] = 0x08;
         vAlertPubKey = ParseHex("045894f38e9dd72b6f210c261d40003eb087030c42b102d3b238b396256d02f5a380ff3b7444d306d9e118fa1fc7b2b7594875f4eb64bbeaa31577391d85eb5a8a");
         nDefaultPort = 41404;
         nMaxTipAge = 0x7fffffff;
         nPruneAfterHeight = 1000;
         CDynamicChainParams dynParams;
-        dynParams.nBlockSpacing            = 2 * 60; // 3 min.
+        dynParams.nBlockSpacing            = 2 * 60; // 2 min.
         dynParams.nBlockSpacingGracePeriod = 45;
         dynParams.nMaxAdminSigs            = 11;
         dynParams.nMinAdminSigs            = 1;
@@ -171,15 +171,15 @@ public:
         genesis = CreateGenesisBlock(GENESIS_BLOCK_TIMESTAMP + 1, GENESIS_NODE_ID, dynParams);
 
         genesis.vCvns.resize(1);
-        genesis.vCvns[0] = CCvnInfo(GENESIS_NODE_ID, 0, CSchnorrPubKeyS("f69bd29a5e2b8d0f5c185fcc421d11556c071788de07d3d194ded04721afaa652ad75a649a0dac8f576e484392af68f5c31ab0ef5e3432baf8b14b6ad8b1262c"));
+        genesis.vCvns[0] = CCvnInfo(GENESIS_NODE_ID, 0, CSchnorrPubKeyDER("04f69bd29a5e2b8d0f5c185fcc421d11556c071788de07d3d194ded04721afaa652ad75a649a0dac8f576e484392af68f5c31ab0ef5e3432baf8b14b6ad8b1262c"));
 
         genesis.vChainAdmins.resize(1);
-        genesis.vChainAdmins[0] = CChainAdmin(0xad000001, 0, CSchnorrPubKeyS("a1fe3aee6cd4b05d06cd7c686cf45a7820a9e28adb090e6576e8885f1013a829e1bbee64001b22d54825932e7602a04adf1e2511f765c6ab9792482b58063494"));
+        genesis.vChainAdmins[0] = CChainAdmin(0xad000001, 0, CSchnorrPubKeyDER("0495b3d6338fc20b93b28220782a7444f8061d7794c4ba906dc38ea4041298d74e47b4a3544470ee7e6e8872321b853ba98bd1c32ccff30eb8da6475605082bcf0"));
 
-        genesis.chainMultiSig = CSchnorrSigS("a72fe573bb3ab202c7877cee3fab2ec7bbd733032536b6c2b8a0b9a48e61992da6442754414db30d82391224be7d0b596704a1b2baba4de8396ab340dd900b14");
+        genesis.chainMultiSig = CSchnorrSigS("14dc4f77f9d59ece2b3aa02cc4df99954d47fa2719be207d1b5010745aec419e451f01a8749cd16f22a727d0deba5110d2ce7e44ff86f0efdea58db4efdb92cd");
         genesis.vAdminIds.push_back(GENESIS_ADMIN_ID);
-        genesis.adminMultiSig = CSchnorrSigS("2980c1d39e75e0757b4288babc4322bb901f9b9962ba7958ebf58ec74e28ea58aca4830fa363ae104c3da1792e2bad170d6c6c6c1814d4d904902a5bbd7e96ff");
-        genesis.creatorSignature = CSchnorrSigS("f35033d284b0a4ea164df9428597e801d216ffe64e43909d399388076bd2b5153f9f879e52fc78c38ebef13908387d430553fe71f5bbab5a2b62614f93b20134");
+        genesis.adminMultiSig = CSchnorrSigS("fabd381fb2a735f03666c03c3d0d08c0c1ad1f3350f81c5539765e09046e94a2dc69b534e48942d6ec60eb32494b014bee00660fecf0f08786dc06d7cbb93bd7");
+        genesis.creatorSignature = CSchnorrSigS("5642246388ede17058a1b7d870e523c4ceadd43fa0957b04088136fb2c0bf32ef03a49fa285725c5ef0b4df5bac773b049d119e567a2bcaa3c6d757ab134d4ae");
 
         genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
         genesis.hashPayload    = genesis.GetPayloadHash();
@@ -190,7 +190,7 @@ public:
                 consensus.hashGenesisBlock.ToString().c_str(),
                 genesis.hashMerkleRoot.ToString().c_str());
 #else
-        assert(consensus.hashGenesisBlock == uint256S("d02a199938bc67624beff0d36d75b409ac42fda764eeee3ec0e325e70273bac4"));
+        assert(consensus.hashGenesisBlock == uint256S("a721a0ca9f5381d47d02c7d1a9e50c0a54c991c6c3de39f526ad2a148f537c3d"));
         assert(genesis.hashMerkleRoot == uint256S("7c27ade2c28e67ed3077f8f77b8ea6d36d4f5eba04c099be3c9faa9a4a04c046"));
 #endif
         vFixedSeeds.clear();
