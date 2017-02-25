@@ -964,7 +964,7 @@ void RelayChainData(const CChainDataMsg& msg)
     LOCK(cs_vNodes);
     BOOST_FOREACH(CNode* pnode, vNodes)
     {
-        if(!pnode->fRelayTxes) // same TX rules apply to chain data messages
+        if(!pnode->fRelayCvnSig)
             continue;
         pnode->PushInventory(inv);
     }
@@ -1057,7 +1057,7 @@ void RelayCvnSignature(const CCvnPartialSignature& msg)
     LOCK(cs_vNodes);
     BOOST_FOREACH(CNode* pnode, vNodes)
     {
-        if(!pnode->fRelayTxes) // same TX rules apply to block sig messages
+        if(!pnode->fRelayCvnSig)
             continue;
         pnode->PushInventory(inv);
     }
@@ -1688,7 +1688,7 @@ bool AddNoncePool(CNoncePool& msg)
 
     if (nPoolAge < 0) {
         LogPrintf("AddNoncePool : could not determine pool age. CvnID 0x%08x, hash %s, size: %d\n", msg.nCvnId, msg.hashRootBlock.ToString(), nSize);
-        return false;
+        return true;
     }
 
     msg.nHeightAdded = pTip->nHeight - nPoolAge;
@@ -1727,7 +1727,7 @@ void RelayNoncePool(const CNoncePool& msg)
     LOCK(cs_vNodes);
     BOOST_FOREACH(CNode* pnode, vNodes)
     {
-        if(!pnode->fRelayTxes) // same TX rules apply to pub nonce messages
+        if(!pnode->fRelayCvnSig)
             continue;
 
         pnode->PushInventory(inv);

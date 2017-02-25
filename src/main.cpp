@@ -2040,7 +2040,9 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
     LogPrint("bench", "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs]\n", (unsigned)block.vtx.size(), 0.001 * (nTime3 - nTime2), 0.001 * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : 0.001 * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * 0.000001);
 
-    CAmount blockReward = nFees + (hashPrevBlock == chainparams.GetConsensus().hashGenesisBlock ? MAX_MONEY : 0);
+    if (pindex->nHeight == 1 && hashPrevBlock == chainparams.GetConsensus().hashGenesisBlock) {
+        nFees += GetBoolArg("-testnet", false) ? 10000000 * COIN : MAX_MONEY;
+    }
 
 #ifdef ENABLE_COINSUPPLY
     if (block.HasCoinSupplyPayload()) {
@@ -2060,7 +2062,7 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
                             ScriptToAsmStr(block.vtx[0].vout[1].scriptPubKey), ScriptToAsmStr(block.coinSupply.scriptDestination)),
                             REJECT_INVALID, "bad-cb-script");
 
-        blockReward += block.coinSupply.nValue;
+        nFees += block.coinSupply.nValue;
     }
 #else
     if (block.HasCoinSupplyPayload()) {
@@ -2071,10 +2073,10 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     }
 #endif
 
-    if (block.HasTx() && block.vtx[0].GetValueOut() > blockReward)
+    if (block.HasTx() && block.vtx[0].GetValueOut() > nFees)
         return state.DoS(100,
                          error("ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)",
-                               block.vtx[0].GetValueOut(), blockReward),
+                               block.vtx[0].GetValueOut(), nFees),
                                REJECT_INVALID, "bad-cb-amount");
 
     if (!control.Wait())
@@ -4538,6 +4540,8 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             pfrom->PushVersion();
 
         pfrom->fClient = !(pfrom->nServices & NODE_NETWORK);
+        //pfrom->fRelayCvnSig = !(pfrom->nServices & NODE_CVN_SIG) && !IsInitialBlockDownload();
+        pfrom->fRelayCvnSig = !IsInitialBlockDownload();
 
         // Potentially mark this peer as a preferred download peer.
         UpdatePreferredDownload(pfrom, State(pfrom->GetId()));
@@ -4575,10 +4579,6 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                 addrman.Good(addrFrom);
             }
         }
-
-        // Advertise the partial signatures and public nonces we've got
-        if (!IsInitialBlockDownload())
-            AdvertiseSigsAndNonces(pfrom);
 
         // Relay alerts
         {
@@ -4627,6 +4627,10 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         // non-NODE NETWORK peers can announce blocks (such as pruning
         // nodes)
         pfrom->PushMessage(NetMsgType::SENDHEADERS);
+
+        // Advertise the partial signatures and public nonces we've got
+        if (pfrom->fRelayCvnSig)
+            AdvertiseSigsAndNonces(pfrom);
     }
 
 
