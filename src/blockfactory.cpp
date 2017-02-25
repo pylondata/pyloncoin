@@ -90,8 +90,6 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
 
     // Add dummy coinbase tx as first transaction
     pblock->vtx.push_back(CTransaction());
-    blocktemplate.vTxFees.push_back(-1); // updated at end
-    blocktemplate.vTxSigOps.push_back(-1); // updated at end
 
     // Largest block you're willing to create:
     unsigned int nBlockMaxSize = GetArg("-blockmaxsize", DEFAULT_BLOCK_MAX_SIZE);
@@ -231,8 +229,6 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
             CAmount nTxFees = iter->GetFee();
             // Added
             pblock->vtx.push_back(tx);
-            blocktemplate.vTxFees.push_back(nTxFees);
-            blocktemplate.vTxSigOps.push_back(nTxSigOps);
             nBlockSize += nTxSize;
             ++nBlockTx;
             nBlockSigOps += nTxSigOps;
@@ -273,10 +269,14 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
         LogPrintf("PopulateBlock : total size %u txs: %u fees: %ld sigops %d\n", nBlockSize, nBlockTx, nFees, nBlockSigOps);
 
         // Compute final coinbase transaction.
-        txNew.vout[0].nValue = nFees + (pindexPrev->GetBlockHash() == blocktemplate.chainparams.GetConsensus().hashGenesisBlock ? MAX_MONEY : 0);
-        txNew.vin[0].scriptSig = CScript() << nHeight << OP_0;
+        txNew.vout[0].nValue = nFees;
 
-        blocktemplate.vTxFees[0] = -nFees;
+        if (nHeight == 1 && pindexPrev->GetBlockHash() == blocktemplate.chainparams.GetConsensus().hashGenesisBlock) {
+            txNew.vout[0].nValue += GetBoolArg("-testnet", false) ? 10000000 * COIN : MAX_MONEY;
+        }
+
+        txNew.vin[0].scriptSig = (CScript() << nHeight << CScriptNum(blocktemplate.nExtraNonce)) + COINBASE_FLAGS;
+        assert(txNew.vin[0].scriptSig.size() <= 100);
 
         // don't spam the CVNs wallet with zero value transactions
         if (txNew.vout[0].nValue == 0) {
@@ -288,18 +288,7 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
 
         // Fill in header
         pblock->hashPrevBlock = pindexPrev->GetBlockHash();
-        blocktemplate.vTxSigOps[0] = GetLegacySigOpCount(pblock->vtx[0]);
     }
-}
-
-static void UpdateCoinbase(CBlock* pblock, const CBlockIndex* pindexPrev, const uint32_t nExtraNonce)
-{
-    uint32_t nHeight = pindexPrev->nHeight + 1; // Height first in coinbase
-    CMutableTransaction txCoinbase(pblock->vtx[0]);
-    txCoinbase.vin[0].scriptSig = (CScript() << nHeight << nExtraNonce) + COINBASE_FLAGS;
-    assert(txCoinbase.vin[0].scriptSig.size() <= 100);
-
-    pblock->vtx[0] = txCoinbase;
 }
 
 static bool ProcessCVNBlock(const CBlock* pblock, const CChainParams& chainparams)
@@ -484,7 +473,6 @@ static bool CreateNewBlock(CBlockTemplate& blockTemplate)
 {
     PopulateBlock(blockTemplate);
     CBlock *pblock = &blockTemplate.block;
-    UpdateCoinbase(pblock, blockTemplate.pindexPrev, blockTemplate.nExtraNonce);
 
     pblock->nCreatorId = blockTemplate.nNodeId;
     pblock->nTime = blockTemplate.nCurrentTime;

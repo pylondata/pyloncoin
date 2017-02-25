@@ -32,8 +32,6 @@ class CBlockTemplate
 {
 public:
     CBlock block;
-    std::vector<CAmount> vTxFees;
-    std::vector<int64_t> vTxSigOps;
     CReserveScript& feeScript;
     CBlockIndex* pindexPrev;
     uint32_t nNodeId;
@@ -44,8 +42,6 @@ public:
     CBlockTemplate(CReserveScript& feeScript, CBlockIndex* pindexPrev, uint32_t nNodeId, uint32_t nCurrentTime, uint32_t nExtraNonce, const CChainParams& chainparams)
     : feeScript(feeScript), chainparams(chainparams)
     {
-        this->vTxFees.clear();
-        this->vTxSigOps.clear();
         this->pindexPrev = pindexPrev;
         this->nCurrentTime = nCurrentTime;
         this->nExtraNonce  = nExtraNonce;
