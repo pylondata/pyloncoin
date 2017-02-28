@@ -534,8 +534,8 @@ void DynamicChainparametersToJSON(CDynamicChainParams& cp, UniValue& result)
     result.push_back(Pair("maxAdminSigs", (int)cp.nMaxAdminSigs));
     result.push_back(Pair("blockSpacing", (int)cp.nBlockSpacing));
     result.push_back(Pair("blockSpacingGracePeriod", (int)cp.nBlockSpacingGracePeriod));
-    result.push_back(Pair("transactionFee", (int)cp.nTransactionFee));
-    result.push_back(Pair("dustThreshold", (int)cp.nDustThreshold));
+    result.push_back(Pair("transactionFee", ValueFromAmount(cp.nTransactionFee)));
+    result.push_back(Pair("dustThreshold", ValueFromAmount(cp.nDustThreshold)));
     result.push_back(Pair("minSuccessiveSignatures", (int)cp.nMinSuccessiveSignatures));
     result.push_back(Pair("blocksToConsiderForSigCheck", (int)cp.nBlocksToConsiderForSigCheck));
     result.push_back(Pair("percentageOfSignaturesMean", (int)cp.nPercentageOfSignaturesMean));
