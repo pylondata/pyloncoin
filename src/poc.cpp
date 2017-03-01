@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The FairCoin Core developers
+// Copyright (c) 2016-2017 The FairCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12,7 +12,7 @@
 #include "base58.h"
 #include "net.h"
 #include "init.h"
-#include "cvn.h"
+#include "fasito/cert.h"
 #include "clientversion.h"
 #include "validationinterface.h"
 

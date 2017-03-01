@@ -95,7 +95,6 @@ BITCOIN_CORE_H = \
   consensus/validation.h \
   core_io.h \
   core_memusage.h \
-  cvn.h \
   hash.h \
   httprpc.h \
   httpserver.h \
@@ -165,6 +164,7 @@ BITCOIN_CORE_H = \
   zmq/zmqnotificationinterface.h \
   zmq/zmqpublishnotifier.h \
   fasito/fasito.h \
+  fasito/cert.h \
   fasito/SerialConnection.h
 
 
@@ -183,7 +183,6 @@ libbitcoin_server_a_SOURCES = \
   bloom.cpp \
   chain.cpp \
   checkpoints.cpp \
-  cvn.cpp \
   httprpc.cpp \
   httpserver.cpp \
   init.cpp \
@@ -209,6 +208,7 @@ libbitcoin_server_a_SOURCES = \
   txdb.cpp \
   txmempool.cpp \
   validationinterface.cpp \
+  fasito/cert.cpp \
   $(BITCOIN_CORE_H)
 
 if ENABLE_ZMQ

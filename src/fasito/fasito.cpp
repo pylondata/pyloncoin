@@ -8,7 +8,6 @@
 #include "SerialConnection.h"
 #include "primitives/block.h"
 #include "poc.h"
-#include "cvn.h"
 #include "init.h"
 #include "fasito.h"
 

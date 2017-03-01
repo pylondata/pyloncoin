@@ -36,7 +36,7 @@
 #include "utilstrencodings.h"
 #include "validationinterface.h"
 #include "poc.h"
-#include "cvn.h"
+#include "fasito/cert.h"
 #include "base58.h"
 #ifdef ENABLE_WALLET
 #include "wallet/db.h"
