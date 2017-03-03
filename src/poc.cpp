@@ -2104,6 +2104,11 @@ void static POCThread(const CChainParams& chainparams, const uint32_t& nNodeId)
                 continue;
             }
 
+            if (s.state >= UNDEFINED) {
+                LogPrintf("invalid state detected. Exiting POC thread.");
+                break;
+            }
+
             stateHandlers[s.state](s);
 
             if (s.nSleep) {

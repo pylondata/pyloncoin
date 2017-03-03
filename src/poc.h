@@ -106,6 +106,7 @@ enum POCState {
     WAITING_FOR_BLOCK,
     WAITING_FOR_NEW_TIP,
     WAITING_FOR_CVN_DATA,
+    UNDEFINED
 };
 
 class POCStateHolder {
