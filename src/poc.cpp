@@ -1767,12 +1767,31 @@ static bool SetUpNoncePool()
     return AddNoncePool(pool);
 }
 
-static bool CreateNoncePoolFile(CNoncePool& pool, const uint16_t nPoolSize)
+static bool CreateNoncePoolFile(CNoncePool& pool, const uint16_t nPoolSize, CNoncePool * const oldPool)
 {
+    //TODO: come up with a better hash
     const uint256 hash4noncePool = pool.GetHash();
 
-    vNoncePrivate.clear();
-    for (uint16_t i = 0 ; i < nPoolSize ; i++) {
+    LOCK(cs_mapNoncePool);
+
+    int32_t nOldPoolAge = 0;
+    if (oldPool) {
+        nOldPoolAge = GetPoolAge(*oldPool, chainActive.Tip());
+        if (nOldPoolAge > 0 && vNoncePrivate.size() == oldPool->vPublicNonces.size()) {
+            vNoncePrivate.erase(vNoncePrivate.begin(), vNoncePrivate.begin() + nOldPoolAge);
+
+            vector<CSchnorrNonce> &nonces = oldPool->vPublicNonces;
+            nonces.erase(nonces.begin(), nonces.begin() + nOldPoolAge);
+            pool.vPublicNonces = nonces;
+        } else {
+            vNoncePrivate.clear();
+            nOldPoolAge = 0;
+        }
+    } else {
+        vNoncePrivate.clear();
+    }
+
+    for (uint16_t i = 0 ; i < nPoolSize - nOldPoolAge ; i++) {
         CSchnorrNonce nonce;
         unsigned char privateData[32];
         if (!CreateNoncePairForHash(nonce, privateData, hash4noncePool, pool.nCvnId, false)) {
@@ -1789,17 +1808,40 @@ static bool CreateNoncePoolFile(CNoncePool& pool, const uint16_t nPoolSize)
 }
 
 #ifdef USE_FASITO
-static bool CreateNoncePoolFasito(CNoncePool& pool, const uint16_t nPoolSize)
+static bool CreateNoncePoolFasito(CNoncePool& pool, const uint16_t nPoolSize, CNoncePool * const oldPool)
 {
+    //TODO: come up with a better hash
     const uint256 hash4noncePool = pool.GetHash();
+    bool fClearPool = false;
 
-    fasito.vNonceHandles.clear();
-    if (!fasito.sendCommand("CLRPOOL")) {
-        LogPrintf("could not clear nonce pool on Fasito\n");
-        return false;
+    LOCK(cs_mapNoncePool);
+
+    int32_t nOldPoolAge = 0;
+    if (oldPool) {
+        nOldPoolAge = GetPoolAge(*oldPool, chainActive.Tip());
+        if (nOldPoolAge > 0 && fasito.vNonceHandles.size() == oldPool->vPublicNonces.size()) {
+            fasito.vNonceHandles.erase(fasito.vNonceHandles.begin(), fasito.vNonceHandles.begin() + nOldPoolAge);
+
+            vector<CSchnorrNonce> &nonces = oldPool->vPublicNonces;
+            nonces.erase(nonces.begin(), nonces.begin() + nOldPoolAge);
+            pool.vPublicNonces = nonces;
+        } else {
+            fClearPool = true;
+            nOldPoolAge = 0;
+        }
+    } else {
+        fClearPool = true;
     }
 
-    for (uint16_t i = 0 ; i < nPoolSize ; i++) {
+    if (fClearPool) {
+        fasito.vNonceHandles.clear();
+        if (!fasito.sendCommand("CLRPOOL")) {
+            LogPrintf("could not clear nonce pool on Fasito\n");
+            return false;
+        }
+    }
+
+    for (uint16_t i = 0 ; i < nPoolSize - nOldPoolAge ; i++) {
         CSchnorrNonce nonce;
         unsigned char privateData[32];
         if (!CreateNoncePairForHash(nonce, privateData, hash4noncePool, pool.nCvnId, true)) {
@@ -1831,12 +1873,17 @@ void CreateNewNoncePool(const POCStateHolder& s)
     pool.hashRootBlock = s.GetPrevBlockHash();
     pool.nCreationTime = GetAdjustedTime();
 
+    CNoncePool *oldPool = NULL;
+    if (mapNoncePool.count(s.nNodeId)) {
+        oldPool = &mapNoncePool[s.nNodeId];
+    }
+
     if (GetArg("-cvn", "") == "file") {
-        CreateNoncePoolFile(pool, nPoolSize);
+        CreateNoncePoolFile(pool, nPoolSize, oldPool);
     }
 #ifdef USE_FASITO
     else {
-        CreateNoncePoolFasito(pool, nPoolSize);
+        CreateNoncePoolFasito(pool, nPoolSize, oldPool);
     }
 #else
     else {
@@ -1992,9 +2039,10 @@ static void handleNoncePoolChanges(POCStateHolder& s)
     if (mapNoncePool.count(s.nNodeId)) {
         const CNoncePool &p = mapNoncePool[s.nNodeId];
         const uint32_t nPoolAge = GetPoolAge(p, s.pindexPrev);
+        uint16_t nNoncesToKeep = GetArg("-poolkeepnonces", DEFAULT_NONCES_TO_KEEP);
 
-        if (nPoolAge + 1 >= p.vPublicNonces.size()) {
-            LogPrint("cvnsig", "local nonce pool expired, creating new pool.\n");
+        if (nPoolAge + nNoncesToKeep >= p.vPublicNonces.size()) {
+            LogPrint("cvnsig", "local nonce pool expired, creating new pool, recycling %d nonces\n", nNoncesToKeep);
             CreateNewNoncePool(s);
         }
     } else {
