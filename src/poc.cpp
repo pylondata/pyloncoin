@@ -46,6 +46,7 @@ CvnMapType mapCVNs;
 
 CCriticalSection cs_mapNoncePool;
 CNoncePoolType mapNoncePool;
+CNoncePoolType mapNoncePoolCheckLater;
 
 CCriticalSection cs_mapChainData;
 ChainDataMapType mapChainData;
@@ -1687,7 +1688,9 @@ bool AddNoncePool(CNoncePool& msg)
     int32_t nPoolAge = GetPoolAge(msg, pTip);
 
     if (nPoolAge < 0) {
-        LogPrintf("AddNoncePool : could not determine pool age. CvnID 0x%08x, hash %s, size: %d\n", msg.nCvnId, msg.hashRootBlock.ToString(), nSize);
+        LogPrintf("AddNoncePool : could not determine pool age, root block not (yet) available. Saving it for later. CvnID 0x%08x, hash %s, size: %d\n", msg.nCvnId, msg.hashRootBlock.ToString(), nSize);
+        msg.fRecheck = true;
+        mapNoncePoolCheckLater[msg.nCvnId] = msg;
         return true;
     }
 
@@ -2005,20 +2008,30 @@ static void handleWaitingForNewTip(POCStateHolder& s)
     return;
 }
 
-void ExpireNoncePools(CBlockIndex *pindex)
+void CheckNoncePools(CBlockIndex *pindex)
 {
     LOCK(cs_mapNoncePool);
 
     CNoncePoolType::iterator it = mapNoncePool.begin();
     while (it != mapNoncePool.end()) {
-        const pair<uint32_t, CNoncePool> &pt = *it;
-        const CNoncePool &p = pt.second;
+        const CNoncePool &p = it->second;
         const uint32_t nPoolAge = GetPoolAge(p, pindex);
         const CNoncePoolType::iterator itErase = it++;
 
         if (nPoolAge >= p.vPublicNonces.size()) {
-            LogPrintf("nonce pool expired, removing pool for 0x%08x.\n", pt.first);
+            LogPrintf("nonce pool expired, removing pool for 0x%08x.\n", itErase->first);
             mapNoncePool.erase(itErase);
+        }
+    }
+
+    it = mapNoncePoolCheckLater.begin();
+    while (it != mapNoncePoolCheckLater.end()) {
+        CNoncePool &p = it->second;
+        const CNoncePoolType::iterator itErase = it++;
+        if (p.hashRootBlock == pindex->GetBlockHash()) {
+            LogPrintf("reconsidering nonce pool for 0x%08x\n", itErase->first);
+            AddNoncePool(p);
+            mapNoncePoolCheckLater.erase(itErase);
         }
     }
 }
@@ -2050,7 +2063,7 @@ static void handleNoncePoolChanges(POCStateHolder& s)
         CreateNewNoncePool(s);
     }
 
-    ExpireNoncePools(s.pindexPrev);
+    CheckNoncePools(s.pindexPrev);
 
     s.state = CREATE_SIGNATURE;
 }

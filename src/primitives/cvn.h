@@ -611,6 +611,7 @@ class CNoncePool : public CNoncePoolUnsigned
 public:
     CSchnorrSig msgSig;
     uint32_t    nHeightAdded; // memory only
+    bool        fRecheck;     // memory only
 
     CNoncePool()
     {
@@ -621,6 +622,7 @@ public:
     {
         this->msgSig = msgSig;
         nHeightAdded = 0;
+        fRecheck     = false;
     }
 
     ADD_SERIALIZE_METHODS;
@@ -636,6 +638,7 @@ public:
         CNoncePoolUnsigned::SetNull();
         msgSig.SetNull();
         nHeightAdded = 0;
+        fRecheck     = false;
     }
 };
 

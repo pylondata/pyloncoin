@@ -200,7 +200,7 @@ public:
 
 extern CSignatureHolder sigHolder;
 
-extern void ExpireNoncePools(CBlockIndex *pindex);
+extern void CheckNoncePools(CBlockIndex *pindex);
 extern int32_t GetPoolAge(const CNoncePool &pool, CBlockIndex *pTip);
 extern bool AddToCvnInfoCache(const CBlock *pblock, const uint32_t nHeight);
 extern uint32_t GetNumChainSigs(const CBlockIndex *pindex);

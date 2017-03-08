@@ -2421,7 +2421,7 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
 
     if (!IsInitialBlockDownload()) {
         sigHolder.SetNull();
-        ExpireNoncePools(pindexNew);
+        CheckNoncePools(pindexNew);
     }
 
     return true;
