@@ -63,12 +63,13 @@ static secp256k1_context *secp256k1_context_none = NULL;
 
 const char *pocStateNames[] = {
         "INIT",
-        "NONCE_POOL_CHANGES",
+        "WAITING_FOR_BLOCK_PROPAGATION",
         "CREATE_SIGNATURE",
         "WAITING_FOR_SIGNATURES",
         "WAITING_FOR_BLOCK",
         "WAITING_FOR_NEW_TIP",
         "WAITING_FOR_CVN_DATA",
+        "UNDEFINED",
 };
 
 #if POC_DEBUG
@@ -230,61 +231,27 @@ void CSignatureHolder::AddSig(const CCvnPartialSignature &sig)
 {
     LOCK(cs_sigHolder);
 
-    MapSigCreator& mapCreator = mapTip[sig.hashPrevBlock];
-    MapSigCommonR& mapCommonR = mapCreator[sig.nCreatorId];
-    MapSigSigner& mapSigner   = mapCommonR[sig.signature.GetRx()];
+    MapSigSigner& mapSigner   = sigs[sig.signature.GetRx()];
 
     mapSigner[sig.nSignerId]  = sig;
 }
 
-MapSigSigner* CSignatureHolder::GetSignatureSet(const CSchnorrRx &commonRx, const uint256 &hashPrevBlock, const uint32_t nNextCreator)
+MapSigSigner* CSignatureHolder::GetSignatureSet(const CSchnorrRx &commonRx)
 {
-    if (!mapTip.count(hashPrevBlock)) {
-        LogPrintf("%s : no hashPrevBlock=%s, mapTip.size=%u\n", __func__, hashPrevBlock.ToString(), mapTip.size());
+    LOCK(cs_sigHolder);
+
+    if (!sigs.count(commonRx))
         return NULL;
-    }
 
-    MapSigCreator& mapCreator = mapTip[hashPrevBlock];
-    if (!mapCreator.count(nNextCreator)) {
-        LogPrintf("%s : no nNextCreator=%08x, mapMissing.size=%u\n", __func__, nNextCreator, mapCreator.size());
-        return NULL;
-    }
-
-    MapSigCommonR& mapCommonR = mapCreator[nNextCreator];
-    if (!mapCommonR.count(commonRx)) {
-        LogPrintf("%s : no commonRx=%s, mapCommonR.size=%u\n", __func__, commonRx.ToString(), mapCommonR.size());
-
-        BOOST_FOREACH(const MapSigCommonR::value_type& entry, mapCommonR)
-        {
-            LogPrintf("  : %s\n", entry.first.ToString());
-        }
-
-        return NULL;
-    }
-
-    MapSigSigner& mapSigner = mapCommonR[commonRx];
-    if (mapSigner.empty()) {
-        LogPrintf("%s : no commonRx=%s, mapSigner.size=%u\n", __func__, commonRx.ToString(), mapSigner.size());
-        return NULL;
-    }
-
-    return &mapCommonR[commonRx];
+    return &sigs[commonRx];
 }
 
-CCvnPartialSignature* CSignatureHolder::GetSignature(const uint256 &hashPrevBlock, const uint32_t nNextCreator, const uint32_t nSignerId, const CSchnorrRx &commonRx)
+CCvnPartialSignature* CSignatureHolder::GetSignature(const uint32_t nSignerId, const CSchnorrRx &commonRx)
 {
-    if (!mapTip.count(hashPrevBlock))
+    if (!sigs.count(commonRx))
         return NULL;
 
-    MapSigCreator& mapCreator = mapTip[hashPrevBlock];
-    if (!mapCreator.count(nNextCreator))
-        return NULL;
-
-    MapSigCommonR& mapCommonR = mapCreator[nNextCreator];
-    if (!mapCommonR.count(commonRx))
-        return NULL;
-
-    MapSigSigner& mapSigner = mapCommonR[commonRx];
+    MapSigSigner& mapSigner = sigs[commonRx];
 
     if (!mapSigner.count(nSignerId))
         return NULL;
@@ -292,90 +259,124 @@ CCvnPartialSignature* CSignatureHolder::GetSignature(const uint256 &hashPrevBloc
     return &mapSigner[nSignerId];
 }
 
-bool CSignatureHolder::GetSignatures(vector<CCvnPartialSignature> &sigs, const uint256 &hashPrevBlock, const uint32_t nNextCreator)
+bool CSignatureHolder::GetSignatures(vector<CCvnPartialSignature> &vSigs)
 {
-    if (mapTip.empty() || !mapTip.count(hashPrevBlock))
+    if (sigs.empty())
         return false;
 
-    MapSigCreator& mapCreator = mapTip[hashPrevBlock];
-    if (!mapCreator.count(nNextCreator))
-        return false;
-
-    MapSigCommonR& mapCommonR = mapCreator[nNextCreator];
-    if (mapCommonR.empty())
-        return false;
-
-    MapSigSigner& mapSigner = mapCommonR.begin()->second;
+    MapSigSigner& mapSigner = sigs.begin()->second;
     if (mapSigner.empty())
         return false;
 
-    BOOST_FOREACH(const MapSigCommonR::value_type &entry, mapCommonR) {
+    BOOST_FOREACH(const MapSigCommonR::value_type &entry, sigs) {
         BOOST_FOREACH(const MapSigSigner::value_type &s, entry.second) {
-            sigs.push_back(s.second);
+            vSigs.push_back(s.second);
         }
     }
 
-    return !sigs.empty();
+    return !vSigs.empty();
 }
 
-MapSigCommonR* CSignatureHolder::GetCommonR(const uint256 &hashPrevBlock, const uint32_t nNextCreator)
+bool CSignatureHolder::HasSigSetsToContributeTo(vector<vector<uint32_t> > &vSigSetsToContributeTo, const uint32_t nNodeId, const uint32_t nMaxSignatures)
 {
-    if (mapTip.empty() || !mapTip.count(hashPrevBlock))
-        return NULL;
+    LOCK(sigHolder.cs_sigHolder);
 
-    MapSigCreator& mapCreator = mapTip[hashPrevBlock];
-    if (!mapCreator.count(nNextCreator))
-        return NULL;
+    if (sigs.empty())
+        return false;
 
-    return &mapCreator[nNextCreator];
+    BOOST_FOREACH(const MapSigCommonR::value_type &entry, sigs) {
+        const MapSigSigner &s = entry.second;
+        const CCvnPartialSignature &sigFirst = s.begin()->second;
+
+        if (s.empty() || (nMaxSignatures - sigFirst.vMissingSignerIds.size()) == s.size())
+            continue;
+
+        MapSigSigner::const_iterator it = s.find(nNodeId);
+        if (it == s.end()) {
+            vSigSetsToContributeTo.push_back(sigFirst.vMissingSignerIds);
+        }
+    }
+
+    return !vSigSetsToContributeTo.empty();
 }
 
+bool CSignatureHolder::HasCompleteSigSets(const uint32_t nMaxSignatures) const
+{
+    LOCK(sigHolder.cs_sigHolder);
+
+    if (sigs.empty())
+        return false;
+
+    BOOST_FOREACH(const MapSigCommonR::value_type &entry, sigs) {
+        const MapSigSigner &s = entry.second;
+        if (s.empty())
+            continue;
+
+        const CCvnPartialSignature &sigFirst = s.begin()->second;
+
+        if ((nMaxSignatures - sigFirst.vMissingSignerIds.size()) == s.size()) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool CSignatureHolder::GetAllMissing(vector<uint32_t> &vMissingSignerIds, const uint32_t nNodeId, const vector<CSchnorrRx> &commonRxs, const CNoncePoolType &mapNoncePool, const uint32_t nMaxSignatures)
+{
+    LOCK(sigHolder.cs_sigHolder);
+
+    if (sigs.empty())
+        return false;
+
+    set<uint32_t> sMissing;
+
+    BOOST_FOREACH(const CSchnorrRx &commonRx, commonRxs) {
+        if (!sigs.count(commonRx))
+            continue;
+
+        const MapSigSigner &s = sigs[commonRx];
+
+        if (s.empty())
+            continue;
+
+        const CCvnPartialSignature &sigFirst = s.begin()->second;
+
+        if (nMaxSignatures - sigFirst.vMissingSignerIds.size() == s.size())
+            continue; // no missing IDs for this commonR
+
+        BOOST_FOREACH(const CNoncePoolType::value_type& p, mapNoncePool) {
+            if (s.count(p.first))
+                continue;
+
+            sMissing.insert(p.first);
+        }
+    }
+
+    if (sMissing.empty())
+        return false;
+
+    vMissingSignerIds.resize(sMissing.size());
+    copy(sMissing.begin(), sMissing.end(), vMissingSignerIds.begin());
+    return true;
+}
 
 string CSignatureHolder::ToString()
 {
     std::stringstream s;
 
     LOCK(cs_sigHolder);
-    BOOST_FOREACH(const MapSigTip::value_type& tip, mapTip) {
-        s << strprintf("tip           (%02d): %s\n", mapTip.size(), tip.first.ToString());
-        BOOST_FOREACH(const MapSigCreator::value_type& creator, tip.second) {
-            s << strprintf(" next creator (%02d): 0x%08x\n", creator.second.size(), creator.first);
-            BOOST_FOREACH(const MapSigCommonR::value_type& commonRx, creator.second) {
-                s << strprintf("  commonRx    (%02d): %s\n", commonRx.second.size(), commonRx.first.ToString());
-                BOOST_FOREACH(const MapSigSigner::value_type& signer, commonRx.second) {
-                    s << strprintf("   signer         : 0x%08x (%s)\n", signer.first, signer.second.ToString());
-                }
-            }
+    BOOST_FOREACH(const MapSigCommonR::value_type& commonRx, sigs) {
+        s << strprintf("commonRx    (%02d): %s\n", commonRx.second.size(), commonRx.first.ToString());
+        BOOST_FOREACH(const MapSigSigner::value_type& signer, commonRx.second) {
+            s << strprintf(" signer         : 0x%08x (%s)\n", signer.first, signer.second.ToString());
         }
     }
 
     return s.str();
 }
 
-void CSignatureHolder::flushOldEntries(const uint256 &hashPrevBlock, const uint32_t nNextCreator)
-{
-    LOCK(cs_sigHolder);
-
-    if (mapTip.empty() || !mapTip.count(hashPrevBlock))
-        return;
-
-    MapSigCreator& mapCreator = mapTip[hashPrevBlock];
-
-    BOOST_FOREACH(MapSigCreator::value_type &creator, mapCreator) {
-        if (creator.first != nNextCreator) {
-            MapSigCommonR &missing = creator.second;
-            missing.clear();
-        }
-    }
-}
-
 CSignatureHolder sigHolder;
-
-static MapSigSigner* GetSignatureSet(POCStateHolder& s)
-{
-    AssertLockHeld(sigHolder.cs_sigHolder);
-    return sigHolder.GetSignatureSet(s.commonRx, s.GetPrevBlockHash(), s.nNextCreator);
-}
 
 //
 // CNoncesPoolDB
@@ -658,7 +659,7 @@ const CSchnorrNonce *GetCurrnetPublicNonce(const uint32_t nNodeId)
     return &pool.vPublicNonces[nPoolOffset];
 }
 
-bool CreateSumPublicNoncesOthers(CSchnorrPubKey &sumPublicNoncesOthers, const uint32_t& nNextCreator, const uint32_t& nNodeId, vector<uint32_t> &vMissingPubNonces, const vector<uint32_t> &vMissingCvnIds)
+bool CreateSumPublicNoncesOthers(CSchnorrPubKey &sumPublicNoncesOthers, const uint32_t& nNextCreator, const uint32_t& nNodeId, vector<uint32_t> &vMissingPubNonces, const vector<uint32_t> &vMissingSignerIds)
 {
     LOCK(cs_mapNoncePool);
     vector<secp256k1_pubkey *> allPubOtherNonces;
@@ -667,7 +668,7 @@ bool CreateSumPublicNoncesOthers(CSchnorrPubKey &sumPublicNoncesOthers, const ui
         if (cvn.first == nNodeId)
             continue;
 
-        if (!mapNoncePool.count(cvn.first) || find(vMissingCvnIds.begin(), vMissingCvnIds.end(), cvn.first) != vMissingCvnIds.end()) {
+        if (!mapNoncePool.count(cvn.first) || find(vMissingSignerIds.begin(), vMissingSignerIds.end(), cvn.first) != vMissingSignerIds.end()) {
             LogPrint("cvn", "%s : 0x%08x is missing\n", __func__, cvn.first);
             vMissingPubNonces.push_back(cvn.first);
             continue;
@@ -696,7 +697,7 @@ bool CreateSumPublicNoncesOthers(CSchnorrPubKey &sumPublicNoncesOthers, const ui
     return true;
 }
 
-bool CvnSignPartial(const uint256 &hashPrevBlock, CCvnPartialSignatureUnsinged &signature, const uint32_t &nNextCreator, const uint32_t &nNodeId, const vector<uint32_t> &vMissingCvnIds)
+bool CvnSignPartial(const uint256 &hashPrevBlock, CCvnPartialSignatureUnsinged &signature, const uint32_t &nNextCreator, const uint32_t &nNodeId, const vector<uint32_t> &vMissingSignerIds)
 {
     CHashWriter hasher(SER_GETHASH, 0);
     hasher << hashPrevBlock << nNextCreator;
@@ -726,7 +727,7 @@ bool CvnSignPartial(const uint256 &hashPrevBlock, CCvnPartialSignatureUnsinged &
 
     CSchnorrPubKey sumPublicNoncesOthers;
     vector<uint32_t> vMissingPubNonces;
-    if (!CreateSumPublicNoncesOthers(sumPublicNoncesOthers,  nNextCreator, nNodeId, vMissingPubNonces, vMissingCvnIds))
+    if (!CreateSumPublicNoncesOthers(sumPublicNoncesOthers, nNextCreator, nNodeId, vMissingPubNonces, vMissingSignerIds))
         return false;
 
     if (!vMissingPubNonces.empty()) {
@@ -1121,7 +1122,7 @@ bool AddCvnSignature(CCvnPartialSignature& msg)
     return true;
 }
 
-bool SendCVNSignature(POCStateHolder &s)
+static bool SendCVNSignature(POCStateHolder &s, const vector<uint32_t> &vMissingSignatures)
 {
     if (IsInitialBlockDownload())
         return false;
@@ -1137,7 +1138,8 @@ bool SendCVNSignature(POCStateHolder &s)
     uint256 hashPrevBlock = pTip->GetBlockHash();
 
     CCvnPartialSignatureUnsinged signature;
-    if (!CvnSignPartial(hashPrevBlock, signature, nNextCreator, nCvnNodeId, s.vMissingSignatures)) {
+
+    if (!CvnSignPartial(hashPrevBlock, signature, nNextCreator, nCvnNodeId, vMissingSignatures)) {
         LogPrintf("SendCVNSignature : could not create sig for 0x%08x by 0x%08x, hash %s\n",
                 nNextCreator, nCvnNodeId, hashPrevBlock.ToString());
         return false;
@@ -1156,8 +1158,7 @@ bool SendCVNSignature(POCStateHolder &s)
     if (AddCvnSignature(msg))
         RelayCvnSignature(msg);
 
-    s.vMissingSignatures = msg.vMissingSignerIds;
-    s.commonRx = msg.signature.GetRx();
+    s.commonRxs.push_back(msg.signature.GetRx());
 
     return true;
 }
@@ -1923,79 +1924,61 @@ void CreateNewNoncePool(const POCStateHolder& s)
     }
 }
 
+#define SEND_SIG_RETRY_INTERVAL 15 //TODO: make dynamic
+
 static void handleCreateSignature(POCStateHolder& s)
 {
-    CCvnPartialSignature *sig = NULL;
 
-    {
-        LOCK(sigHolder.cs_sigHolder);
-        sig = sigHolder.GetSignature(s.GetPrevBlockHash(), s.nNextCreator, s.nNodeId, s.commonRx);
+    if (s.commonRxs.empty()) {
+        vector<uint32_t> vMissingSignatures;
+        if (SendCVNSignature(s, vMissingSignatures)) {
+            s.state  = WAITING_FOR_SIGNATURES;
+        } else {
+            s.nSleep = 5; // something went wrong, wait 5 sec. and try again
+        }
+        return;
     }
 
-    if (!sig) {
-        if (SendCVNSignature(s)) {
-            s.state  = WAITING_FOR_SIGNATURES;
-            if (GetAdjustedTime() - s.pindexPrev->nTime > dynParams.nBlockSpacing)
-                s.nSleep = 10;
+    vector<vector<uint32_t> > vMissingSigsCandidates;
+    if (sigHolder.HasSigSetsToContributeTo(vMissingSigsCandidates, s.nNodeId, mapCVNs.size())) {
+        BOOST_FOREACH(const vector<uint32_t> &entry, vMissingSigsCandidates) {
+            if (SendCVNSignature(s, entry)) {
+                s.state  = WAITING_FOR_SIGNATURES;
+            } else {
+                s.nSleep = 5; // something went wrong, wait 5 sec. and try again
+            }
         }
-    } else
+    } else {
         s.state  = WAITING_FOR_SIGNATURES;
+    }
 }
 
 static void handleWaitingForSignatures(POCStateHolder& s)
 {
-    LOCK(sigHolder.cs_sigHolder);
 
-    MapSigSigner *sigs = GetSignatureSet(s);
-    if (sigs && sigs->size() == mapCVNs.size() - s.vMissingSignatures.size()) {
+    if (sigHolder.HasCompleteSigSets(mapCVNs.size())) {
         s.state = WAITING_FOR_BLOCK;
         return;
     }
 
+    LOCK(sigHolder.cs_sigHolder);
     int32_t nLastBlockSeconds = GetAdjustedTime() - s.pindexPrev->nTime;
 
-    if ((nLastBlockSeconds > (int32_t)(dynParams.nBlockSpacing / 3) + NONCE_POOL_WAIT_TIME && nLastBlockSeconds < (int32_t)dynParams.nBlockSpacing) ||
-            (nLastBlockSeconds >= (int32_t)dynParams.nBlockSpacing && s.vMissingSignatures.empty())) {
-        //TODO: for debugging only, remove...
-        if (sigs && !sigs->count(s.nNodeId)) {
-            LogPrintf("---------> SHOULD NOT HAPPEN: sigs.size()=%u\n%s\n", sigs->size(), sigHolder.ToString());
-            BOOST_FOREACH(const MapSigSigner::value_type& sDebug, *sigs) {
-                LogPrintf(" :: %08x != %08x\n", sDebug.first, s.nNodeId);
-            }
-            s.state = CREATE_SIGNATURE;
-            return;
-        }
-        
-        /* We have not received all the expected partial signatures.
-         * Find the missing node and re-try without it. */
-        s.vMissingSignatures.clear();
-        BOOST_FOREACH(const CNoncePoolType::value_type& p, mapNoncePool) {
-            if (sigs && sigs->count(p.first))
-                continue;
+    if (nLastBlockSeconds - BLOCK_PROPAGATION_WAIT_TIME < 0)
+        return;
 
-            s.vMissingSignatures.push_back(p.first);
-        }
+    if (!((nLastBlockSeconds - BLOCK_PROPAGATION_WAIT_TIME) % SEND_SIG_RETRY_INTERVAL)) {
+        /* We have not received all the expected partial signatures for any set.
+         * Periodically (SEND_SIG_RETRY_INTERVAL) find the missing node IDs and try without them. */
 
-        if (!s.vMissingSignatures.empty()) {
-            if (HasEnoughSignatures(s.pindexPrev, mapCVNs.size() - s.vMissingSignatures.size())) {
-                s.commonRx.SetNull();
-                s.state = CREATE_SIGNATURE;
-                LogPrintf("Did not receive all sigs for set. Trying signature set with reduced number of members: %d/%d\n", mapCVNs.size() - s.vMissingSignatures.size(), mapCVNs.size());
-            }
-        }
-    } else if (nLastBlockSeconds >= (int32_t)dynParams.nBlockSpacing) {
-        if (s.nNextCreator == s.nNodeId) {
-            CBlock dummy;
-            dummy.nCreatorId = s.nNextCreator;
-            dummy.hashPrevBlock = s.GetPrevBlockHash();
-            LogPrintf("Trying to create block immediately.\n");
-            if (DetermineBestSignatureSet(s.pindexPrev, &dummy)) {
-                if (CreateBlock(s)) {
-                    s.state = WAITING_FOR_NEW_TIP;
+        vector<uint32_t> vMissingSignerIds; // missing signer IDs from all commonRs we signed so far
+        if (sigHolder.GetAllMissing(vMissingSignerIds, s.nNodeId, s.commonRxs, mapNoncePool, mapCVNs.size())) {
+            if (HasEnoughSignatures(s.pindexPrev, mapCVNs.size() - vMissingSignerIds.size())) {
+                LogPrintf("Did not receive all signatures for set. Trying with smaller set of members. Missing: %s\n", CreateSignerIdList(vMissingSignerIds));
+
+                if (SendCVNSignature(s, vMissingSignerIds)) {
+                    s.nSleep = 5;
                 }
-            } else {
-                LogPrintf("Unable to find any usable signature set!\n");
-                s.nSleep = 4;
             }
         }
     }
@@ -2006,12 +1989,13 @@ static void handleWaitingForBlock(POCStateHolder& s)
     if (s.NewTip())
         s.Reset(s.nNextCreator, chainActive.Tip());
 
-    if (s.nNextCreator == s.nNodeId && GetSignatureSet(s)) {
+    if (s.nNextCreator == s.nNodeId) {
         int32_t nBlockTime = GetAdjustedTime() - s.pindexPrev->nTime;
-        uint32_t nSigs = GetNumChainSigs(s.pindexLastTip);
-        if (nBlockTime >= (int32_t)dynParams.nBlockSpacing && HasEnoughSignatures(s.pindexPrev, nSigs - s.vMissingSignatures.size())) {
+        if (nBlockTime >= (int32_t)dynParams.nBlockSpacing) {
             if (CreateBlock(s)) {
                 s.state = WAITING_FOR_NEW_TIP;
+            } else {
+                s.nSleep = 10;
             }
         }
     }
@@ -2053,7 +2037,7 @@ void CheckNoncePools(CBlockIndex *pindex)
     }
 }
 
-static void handleNoncePoolChanges(POCStateHolder& s)
+static void handleWaitingForBlockPropagation(POCStateHolder& s)
 {
     if (!mapCVNs.count(s.nNodeId)) {
         LogPrintf("Your node (0x%08x) has been removed from the network.\n", s.nNodeId);
@@ -2061,10 +2045,12 @@ static void handleNoncePoolChanges(POCStateHolder& s)
         return;
     }
 
-    if (GetAdjustedTime() - s.pindexPrev->nTime <= NONCE_POOL_WAIT_TIME + 5)
-        s.nSleep = NONCE_POOL_WAIT_TIME + (rand() % 10) - 5;
+    int64_t nLastBlockSeconds = GetAdjustedTime() - s.pindexPrev->nTime;
+
+    if (nLastBlockSeconds <= BLOCK_PROPAGATION_WAIT_TIME)
+        s.nSleep = BLOCK_PROPAGATION_WAIT_TIME - nLastBlockSeconds;
     else
-        s.nSleep = 5;
+        s.nSleep = 2;
 
     if (mapNoncePool.count(s.nNodeId)) {
         const CNoncePool &p = mapNoncePool[s.nNodeId];
@@ -2076,7 +2062,7 @@ static void handleNoncePoolChanges(POCStateHolder& s)
             CreateNewNoncePool(s);
         }
     } else {
-        /* if it got cleared by a previous call to ExpireNoncePools() */
+        /* if it got cleared by a previous call to CheckNoncePools() */
         CreateNewNoncePool(s);
     }
 
@@ -2089,7 +2075,7 @@ static void handleWaitingForCvnData(POCStateHolder& s)
 {
     if (mapCVNs.count(s.nNodeId)) {
         LogPrintf("found CVN data for our node: %s\n", mapCVNs[s.nNodeId].ToString());
-        s.state = NONCE_POOL_CHANGES;
+        s.state = WAITING_FOR_BLOCK_PROPAGATION;
         s.nSleep = 0;
 
         CreateNewNoncePool(s);
@@ -2117,7 +2103,7 @@ static void handleInit(POCStateHolder& s)
         } else
             CreateNewNoncePool(s);
 
-        s.state = NONCE_POOL_CHANGES;
+        s.state = WAITING_FOR_BLOCK_PROPAGATION;
         fNoncePoolInitialsed = true;
     } else {
         LogPrintf("Your node (0x%08x) has been removed from the network.\n", s.nNodeId);
@@ -2128,7 +2114,7 @@ static void handleInit(POCStateHolder& s)
 
 static void (*stateHandlers[])(POCStateHolder& s) = {
         handleInit,
-        handleNoncePoolChanges,
+        handleWaitingForBlockPropagation,
         handleCreateSignature,
         handleWaitingForSignatures,
         handleWaitingForBlock,
@@ -2199,7 +2185,7 @@ void static POCThread(const CChainParams& chainparams, const uint32_t& nNodeId)
             if ((s.NewTip() || s.BlockSpacingTimeout()) && s.state != WAITING_FOR_CVN_DATA) {
                 LogPrintf(s.NewTip() ? "new tip detected.\n" : "block spacing timeout detected.\n");
                 s.Reset(s.nNextCreator, s.pindexPrev);
-                sigHolder.flushOldEntries(s.GetPrevBlockHash(), s.nNextCreator);
+                sigHolder.SetNull();
             }
 
             if (s.state != lastState) {
@@ -2224,12 +2210,12 @@ void static POCThread(const CChainParams& chainparams, const uint32_t& nNodeId)
 
 void RunPOCThread(const bool fGenerate, const CChainParams& chainparams, const uint32_t& nNodeId)
 {
-    static boost::thread_group* signerThreads = NULL;
+    static boost::thread_group* pocThread = NULL;
 
-    if (signerThreads != NULL) {
-        signerThreads->interrupt_all();
-        delete signerThreads;
-        signerThreads = NULL;
+    if (pocThread != NULL) {
+        pocThread->interrupt_all();
+        delete pocThread;
+        pocThread = NULL;
 
         return;
     }
@@ -2242,6 +2228,6 @@ void RunPOCThread(const bool fGenerate, const CChainParams& chainparams, const u
         return;
     }
 
-    signerThreads = new boost::thread_group();
-    signerThreads->create_thread(boost::bind(&POCThread, boost::cref(chainparams), boost::cref(nNodeId)));
+    pocThread = new boost::thread_group();
+    pocThread->create_thread(boost::bind(&POCThread, boost::cref(chainparams), boost::cref(nNodeId)));
 }

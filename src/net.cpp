@@ -1229,8 +1229,12 @@ void ThreadSocketHandler()
                             int nErr = WSAGetLastError();
                             if (nErr != WSAEWOULDBLOCK && nErr != WSAEMSGSIZE && nErr != WSAEINTR && nErr != WSAEINPROGRESS)
                             {
-                                if (!pnode->fDisconnect)
-                                    LogPrintf("socket recv error %s\n", NetworkErrorString(nErr));
+                                if (!pnode->fDisconnect) {
+                                    if (fLogIPs)
+                                        LogPrintf("socket recv error for %s: %s\n", pnode->addr.ToString(), NetworkErrorString(nErr));
+                                    else
+                                        LogPrintf("socket recv error: %s\n", NetworkErrorString(nErr));
+                                }
                                 pnode->CloseSocketDisconnect();
                             }
                         }

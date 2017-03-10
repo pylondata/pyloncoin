@@ -4437,11 +4437,17 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
 void static AdvertiseSigsAndNonces(CNode *pfrom)
 {
     CBlockIndex *tip = chainActive.Tip();
+    const uint256 hashPrevBlock = tip->GetBlockHash();
     uint32_t nNextCreator = CheckNextBlockCreator(tip, GetAdjustedTime());
 
     vector<CCvnPartialSignature> sigs;
-    if (sigHolder.GetSignatures(sigs, tip->GetBlockHash(), nNextCreator)) {
+    if (sigHolder.GetSignatures(sigs)) {
         BOOST_FOREACH(const CCvnPartialSignature &s, sigs) {
+            if (s.hashPrevBlock != hashPrevBlock || s.nCreatorId != nNextCreator) {
+                LogPrintf("AdvertiseSigsAndNonces : not sending outdated signature: %d vs %d, %s vs %s\n", s.nCreatorId, nNextCreator, s.hashPrevBlock.ToString(), hashPrevBlock.ToString());
+                continue;
+            }
+
             pfrom->PushInventory(CInv(MSG_CVN_SIGNATURE, s.GetHash()));
         }
     }

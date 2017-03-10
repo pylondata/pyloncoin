@@ -390,20 +390,23 @@ void printHex(const uint8_t *buf, const size_t len, const bool addLF = false)
         cout << endl;
 }
 
+typedef vector<vector<uint32_t> > MissingIdsCandidates;
+
 bool DetermineBestSignatureSet(CBlockIndex * const pindexPrev, CBlock *pblock)
 {
     LOCK(sigHolder.cs_sigHolder);
 
-    MapSigCommonR *mapCommonR = sigHolder.GetCommonR(pblock->hashPrevBlock, pblock->nCreatorId);
-
-    if (!mapCommonR) {
+    if (sigHolder.sigs.empty()) {
         LogPrintf("Could not find signatures. Can not create block.\n");
         return false;
     }
 
-    // try each signature set if it's correct and contains enough sigs
-    BOOST_FOREACH(const MapSigCommonR::value_type& commonR, *mapCommonR) {
-        MapSigSigner *signatures = sigHolder.GetSignatureSet(commonR.first, pblock->hashPrevBlock, pblock->nCreatorId);
+    vector<CSchnorrSig> sigCandidates;
+    MissingIdsCandidates vMissingSignerIdsCandidates;
+
+    /* check each signature set. If it's correct and contains enough sigs remember it */
+    BOOST_FOREACH(const MapSigCommonR::value_type& commonR, sigHolder.sigs) {
+        MapSigSigner *signatures = sigHolder.GetSignatureSet(commonR.first);
         if (!signatures) {
             LogPrintf("No signatures found. Trying next set.\n");
             continue;
@@ -435,8 +438,21 @@ bool DetermineBestSignatureSet(CBlockIndex * const pindexPrev, CBlock *pblock)
             }
 
             if (!setSigners.insert(entry.first).second) {
-                LogPrintf("duplicate signature detected: %s\n", sigHolder.ToString());
-                return false;
+                LogPrintf("duplicate signature detected: %s\n%s\n", sig.ToString(), sigHolder.ToString());
+                fAllSigsValid = false;
+                 break;
+            }
+
+            if (sig.hashPrevBlock != pblock->hashPrevBlock) {
+                LogPrintf("Invalid signature found for wrong tip. Trying next set.\n%s\n", sig.ToString());
+                fAllSigsValid = false;
+                break;
+            }
+
+            if (sig.nCreatorId != pblock->nCreatorId) {
+                LogPrintf("Invalid signature found for wrong tip. Trying next set.\n%s\n", sig.ToString());
+                fAllSigsValid = false;
+                break;
             }
 
             sigs[count++] = (uint8_t *)&sig.signature.begin()[0];
@@ -454,20 +470,59 @@ bool DetermineBestSignatureSet(CBlockIndex * const pindexPrev, CBlock *pblock)
             continue;
         }
 
-        pblock->chainMultiSig = allsig;
-
+        vector<uint32_t> vMissingSignerIds;
         BOOST_FOREACH(const CvnMapType::value_type &i, mapCVNs) {
             if (setSigners.find(i.first) == setSigners.end()) {
-                pblock->vMissingSignerIds.push_back(i.first);
+                vMissingSignerIds.push_back(i.first);
                 LogPrintf("adding 0x%08x to the list of missing nodes\n", i.first);
             }
         }
 
+        sigCandidates.push_back(allsig);
+        vMissingSignerIdsCandidates.push_back(vMissingSignerIds);
+    }
+
+    /*
+     * We try find the best of the working set, meaning the one with the least missing signatures
+     */
+
+    if (vMissingSignerIdsCandidates.empty()) {
+        LogPrintf("no working signature set found out of %d. Cannot create block.\nPrinting Signature tree:\n%s\n", sigHolder.sigs.size(), sigHolder.ToString());
+        return false;
+    }
+
+    // if there's only one set, take that
+    if (vMissingSignerIdsCandidates.size() == 1) {
+        pblock->vMissingSignerIds = vMissingSignerIdsCandidates[0];
+        pblock->chainMultiSig     = sigCandidates[0];
         return true;
     }
 
-    LogPrintf("no working signature set found out of %d. Cannot create block.\nPrinting Signature tree:\n%s\n", mapCommonR->size(), sigHolder.ToString());
-    return false;
+
+    size_t nLeastMissing = MAX_NUMBER_OF_CVNS;
+    int nIndex = 0;
+    vector<uint32_t> vLeastMissing;
+    CSchnorrSig bestChainMultiSig;
+
+    BOOST_FOREACH(const MissingIdsCandidates::value_type &m, vMissingSignerIdsCandidates) {
+        if (m.size() < nLeastMissing) {
+            nLeastMissing = m.size();
+            vLeastMissing = m;
+            bestChainMultiSig = sigCandidates[nIndex];
+        }
+
+        nIndex++;
+    }
+
+    if (bestChainMultiSig.IsNull()) {
+        LogPrintf("could not determine chain signature of best set. Cannot create block.\nIndex: %d\nDumping signature tree:\n%s\n", nIndex, sigHolder.ToString());
+        return false;
+    }
+
+    pblock->vMissingSignerIds = vLeastMissing;
+    pblock->chainMultiSig     = bestChainMultiSig;
+
+    return true;
 }
 
 static bool CreateNewBlock(CBlockTemplate& blockTemplate)
@@ -481,19 +536,19 @@ static bool CreateNewBlock(CBlockTemplate& blockTemplate)
     uint256 hashBlock = pblock->hashPrevBlock;
     if (mapCVNs.size() == 1) {
         LOCK(sigHolder.cs_sigHolder);
-        MapSigCommonR *mapCommonR = sigHolder.GetCommonR(pblock->hashPrevBlock, pblock->nCreatorId);
+        const MapSigCommonR &commonR = sigHolder.sigs;
 
         /* if we only have one CVN available (e.g. during bootstrap) we use a plain Schnorr signature */
-        if (!mapCommonR->empty() && !mapCommonR->begin()->second.empty()) {
-            MapSigSigner &mapSigner = mapCommonR->begin()->second;
+        if (!commonR.empty() && !commonR.begin()->second.empty()) {
+            const MapSigSigner &mapSigner = commonR.begin()->second;
             if (!mapSigner.empty()) {
-                CCvnPartialSignature &singleSig = mapSigner.begin()->second;
+                const CCvnPartialSignature &singleSig = mapSigner.begin()->second;
                 pblock->chainMultiSig = singleSig.signature;
             }
         }
 
         if (pblock->chainMultiSig.IsNull()) {
-            LogPrintf("CreateNewBlock : cannot create block. Signature not available\n");
+            LogPrintf("CreateNewBlock : cannot create block. Single signature not available\n");
             return false;
         }
     } else {
@@ -543,7 +598,7 @@ static bool CreateNewBlock(CBlockTemplate& blockTemplate)
     // final tests
     CValidationState state;
     if (!TestBlockValidity(state, blockTemplate.chainparams, *pblock, blockTemplate.pindexPrev)) {
-        LogPrintf("CreateNewBlock : TestBlockValidity failed: %s\n%s\n", FormatStateMessage(state), pblock->ToString());
+        LogPrintf("CreateNewBlock : TestBlockValidity failed: %s\n", FormatStateMessage(state));
         return false;
     }
 
