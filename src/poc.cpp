@@ -1772,8 +1772,8 @@ static bool SetUpNoncePool()
 
 static bool CreateNoncePoolFile(CNoncePool& pool, const uint16_t nPoolSize, CNoncePool * const oldPool)
 {
-    //TODO: come up with a better hash
-    const uint256 hash4noncePool = pool.GetHash();
+    uint256 hash4noncePool;
+    GetStrongRandBytes(&hash4noncePool.begin()[0], 32);
 
     LOCK(cs_mapNoncePool);
 
@@ -1813,8 +1813,9 @@ static bool CreateNoncePoolFile(CNoncePool& pool, const uint16_t nPoolSize, CNon
 #ifdef USE_FASITO
 static bool CreateNoncePoolFasito(CNoncePool& pool, const uint16_t nPoolSize, CNoncePool * const oldPool)
 {
-    //TODO: come up with a better hash
-    const uint256 hash4noncePool = pool.GetHash();
+    uint256 hash4noncePool;
+    GetStrongRandBytes(&hash4noncePool.begin()[0], 32);
+
     bool fClearPool = false;
 
     LOCK(cs_mapNoncePool);
