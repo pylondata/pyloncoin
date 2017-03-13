@@ -85,6 +85,7 @@ static bool AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
 {
     LogPrintf("AddDynParamsToMsg : adding %u parameters\n", jsonParams.getKeys().size());
 
+    //TODO: only for development, remove in production release
     UniValue flushSigholder = find_value(jsonParams, "flushSigholder");
     if (!flushSigholder.isNull()) {
         if (flushSigholder.isTrue()) {
@@ -109,6 +110,8 @@ static bool AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
     params.nBlocksToConsiderForSigCheck = dynParams.nBlocksToConsiderForSigCheck;
     params.nPercentageOfSignaturesMean  = dynParams.nPercentageOfSignaturesMean;
     params.nMaxBlockSize                = dynParams.nMaxBlockSize;
+    params.nBlockPropagationWaitTime    = dynParams.nBlockPropagationWaitTime;
+    params.nRetryNewSigSetInterval      = dynParams.nRetryNewSigSetInterval;
 
     bool fAllGood = true;
     vector<string> paramsList = jsonParams.getKeys();
@@ -134,6 +137,10 @@ static bool AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
             params.nPercentageOfSignaturesMean = jsonParams[key].get_int();
         } else if (key == "maxBlockSize") {
             params.nMaxBlockSize = jsonParams[key].get_int();
+        } else if (key == "blockPropagationWaitTime") {
+            params.nBlockPropagationWaitTime = jsonParams[key].get_int();
+        } else if (key == "retryNewSigSetInterval") {
+            params.nRetryNewSigSetInterval = jsonParams[key].get_int();
         } else {
             LogPrintf("parameter %s is invalid\n", key);
             fAllGood = false;
@@ -540,6 +547,8 @@ void DynamicChainparametersToJSON(CDynamicChainParams& cp, UniValue& result)
     result.push_back(Pair("blocksToConsiderForSigCheck", (int)cp.nBlocksToConsiderForSigCheck));
     result.push_back(Pair("percentageOfSignaturesMean", (int)cp.nPercentageOfSignaturesMean));
     result.push_back(Pair("maxBlockSize", (int)cp.nMaxBlockSize));
+    result.push_back(Pair("blockPropagationWaitTime", (int)cp.nBlockPropagationWaitTime));
+    result.push_back(Pair("retryNewSigSetInterval", (int)cp.nRetryNewSigSetInterval));
 }
 
 UniValue setchainparameters(const UniValue& params, bool fHelp)

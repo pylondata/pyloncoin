@@ -385,6 +385,13 @@ public:
     /** The maximum allowed size for a serialized block */
     uint32_t nMaxBlockSize;
 
+    /** The time (in sec.) to wait before CVNs start to create chain signatures again */
+    uint32_t nBlockPropagationWaitTime;
+
+    /** If a CVN has not received all partial signatures of a set it re-tries every
+     ** nRetryNewSigSetInterval sec. to create a new set without the CVN IDs that were missing*/
+    uint32_t nRetryNewSigSetInterval;
+
     CDynamicChainParams()
     {
         SetNull();
@@ -406,6 +413,8 @@ public:
         READWRITE(nBlocksToConsiderForSigCheck);
         READWRITE(nPercentageOfSignaturesMean);
         READWRITE(nMaxBlockSize);
+        READWRITE(nBlockPropagationWaitTime);
+        READWRITE(nRetryNewSigSetInterval);
     }
 
     void SetNull()
@@ -421,6 +430,8 @@ public:
         nBlocksToConsiderForSigCheck = 0;
         nPercentageOfSignaturesMean = 0;
         nMaxBlockSize = 0;
+        nBlockPropagationWaitTime = 0;
+        nRetryNewSigSetInterval = 0;
     }
 
     uint256 GetHash() const;

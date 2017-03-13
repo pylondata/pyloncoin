@@ -1247,6 +1247,17 @@ bool CheckDynamicChainParameters(const CDynamicChainParams& params)
         return false;
     }
 
+    if (params.nBlockPropagationWaitTime < MIN_BLOCK_PROPAGATION_WAIT_TIME || params.nMaxBlockSize > MAX_BLOCK_PROPAGATION_WAIT_TIME ||
+            params.nBlockPropagationWaitTime >= params.nBlockSpacing) {
+        LogPrintf("CheckDynamicChainParameters : ERROR, %u nBlockPropagationWaitTime is out of bounds\n", params.nBlockPropagationWaitTime);
+        return false;
+    }
+
+    if (params.nRetryNewSigSetInterval < MIN_RETRY_NEW_SIG_SET_INTERVAL || params.nRetryNewSigSetInterval > MAX_RETRY_NEW_SIG_SET_INTERVAL) {
+        LogPrintf("CheckDynamicChainParameters : ERROR, %u nRetryNewSigSetInterval is out of bounds\n", params.nRetryNewSigSetInterval);
+        return false;
+    }
+
     return true;
 }
 
@@ -1271,6 +1282,8 @@ void UpdateChainParameters(const CBlock* pblock)
     dynParams.nBlocksToConsiderForSigCheck = pblock->dynamicChainParams.nBlocksToConsiderForSigCheck;
     dynParams.nPercentageOfSignaturesMean  = pblock->dynamicChainParams.nPercentageOfSignaturesMean;
     dynParams.nMaxBlockSize                = pblock->dynamicChainParams.nMaxBlockSize;
+    dynParams.nBlockPropagationWaitTime    = pblock->dynamicChainParams.nBlockPropagationWaitTime;
+    dynParams.nRetryNewSigSetInterval      = pblock->dynamicChainParams.nRetryNewSigSetInterval;
 
     ::minRelayTxFee = CFeeRate(dynParams.nTransactionFee);
 }
@@ -1525,7 +1538,7 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
 
     // create a list of creator candidates
     // scan no more than the last 200 blocks
-    int nBlocksToScan = POC_BLOCKS_TO_SCAN;
+    unsigned int nBlocksToScan = POC_BLOCKS_TO_SCAN;
     size_t nRegisteredCVNs = mapCVNs.size();
     for (const CBlockIndex* pindex = pindexStart; pindex && nBlocksToScan; pindex = pindex->pprev, nBlocksToScan--) {
         if ((pindex->nStatus & BLOCK_VALID_MASK) < BLOCK_VALID_SCRIPTS) {
@@ -1924,8 +1937,6 @@ void CreateNewNoncePool(const POCStateHolder& s)
     }
 }
 
-#define SEND_SIG_RETRY_INTERVAL 15 //TODO: make dynamic
-
 static void handleCreateSignature(POCStateHolder& s)
 {
 
@@ -1964,10 +1975,10 @@ static void handleWaitingForSignatures(POCStateHolder& s)
     LOCK(sigHolder.cs_sigHolder);
     int32_t nLastBlockSeconds = GetAdjustedTime() - s.pindexPrev->nTime;
 
-    if (nLastBlockSeconds - BLOCK_PROPAGATION_WAIT_TIME < 0)
+    if (nLastBlockSeconds - (int32_t)dynParams.nBlockPropagationWaitTime < 0)
         return;
 
-    if (!((nLastBlockSeconds - BLOCK_PROPAGATION_WAIT_TIME) % SEND_SIG_RETRY_INTERVAL)) {
+    if (!((nLastBlockSeconds - dynParams.nBlockPropagationWaitTime) % dynParams.nRetryNewSigSetInterval)) {
         /* We have not received all the expected partial signatures for any set.
          * Periodically (SEND_SIG_RETRY_INTERVAL) find the missing node IDs and try without them. */
 
@@ -2047,8 +2058,8 @@ static void handleWaitingForBlockPropagation(POCStateHolder& s)
 
     int64_t nLastBlockSeconds = GetAdjustedTime() - s.pindexPrev->nTime;
 
-    if (nLastBlockSeconds <= BLOCK_PROPAGATION_WAIT_TIME)
-        s.nSleep = BLOCK_PROPAGATION_WAIT_TIME - nLastBlockSeconds;
+    if (nLastBlockSeconds <= dynParams.nBlockPropagationWaitTime)
+        s.nSleep = dynParams.nBlockPropagationWaitTime - nLastBlockSeconds;
     else
         s.nSleep = 2;
 

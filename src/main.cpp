@@ -2999,7 +2999,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOC, bo
     if (block.HasTx()) {
         // Size limits
         if (block.vtx.empty() || block.vtx.size() > MAX_TX_PER_BLOCK || ::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION) > dynParams.nMaxBlockSize) {
-            LogPrintf("TEST: %u/%u\n", ::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION), dynParams.nMaxBlockSize);
             return state.DoS(100, error("CheckBlock(): size limits failed"),
                              REJECT_INVALID, "bad-blk-length");
         }

@@ -75,16 +75,18 @@ public:
         nPruneAfterHeight = 100000;
 
         CDynamicChainParams dynParams;
-        dynParams.nBlockSpacing            = 3 * 60; // 3 min.
-        dynParams.nBlockSpacingGracePeriod = 60;
-        dynParams.nMaxAdminSigs            = 11;
-        dynParams.nMinAdminSigs            = 1;
-        dynParams.nTransactionFee          = 10 * CENT; // 0.1 FAIR per Kb
-        dynParams.nDustThreshold           = 10 * CENT; // 0.1 FAIR
-        dynParams.nMinSuccessiveSignatures = 1;
+        dynParams.nBlockSpacing                = 3 * 60; // 3 min.
+        dynParams.nBlockSpacingGracePeriod     = 60;
+        dynParams.nMaxAdminSigs                = 11;
+        dynParams.nMinAdminSigs                = 1;
+        dynParams.nTransactionFee              = 10 * CENT; // 0.1 FAIR per Kb
+        dynParams.nDustThreshold               = 10 * CENT; // 0.1 FAIR
+        dynParams.nMinSuccessiveSignatures     = 1;
         dynParams.nBlocksToConsiderForSigCheck = 1;
-        dynParams.nPercentageOfSignaturesMean = 70; // 70%
-        dynParams.nMaxBlockSize            = 1500000; // 1.5Mb
+        dynParams.nPercentageOfSignaturesMean  = 70; // 70%
+        dynParams.nMaxBlockSize                = 1500000; // 1.5Mb
+        dynParams.nBlockPropagationWaitTime    = 50; // 50 sec.
+        dynParams.nRetryNewSigSetInterval      = 15; // 15 sec.
 
         genesis = CreateGenesisBlock(GENESIS_BLOCK_TIMESTAMP, GENESIS_NODE_ID, dynParams);
 
@@ -156,17 +158,20 @@ public:
         nDefaultPort = 41404;
         nMaxTipAge = 0x7fffffff;
         nPruneAfterHeight = 1000;
+
         CDynamicChainParams dynParams;
-        dynParams.nBlockSpacing            = 2 * 60; // 2 min.
-        dynParams.nBlockSpacingGracePeriod = 45;
-        dynParams.nMaxAdminSigs            = 11;
-        dynParams.nMinAdminSigs            = 1;
-        dynParams.nTransactionFee          = 10 * CENT; // 0.1 FAIR
-        dynParams.nDustThreshold           = 10 * CENT; // 0.1 FAIR
-        dynParams.nMinSuccessiveSignatures = 1;
+        dynParams.nBlockSpacing                = 2 * 60; // 3 min.
+        dynParams.nBlockSpacingGracePeriod     = 45;
+        dynParams.nMaxAdminSigs                = 11;
+        dynParams.nMinAdminSigs                = 1;
+        dynParams.nTransactionFee              = 10 * CENT; // 0.1 FAIR per Kb
+        dynParams.nDustThreshold               = 10 * CENT; // 0.1 FAIR
+        dynParams.nMinSuccessiveSignatures     = 1;
         dynParams.nBlocksToConsiderForSigCheck = 1;
-        dynParams.nPercentageOfSignaturesMean = 70; // 70%
-        dynParams.nMaxBlockSize            = 1500000; // 1.5Mb
+        dynParams.nPercentageOfSignaturesMean  = 70; // 70%
+        dynParams.nMaxBlockSize                = 1500000; // 1.5Mb
+        dynParams.nBlockPropagationWaitTime    = 50; // 50 sec.
+        dynParams.nRetryNewSigSetInterval      = 15; // 15 sec.
 
         genesis = CreateGenesisBlock(GENESIS_BLOCK_TIMESTAMP + 1, GENESIS_NODE_ID, dynParams);
 
@@ -239,17 +244,20 @@ public:
         nMaxTipAge = 60 * 60; // 1h
         nDefaultPort = 42404;
         nPruneAfterHeight = 1000;
+
         CDynamicChainParams dynParams;
-        dynParams.nBlockSpacing            = 1 * 60; // 3 min.
-        dynParams.nBlockSpacingGracePeriod = 30;
-        dynParams.nMaxAdminSigs            = 11;
-        dynParams.nMinAdminSigs            = 1;
-        dynParams.nTransactionFee          = 10 * CENT; // 0.1 FAIR
-        dynParams.nDustThreshold           = 10 * CENT; // 0.1 FAIR
-        dynParams.nMinSuccessiveSignatures = 1;
+        dynParams.nBlockSpacing                = 1 * 60; // 3 min.
+        dynParams.nBlockSpacingGracePeriod     = 30;
+        dynParams.nMaxAdminSigs                = 11;
+        dynParams.nMinAdminSigs                = 1;
+        dynParams.nTransactionFee              = 10 * CENT; // 0.1 FAIR per Kb
+        dynParams.nDustThreshold               = 10 * CENT; // 0.1 FAIR
+        dynParams.nMinSuccessiveSignatures     = 1;
         dynParams.nBlocksToConsiderForSigCheck = 1;
-        dynParams.nPercentageOfSignaturesMean = 70; // 70%
-        dynParams.nMaxBlockSize            = 1500000; // 1.5Mb
+        dynParams.nPercentageOfSignaturesMean  = 70; // 70%
+        dynParams.nMaxBlockSize                = 1500000; // 1.5Mb
+        dynParams.nBlockPropagationWaitTime    = 20; // 20 sec.
+        dynParams.nRetryNewSigSetInterval      = 7; // 7 sec.
 
         genesis = CreateGenesisBlock(GENESIS_BLOCK_TIMESTAMP + 2, GENESIS_NODE_ID, dynParams);
 

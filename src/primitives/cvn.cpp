@@ -24,13 +24,15 @@ std::string CDynamicChainParams::ToString() const
 {
     std::stringstream s;
         s << strprintf("CDynamicChainParams(ver=%d, minAdminSigs=%u, maxAdminSigs=%u, blockSpacing=%u, blockSpacingGracePeriod=%u, "
-                       "transactionFee=%u, dustThreshold=%u, minSuccessiveSignatures=%u, nBlocksToConsiderForSigCheck=%u, nPercentageOfSignaturesMean=%u, nMaxBlockSize=%u)",
+                       "transactionFee=%u, dustThreshold=%u, minSuccessiveSignatures=%u, nBlocksToConsiderForSigCheck=%u, nPercentageOfSignaturesMean=%u, nMaxBlockSize=%u, "
+                       "blockPropagationWaitTime=%u, retryNewSigSetInterval=%u)",
             nVersion,
             nMinAdminSigs, nMaxAdminSigs,
             nBlockSpacing, nBlockSpacingGracePeriod,
             nTransactionFee, nDustThreshold,
             nMinSuccessiveSignatures, nBlocksToConsiderForSigCheck,
-            nPercentageOfSignaturesMean, nMaxBlockSize
+            nPercentageOfSignaturesMean, nMaxBlockSize,
+            nBlockPropagationWaitTime, nRetryNewSigSetInterval
         );
     return s.str();
 }
