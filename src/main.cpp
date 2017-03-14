@@ -2933,10 +2933,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOC, bo
 
     if (fCheckPOC) {
         // check for correct signature of the block hash by the creator
-        if (!CvnVerifySignature(block.GetHash(), block.creatorSignature, block.nCreatorId))
-            return state.DoS(100, error("CheckBlock(): invalid creator signature"),
-                                         REJECT_INVALID, "bad-creator-sig", true);
-
         if (!CheckProofOfCooperation(block, Params().GetConsensus()))
             return state.DoS(2, error("CheckBlock(): poc failed"),
                     REJECT_INVALID, "poc-failed", true);;
