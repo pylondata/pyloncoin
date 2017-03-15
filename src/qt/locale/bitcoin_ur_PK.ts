@@ -112,7 +112,7 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>BitcoinGUI</name>
+    <name>FairCoinGUI</name>
     <message>
         <source>Error</source>
         <translation>نقص</translation>
@@ -376,7 +376,7 @@
     </message>
     </context>
 <context>
-    <name>bitcoin-core</name>
+    <name>FairCoin-core</name>
     <message>
         <source>This help message</source>
         <translation>یہ مدد کا پیغام</translation>

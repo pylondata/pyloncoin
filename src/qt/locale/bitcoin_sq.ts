@@ -46,12 +46,12 @@
         <translation>Duke marr adresen</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Këto janë Bitcoin adresat e juaja për të dërguar pagesa. Gjithmon kontrolloni shumën dhe adresën pranuese para se të dërgoni monedha.</translation>
+        <source>These are your FairCoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation>Këto janë FairCoin adresat e juaja për të dërguar pagesa. Gjithmon kontrolloni shumën dhe adresën pranuese para se të dërgoni monedha.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
-        <translation>Këto janë Bitcoin adresat e juaja për të pranuar pagesa. Rekomandohet që gjithmon të përdorni një adresë të re për çdo transaksion.</translation>
+        <source>These are your FairCoin addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
+        <translation>Këto janë FairCoin adresat e juaja për të pranuar pagesa. Rekomandohet që gjithmon të përdorni një adresë të re për çdo transaksion.</translation>
     </message>
     <message>
         <source>Copy &amp;Label</source>
@@ -172,7 +172,7 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>BitcoinGUI</name>
+    <name>FairCoinGUI</name>
     <message>
         <source>Synchronizing with network...</source>
         <translation>Duke u sinkronizuar me rrjetin...</translation>
@@ -210,8 +210,8 @@
         <translation>Ndrysho frazkalimin e përdorur per enkriptimin e portofolit</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
-        <translation>Bitcoin</translation>
+        <source>FairCoin</source>
+        <translation>FairCoin</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -246,11 +246,11 @@
         <translation>Shiriti i mjeteve</translation>
     </message>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Berthama Bitcoin</translation>
+        <source>FairCoin Core</source>
+        <translation>Berthama FairCoin</translation>
     </message>
     <message>
-        <source>&amp;About Bitcoin Core</source>
+        <source>&amp;About FairCoin Core</source>
         <translation>Rreth Berthames Bitkoin</translation>
     </message>
     <message>
@@ -385,15 +385,15 @@
 <context>
     <name>HelpMessageDialog</name>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Berthama Bitcoin</translation>
+        <source>FairCoin Core</source>
+        <translation>Berthama FairCoin</translation>
     </message>
     <message>
         <source>version</source>
         <translation>versioni</translation>
     </message>
     <message>
-        <source>About Bitcoin Core</source>
+        <source>About FairCoin Core</source>
         <translation>Rreth Berthames Bitkoin</translation>
     </message>
     </context>
@@ -404,12 +404,12 @@
         <translation>Miresevini</translation>
     </message>
     <message>
-        <source>Welcome to Bitcoin Core.</source>
-        <translation>Miresevini ne Berthamen Bitcoin</translation>
+        <source>Welcome to FairCoin Core.</source>
+        <translation>Miresevini ne Berthamen FairCoin</translation>
     </message>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Berthama Bitcoin</translation>
+        <source>FairCoin Core</source>
+        <translation>Berthama FairCoin</translation>
     </message>
     <message>
         <source>Error</source>
@@ -624,8 +624,8 @@
 <context>
     <name>SplashScreen</name>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Berthama Bitcoin</translation>
+        <source>FairCoin Core</source>
+        <translation>Berthama FairCoin</translation>
     </message>
     <message>
         <source>[testnet]</source>
@@ -792,7 +792,7 @@
     <name>WalletView</name>
     </context>
 <context>
-    <name>bitcoin-core</name>
+    <name>FairCoin-core</name>
     <message>
         <source>Options:</source>
         <translation>Opsionet:</translation>

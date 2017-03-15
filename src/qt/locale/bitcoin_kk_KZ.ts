@@ -88,7 +88,7 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>BitcoinGUI</name>
+    <name>FairCoinGUI</name>
     <message>
         <source>&amp;Transactions</source>
         <translation>&amp;Транзакциялар</translation>
@@ -110,7 +110,7 @@
         <translation>Құпия сөзді өзгерту</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
+        <source>FairCoin</source>
         <translation>Биткоин</translation>
     </message>
     <message>
@@ -440,7 +440,7 @@
     </message>
     </context>
 <context>
-    <name>bitcoin-core</name>
+    <name>FairCoin-core</name>
     <message>
         <source>Information</source>
         <translation>Информация</translation>

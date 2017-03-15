@@ -32,13 +32,13 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>BitcoinGUI</name>
+    <name>FairCoinGUI</name>
     <message>
-        <source>Bitcoin Core</source>
+        <source>FairCoin Core</source>
         <translation>Биткойн ядро</translation>
     </message>
     <message>
-        <source>&amp;About Bitcoin Core</source>
+        <source>&amp;About FairCoin Core</source>
         <translation>За Биткойн ядрото</translation>
     </message>
     </context>
@@ -57,18 +57,18 @@
 <context>
     <name>HelpMessageDialog</name>
     <message>
-        <source>Bitcoin Core</source>
+        <source>FairCoin Core</source>
         <translation>Биткойн ядро</translation>
     </message>
     <message>
-        <source>About Bitcoin Core</source>
+        <source>About FairCoin Core</source>
         <translation>За Биткойн ядрото</translation>
     </message>
     </context>
 <context>
     <name>Intro</name>
     <message>
-        <source>Bitcoin Core</source>
+        <source>FairCoin Core</source>
         <translation>Биткойн ядро</translation>
     </message>
     </context>
@@ -120,7 +120,7 @@
 <context>
     <name>SplashScreen</name>
     <message>
-        <source>Bitcoin Core</source>
+        <source>FairCoin Core</source>
         <translation>Биткойн ядро</translation>
     </message>
     </context>
@@ -152,6 +152,6 @@
     <name>WalletView</name>
     </context>
 <context>
-    <name>bitcoin-core</name>
+    <name>FairCoin-core</name>
     </context>
 </TS>

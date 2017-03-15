@@ -66,8 +66,8 @@
         <translation>กำลังรับที่อยู่</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>ที่อยู่เหล่านี้เป็นที่อยู่ Bitcoin ของคุณ สำหรับใช้เพื่อส่งเงิน กรุณาตรวจสอบจำนวนเงินและที่อยู่สำหรับรับเงินก่อนส่งเหรียญไป</translation>
+        <source>These are your FairCoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation>ที่อยู่เหล่านี้เป็นที่อยู่ FairCoin ของคุณ สำหรับใช้เพื่อส่งเงิน กรุณาตรวจสอบจำนวนเงินและที่อยู่สำหรับรับเงินก่อนส่งเหรียญไป</translation>
     </message>
     <message>
         <source>Copy &amp;Label</source>
@@ -188,7 +188,7 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>BitcoinGUI</name>
+    <name>FairCoinGUI</name>
     <message>
         <source>Synchronizing with network...</source>
         <translation>กำลังทำข้อมูลให้ตรงกันกับเครือข่าย ...</translation>
@@ -238,8 +238,8 @@
         <translation>&amp;ยืนยันข้อความ...</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
-        <translation>Bitcoin</translation>
+        <source>FairCoin</source>
+        <translation>FairCoin</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -270,8 +270,8 @@
         <translation>แถบเครื่องมือ</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network</source>
-        <translation><numerusform>%n ที่ใช้งานการเชื่อมต่อกับเครือข่าย Bitcoin</numerusform></translation>
+        <source>%n active connection(s) to FairCoin network</source>
+        <translation><numerusform>%n ที่ใช้งานการเชื่อมต่อกับเครือข่าย FairCoin</numerusform></translation>
     </message>
     <message>
         <source>Up to date</source>
@@ -572,7 +572,7 @@
     </message>
     </context>
 <context>
-    <name>bitcoin-core</name>
+    <name>FairCoin-core</name>
     <message>
         <source>Options:</source>
         <translation>ตัวเลือก:</translation>

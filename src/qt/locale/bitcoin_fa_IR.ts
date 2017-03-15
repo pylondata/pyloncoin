@@ -192,7 +192,7 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>BitcoinGUI</name>
+    <name>FairCoinGUI</name>
     <message>
         <source>Sign &amp;message...</source>
         <translation>امضا و پیام</translation>
@@ -262,8 +262,8 @@
         <translation>رمز مربوط به رمزگذاریِ wallet را تغییر دهید</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
-        <translation>bitcoin</translation>
+        <source>FairCoin</source>
+        <translation>FairCoin</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -400,8 +400,8 @@
         <translation>حساب وارد شده «%1» از پیش در دفترچه حساب ها موجود است.</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
-        <translation>آدرس وارد شده "%1" یک آدرس صحیح برای bitcoin نسشت</translation>
+        <source>The entered address "%1" is not a valid FairCoin address.</source>
+        <translation>آدرس وارد شده "%1" یک آدرس صحیح برای FairCoin نسشت</translation>
     </message>
     <message>
         <source>Could not unlock wallet.</source>
@@ -470,8 +470,8 @@
         <translation>فرم</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
-        <translation>اطلاعات نمایش داده شده ممکن است روزآمد نباشد. wallet شما به صورت خودکار بعد از برقراری اتصال با شبکه bitcoin به روز می شود اما این فرایند هنوز تکمیل نشده است.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the FairCoin network after a connection is established, but this process has not completed yet.</source>
+        <translation>اطلاعات نمایش داده شده ممکن است روزآمد نباشد. wallet شما به صورت خودکار بعد از برقراری اتصال با شبکه FairCoin به روز می شود اما این فرایند هنوز تکمیل نشده است.</translation>
     </message>
     </context>
 <context>
@@ -691,7 +691,7 @@
 <context>
     <name>ShutdownWindow</name>
     <message>
-        <source>Bitcoin Core is shutting down...</source>
+        <source>FairCoin Core is shutting down...</source>
         <translation>هسته بیت کوین در حال خاموش شدن است...</translation>
     </message>
     <message>
@@ -1014,7 +1014,7 @@
     </message>
     </context>
 <context>
-    <name>bitcoin-core</name>
+    <name>FairCoin-core</name>
     <message>
         <source>Options:</source>
         <translation>انتخابها:</translation>

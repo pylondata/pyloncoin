@@ -51,9 +51,9 @@ QString BitcoinUnits::description(int unit)
 {
     switch(unit)
     {
-    case BTC: return QString("Faircoins");
-    case mBTC: return QString("Milli-Faircoins (1 / 1" THIN_SP_UTF8 "000)");
-    case uBTC: return QString("Micro-Faircoins (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case BTC: return QString("FairCoins");
+    case mBTC: return QString("Milli-FairCoins (1 / 1" THIN_SP_UTF8 "000)");
+    case uBTC: return QString("Micro-FairCoins (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
     default: return QString("???");
     }
 }

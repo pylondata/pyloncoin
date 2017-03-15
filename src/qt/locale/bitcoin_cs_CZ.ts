@@ -124,7 +124,7 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>BitcoinGUI</name>
+    <name>FairCoinGUI</name>
     <message>
         <source>Synchronizing with network...</source>
         <translation>Synchronizuji se sítí...</translation>
@@ -158,8 +158,8 @@
         <translation>Změnit heslo k šifrování peněženky</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
-        <translation>Bitcoin</translation>
+        <source>FairCoin</source>
+        <translation>FairCoin</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -648,7 +648,7 @@
     </message>
     </context>
 <context>
-    <name>bitcoin-core</name>
+    <name>FairCoin-core</name>
     <message>
         <source>Options:</source>
         <translation>Možnosti:</translation>

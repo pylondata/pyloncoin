@@ -66,12 +66,12 @@
         <translation>Adres odbiorczy</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Tutaj znajdują się adresy Bitcoin na które wysyłasz płatności. Zawsze sprawdzaj ilość i adres odbiorcy przed wysyłką monet.</translation>
+        <source>These are your FairCoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation>Tutaj znajdują się adresy FairCoin na które wysyłasz płatności. Zawsze sprawdzaj ilość i adres odbiorcy przed wysyłką monet.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
-        <translation>To twoje adresy Bitcoin, na które otrzymujesz płatności. Zaleca się używanie nowych adresów odbiorczych dla każdej transakcji.</translation>
+        <source>These are your FairCoin addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
+        <translation>To twoje adresy FairCoin, na które otrzymujesz płatności. Zaleca się używanie nowych adresów odbiorczych dla każdej transakcji.</translation>
     </message>
     <message>
         <source>Copy &amp;Label</source>
@@ -168,8 +168,8 @@
         <translation>Jesteś pewien, że chcesz zaszyfrować swój portfel?</translation>
     </message>
     <message>
-        <source>Bitcoin Core will close now to finish the encryption process. Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation>Program Bitcoin Core zamknie się, aby dokończyć proces szyfrowania. Pamiętaj, że szyfrowanie portfela nie zabezpiecza w pełni twoich bitcoinów przed kradzieżą przez złośliwe oprogramowanie mogące zainfekować twój komputer.</translation>
+        <source>FairCoin Core will close now to finish the encryption process. Remember that encrypting your wallet cannot fully protect your FairCoins from being stolen by malware infecting your computer.</source>
+        <translation>Program FairCoin Core zamknie się, aby dokończyć proces szyfrowania. Pamiętaj, że szyfrowanie portfela nie zabezpiecza w pełni twoich FairCoinów przed kradzieżą przez złośliwe oprogramowanie mogące zainfekować twój komputer.</translation>
     </message>
     <message>
         <source>IMPORTANT: Any previous backups you have made of your wallet file should be replaced with the newly generated, encrypted wallet file. For security reasons, previous backups of the unencrypted wallet file will become useless as soon as you start using the new, encrypted wallet.</source>
@@ -232,7 +232,7 @@
     </message>
 </context>
 <context>
-    <name>BitcoinGUI</name>
+    <name>FairCoinGUI</name>
     <message>
         <source>Sign &amp;message...</source>
         <translation>Podpisz wiado&amp;mość...</translation>
@@ -306,8 +306,8 @@
         <translation>Otwórz URI...</translation>
     </message>
     <message>
-        <source>Bitcoin Core client</source>
-        <translation>Klient Rdzenia Bitcoina</translation>
+        <source>FairCoin Core client</source>
+        <translation>Klient Rdzenia FairCoina</translation>
     </message>
     <message>
         <source>Importing blocks from disk...</source>
@@ -318,8 +318,8 @@
         <translation>Ponowne indeksowanie bloków na dysku...</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation>Wyślij monety na adres bitcoinowy</translation>
+        <source>Send coins to a FairCoin address</source>
+        <translation>Wyślij monety na adres FairCoinowy</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -342,8 +342,8 @@
         <translation>&amp;Zweryfikuj wiadomość...</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
-        <translation>Bitcoin</translation>
+        <source>FairCoin</source>
+        <translation>FairCoin</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -358,8 +358,8 @@
         <translation>Odbie&amp;rz</translation>
     </message>
     <message>
-        <source>Show information about Bitcoin Core</source>
-        <translation>Pokaż informacje o Rdzeniu Bitcoina</translation>
+        <source>Show information about FairCoin Core</source>
+        <translation>Pokaż informacje o Rdzeniu FairCoina</translation>
     </message>
     <message>
         <source>&amp;Show / Hide</source>
@@ -374,12 +374,12 @@
         <translation>Szyfruj klucze prywatne, które są w Twoim portfelu</translation>
     </message>
     <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
+        <source>Sign messages with your FairCoin addresses to prove you own them</source>
         <translation>Podpisz wiadomości swoim adresem aby udowodnić jego posiadanie</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation>Zweryfikuj wiadomość,  aby upewnić się, że została podpisana podanym adresem bitcoinowym.</translation>
+        <source>Verify messages to ensure they were signed with specified FairCoin addresses</source>
+        <translation>Zweryfikuj wiadomość,  aby upewnić się, że została podpisana podanym adresem FairCoinowym.</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -398,20 +398,20 @@
         <translation>Pasek zakładek</translation>
     </message>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Rdzeń Bitcoina</translation>
+        <source>FairCoin Core</source>
+        <translation>Rdzeń FairCoina</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation>Żądaj płatności (generuje kod QR oraz bitcoin URI)</translation>
+        <source>Request payments (generates QR codes and FairCoin: URIs)</source>
+        <translation>Żądaj płatności (generuje kod QR oraz FairCoin URI)</translation>
     </message>
     <message>
-        <source>&amp;About Bitcoin Core</source>
-        <translation>&amp;O Bitcoin Core</translation>
+        <source>&amp;About FairCoin Core</source>
+        <translation>&amp;O FairCoin Core</translation>
     </message>
     <message>
-        <source>Modify configuration options for Bitcoin Core</source>
-        <translation>Zmień opcje konfiguracji dla Bitcoin Core</translation>
+        <source>Modify configuration options for FairCoin Core</source>
+        <translation>Zmień opcje konfiguracji dla FairCoin Core</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -422,20 +422,20 @@
         <translation>Pokaż listę adresów i etykiet użytych do odbierania</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI or payment request</source>
-        <translation>Otwórz URI bitcoin: lub żądanie zapłaty</translation>
+        <source>Open a FairCoin: URI or payment request</source>
+        <translation>Otwórz URI FairCoin: lub żądanie zapłaty</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>
         <translation>&amp;Opcje linii komend</translation>
     </message>
     <message>
-        <source>Show the Bitcoin Core help message to get a list with possible Bitcoin command-line options</source>
-        <translation>Pokaż pomoc Rdzenia Bitcoin, aby zobaczyć listę wszystkich opcji linii poleceń</translation>
+        <source>Show the FairCoin Core help message to get a list with possible FairCoin command-line options</source>
+        <translation>Pokaż pomoc Rdzenia FairCoin, aby zobaczyć listę wszystkich opcji linii poleceń</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network</source>
-        <translation><numerusform>%n aktywnych połączeń do sieci Bitcoin</numerusform><numerusform>%n aktywnych połączeń do sieci Bitcoin</numerusform><numerusform>%n aktywnych połączeń do sieci Bitcoin</numerusform></translation>
+        <source>%n active connection(s) to FairCoin network</source>
+        <translation><numerusform>%n aktywnych połączeń do sieci FairCoin</numerusform><numerusform>%n aktywnych połączeń do sieci FairCoin</numerusform><numerusform>%n aktywnych połączeń do sieci FairCoin</numerusform></translation>
     </message>
     <message>
         <source>No block source available...</source>
@@ -817,8 +817,8 @@
         <translation>Wprowadzony adres «%1» już istnieje w książce adresowej.</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
-        <translation>Wprowadzony adres «%1"» nie jest poprawnym adresem bitcoinowym.</translation>
+        <source>The entered address "%1" is not a valid FairCoin address.</source>
+        <translation>Wprowadzony adres «%1"» nie jest poprawnym adresem FairCoinowym.</translation>
     </message>
     <message>
         <source>Could not unlock wallet.</source>
@@ -855,8 +855,8 @@
 <context>
     <name>HelpMessageDialog</name>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Rdzeń Bitcoina</translation>
+        <source>FairCoin Core</source>
+        <translation>Rdzeń FairCoina</translation>
     </message>
     <message>
         <source>version</source>
@@ -867,8 +867,8 @@
         <translation>(%1-bit)</translation>
     </message>
     <message>
-        <source>About Bitcoin Core</source>
-        <translation>O Bitcoin Core</translation>
+        <source>About FairCoin Core</source>
+        <translation>O FairCoin Core</translation>
     </message>
     <message>
         <source>Command-line options</source>
@@ -918,16 +918,16 @@
         <translation>Witaj</translation>
     </message>
     <message>
-        <source>Welcome to Bitcoin Core.</source>
-        <translation>Witaj w Bitcoin Core</translation>
+        <source>Welcome to FairCoin Core.</source>
+        <translation>Witaj w FairCoin Core</translation>
     </message>
     <message>
-        <source>As this is the first time the program is launched, you can choose where Bitcoin Core will store its data.</source>
-        <translation>Ponieważ jest to pierwsze uruchomienie programu, możesz wybrać gdzie Bitcoin Core będzie przechowywał swoje dane.</translation>
+        <source>As this is the first time the program is launched, you can choose where FairCoin Core will store its data.</source>
+        <translation>Ponieważ jest to pierwsze uruchomienie programu, możesz wybrać gdzie FairCoin Core będzie przechowywał swoje dane.</translation>
     </message>
     <message>
-        <source>Bitcoin Core will download and store a copy of the Bitcoin block chain. At least %1GB of data will be stored in this directory, and it will grow over time. The wallet will also be stored in this directory.</source>
-        <translation>Program pobierze i będzie przechowywał kopię łańcucha bloków bitcoinowych. W wybranym katalogu musi być przynajmniej %1 GB miejsca, a z czasem ilość danych będzie rosła. Portfel będzie przechowywany w tym samym katalogu.</translation>
+        <source>FairCoin Core will download and store a copy of the FairCoin block chain. At least %1GB of data will be stored in this directory, and it will grow over time. The wallet will also be stored in this directory.</source>
+        <translation>Program pobierze i będzie przechowywał kopię łańcucha bloków FairCoinowych. W wybranym katalogu musi być przynajmniej %1 GB miejsca, a z czasem ilość danych będzie rosła. Portfel będzie przechowywany w tym samym katalogu.</translation>
     </message>
     <message>
         <source>Use the default data directory</source>
@@ -938,8 +938,8 @@
         <translation>Użyj wybranego folderu dla danych</translation>
     </message>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Rdzeń Bitcoina</translation>
+        <source>FairCoin Core</source>
+        <translation>Rdzeń FairCoina</translation>
     </message>
     <message>
         <source>Error: Specified data directory "%1" cannot be created.</source>
@@ -1020,8 +1020,8 @@
         <translation>Minimalizuje zamiast zakończyć działanie programu przy zamykaniu okna. Kiedy ta opcja jest włączona, program zakończy działanie po wybieraniu Zamknij w menu.</translation>
     </message>
     <message>
-        <source>The user interface language can be set here. This setting will take effect after restarting Bitcoin Core.</source>
-        <translation>Można tu ustawić język interfejsu uzytkownika. Żeby ustawienie przyniosło skutek trzeba uruchomić ponownie Bitcoin.</translation>
+        <source>The user interface language can be set here. This setting will take effect after restarting FairCoin Core.</source>
+        <translation>Można tu ustawić język interfejsu uzytkownika. Żeby ustawienie przyniosło skutek trzeba uruchomić ponownie FairCoin.</translation>
     </message>
     <message>
         <source>Third party URLs (e.g. a block explorer) that appear in the transactions tab as context menu items. %s in the URL is replaced by transaction hash. Multiple URLs are separated by vertical bar |.</source>
@@ -1048,12 +1048,12 @@
         <translation>&amp;Sieć</translation>
     </message>
     <message>
-        <source>Automatically start Bitcoin Core after logging in to the system.</source>
-        <translation>Automatycznie uruchamia Bitcoin po zalogowaniu do systemu.</translation>
+        <source>Automatically start FairCoin Core after logging in to the system.</source>
+        <translation>Automatycznie uruchamia FairCoin po zalogowaniu do systemu.</translation>
     </message>
     <message>
-        <source>&amp;Start Bitcoin Core on system login</source>
-        <translation>Uruchamiaj Bitcoin Core wraz z zalogowaniem do &amp;systemu</translation>
+        <source>&amp;Start FairCoin Core on system login</source>
+        <translation>Uruchamiaj FairCoin Core wraz z zalogowaniem do &amp;systemu</translation>
     </message>
     <message>
         <source>(0 = auto, &lt;0 = leave that many cores free)</source>
@@ -1080,16 +1080,16 @@
         <translation>Wydaj niepotwierdzoną re&amp;sztę</translation>
     </message>
     <message>
-        <source>Automatically open the Bitcoin client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Automatycznie otwiera port klienta Bitcoin na routerze. Ta opcja dzieła tylko jeśli twój router wspiera UPnP i jest ono włączone.</translation>
+        <source>Automatically open the FairCoin client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Automatycznie otwiera port klienta FairCoin na routerze. Ta opcja dzieła tylko jeśli twój router wspiera UPnP i jest ono włączone.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
         <translation>Mapuj port używając &amp;UPnP</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
-        <translation>Połącz się z siecią Bitcoin poprzez proxy SOCKS5.</translation>
+        <source>Connect to the FairCoin network through a SOCKS5 proxy.</source>
+        <translation>Połącz się z siecią FairCoin poprzez proxy SOCKS5.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1207,8 +1207,8 @@
         <translation>Formularz</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
-        <translation>Wyświetlana informacja może być nieaktualna. Twój portfel synchronizuje się automatycznie z siecią bitcoin, zaraz po tym jak uzyskano połączenie, ale proces ten nie został jeszcze ukończony.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the FairCoin network after a connection is established, but this process has not completed yet.</source>
+        <translation>Wyświetlana informacja może być nieaktualna. Twój portfel synchronizuje się automatycznie z siecią FairCoin, zaraz po tym jak uzyskano połączenie, ale proces ten nie został jeszcze ukończony.</translation>
     </message>
     <message>
         <source>Watch-only:</source>
@@ -1306,16 +1306,16 @@
         <translation>Błąd żądania płatności</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
-        <translation>Nie można uruchomić protokołu bitcoin: kliknij-by-zapłacić</translation>
+        <source>Cannot start FairCoin: click-to-pay handler</source>
+        <translation>Nie można uruchomić protokołu FairCoin: kliknij-by-zapłacić</translation>
     </message>
     <message>
         <source>Payment request fetch URL is invalid: %1</source>
         <translation>URL pobrania żądania zapłaty jest nieprawidłowe: %1</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
-        <translation>URI nie może zostać przetworzony! Może to być spowodowane nieprawidłowym adresem Bitcoin lub uszkodzonymi parametrami URI.</translation>
+        <source>URI cannot be parsed! This can be caused by an invalid FairCoin address or malformed URI parameters.</source>
+        <translation>URI nie może zostać przetworzony! Może to być spowodowane nieprawidłowym adresem FairCoin lub uszkodzonymi parametrami URI.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -1388,8 +1388,8 @@
         <translation>Kwota</translation>
     </message>
     <message>
-        <source>Enter a Bitcoin address (e.g. %1)</source>
-        <translation>Wprowadź adres bitcoinowy (np. %1)</translation>
+        <source>Enter a FairCoin address (e.g. %1)</source>
+        <translation>Wprowadź adres FairCoinowy (np. %1)</translation>
     </message>
     <message>
         <source>%1 d</source>
@@ -1506,8 +1506,8 @@
         <translation>Zużycie pamięci</translation>
     </message>
     <message>
-        <source>Open the Bitcoin Core debug log file from the current data directory. This can take a few seconds for large log files.</source>
-        <translation>Otwórz plik logowania debugowania Bitcoin Core z obecnego katalogu z danymi. Może to potrwać kilka sekund przy większych plikach.</translation>
+        <source>Open the FairCoin Core debug log file from the current data directory. This can take a few seconds for large log files.</source>
+        <translation>Otwórz plik logowania debugowania FairCoin Core z obecnego katalogu z danymi. Może to potrwać kilka sekund przy większych plikach.</translation>
     </message>
     <message>
         <source>Received</source>
@@ -1658,8 +1658,8 @@
         <translation>Odblokuj węzeł</translation>
     </message>
     <message>
-        <source>Welcome to the Bitcoin Core RPC console.</source>
-        <translation>Witaj w konsoli Bitcoin Core RPC.</translation>
+        <source>Welcome to the FairCoin Core RPC console.</source>
+        <translation>Witaj w konsoli FairCoin Core RPC.</translation>
     </message>
     <message>
         <source>Use up and down arrows to navigate history, and &lt;b&gt;Ctrl-L&lt;/b&gt; to clear screen.</source>
@@ -1741,8 +1741,8 @@
         <translation>U&amp;żyj ponownie istniejącego adresu odbiorczego (niepolecane)</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Bitcoin network.</source>
-        <translation>Opcjonalna wiadomość do dołączenia do żądania płatności, która będzie wyświetlana, gdy żądanie zostanie otwarte. Uwaga: wiadomość ta nie zostanie wysłana wraz z płatnością w sieci Bitcoin.</translation>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the FairCoin network.</source>
+        <translation>Opcjonalna wiadomość do dołączenia do żądania płatności, która będzie wyświetlana, gdy żądanie zostanie otwarte. Uwaga: wiadomość ta nie zostanie wysłana wraz z płatnością w sieci FairCoin.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -1974,8 +1974,8 @@
         <translation>razem przynajmniej</translation>
     </message>
     <message>
-        <source>Paying only the minimum fee is just fine as long as there is less transaction volume than space in the blocks. But be aware that this can end up in a never confirming transaction once there is more demand for bitcoin transactions than the network can process.</source>
-        <translation>Zapłacenie tylko minimalnej opłaty jest nadal wystarczające, dopóki jest mniejszy wolumen transakcji niż miejsca w blokach. Należy jednak mieć świadomość, że może skończyć się to niezatwierdzeniem nigdy transakcji, gdy jest większe zapotrzebowanie na transakcje bitcoina niż sieć może przetworzyć.</translation>
+        <source>Paying only the minimum fee is just fine as long as there is less transaction volume than space in the blocks. But be aware that this can end up in a never confirming transaction once there is more demand for FairCoin transactions than the network can process.</source>
+        <translation>Zapłacenie tylko minimalnej opłaty jest nadal wystarczające, dopóki jest mniejszy wolumen transakcji niż miejsca w blokach. Należy jednak mieć świadomość, że może skończyć się to niezatwierdzeniem nigdy transakcji, gdy jest większe zapotrzebowanie na transakcje FairCoina niż sieć może przetworzyć.</translation>
     </message>
     <message>
         <source>(read the tooltip)</source>
@@ -2134,8 +2134,8 @@
         <translation>Znaleziono powtórzony adres, można wysłać tylko raz na każdy adres podczas jednej operacji wysyłania.</translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
-        <translation>Ostrzeżenie: nieprawidłowy adres Bitcoin</translation>
+        <source>Warning: Invalid FairCoin address</source>
+        <translation>Ostrzeżenie: nieprawidłowy adres FairCoin</translation>
     </message>
     <message>
         <source>(no label)</source>
@@ -2185,8 +2185,8 @@
         <translation>To jest standardowa płatność</translation>
     </message>
     <message>
-        <source>The Bitcoin address to send the payment to</source>
-        <translation>Adres Bitcoin gdzie wysłać płatność</translation>
+        <source>The FairCoin address to send the payment to</source>
+        <translation>Adres FairCoin gdzie wysłać płatność</translation>
     </message>
     <message>
         <source>Alt+A</source>
@@ -2205,8 +2205,8 @@
         <translation>Usuń ten wpis</translation>
     </message>
     <message>
-        <source>The fee will be deducted from the amount being sent. The recipient will receive less bitcoins than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation>Opłata zostanie odjęta od kwoty wysyłane.Odbiorca otrzyma mniej niż bitcoins wpisz w polu kwoty. Jeśli wybrano kilku odbiorców, opłata jest podzielona równo.</translation>
+        <source>The fee will be deducted from the amount being sent. The recipient will receive less FairCoins than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
+        <translation>Opłata zostanie odjęta od kwoty wysyłane.Odbiorca otrzyma mniej niż FairCoins wpisz w polu kwoty. Jeśli wybrano kilku odbiorców, opłata jest podzielona równo.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -2229,8 +2229,8 @@
         <translation>Wprowadź etykietę dla tego adresu by dodać go do listy użytych adresów</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Bitcoin network.</source>
-        <translation>Wiadomość, która została dołączona do URI bitcoin:, która będzie przechowywana wraz z transakcją w celach informacyjnych. Uwaga: Ta wiadomość nie będzie rozsyłana w sieci Bitcoin.</translation>
+        <source>A message that was attached to the FairCoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the FairCoin network.</source>
+        <translation>Wiadomość, która została dołączona do URI FairCoin:, która będzie przechowywana wraz z transakcją w celach informacyjnych. Uwaga: Ta wiadomość nie będzie rozsyłana w sieci FairCoin.</translation>
     </message>
     <message>
         <source>Pay To:</source>
@@ -2244,8 +2244,8 @@
 <context>
     <name>ShutdownWindow</name>
     <message>
-        <source>Bitcoin Core is shutting down...</source>
-        <translation>Bitcoin Core się zamyka...</translation>
+        <source>FairCoin Core is shutting down...</source>
+        <translation>FairCoin Core się zamyka...</translation>
     </message>
     <message>
         <source>Do not shut down the computer until this window disappears.</source>
@@ -2263,12 +2263,12 @@
         <translation>Podpi&amp;sz Wiadomość</translation>
     </message>
     <message>
-        <source>You can sign messages/agreements with your addresses to prove you can receive bitcoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
+        <source>You can sign messages/agreements with your addresses to prove you can receive FairCoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
         <translation>Możesz podpisywać wiadomości swoimi adresami aby udowodnić, że jesteś ich właścicielem. Uważaj, aby nie podpisywać niczego co wzbudza Twoje podejrzenia, ponieważ ktoś może stosować phishing próbując nakłonić Cię do ich podpisania. Akceptuj i podpisuj tylko w pełni zrozumiałe komunikaty i wiadomości.</translation>
     </message>
     <message>
-        <source>The Bitcoin address to sign the message with</source>
-        <translation>Adres Bitcoin, za pomocą którego podpisać wiadomość</translation>
+        <source>The FairCoin address to sign the message with</source>
+        <translation>Adres FairCoin, za pomocą którego podpisać wiadomość</translation>
     </message>
     <message>
         <source>Choose previously used address</source>
@@ -2299,7 +2299,7 @@
         <translation>Kopiuje aktualny podpis do schowka systemowego</translation>
     </message>
     <message>
-        <source>Sign the message to prove you own this Bitcoin address</source>
+        <source>Sign the message to prove you own this FairCoin address</source>
         <translation>Podpisz wiadomość aby dowieść, że ten adres jest twój</translation>
     </message>
     <message>
@@ -2319,12 +2319,12 @@
         <translation>&amp;Zweryfikuj wiadomość</translation>
     </message>
     <message>
-        <source>The Bitcoin address the message was signed with</source>
-        <translation>Adres Bitcoin, którym została podpisana wiadomość</translation>
+        <source>The FairCoin address the message was signed with</source>
+        <translation>Adres FairCoin, którym została podpisana wiadomość</translation>
     </message>
     <message>
-        <source>Verify the message to ensure it was signed with the specified Bitcoin address</source>
-        <translation>Zweryfikuj wiadomość,  aby upewnić się, że została podpisana odpowiednim adresem Bitcoin.</translation>
+        <source>Verify the message to ensure it was signed with the specified FairCoin address</source>
+        <translation>Zweryfikuj wiadomość,  aby upewnić się, że została podpisana odpowiednim adresem FairCoin.</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -2390,12 +2390,12 @@
 <context>
     <name>SplashScreen</name>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Rdzeń Bitcoin</translation>
+        <source>FairCoin Core</source>
+        <translation>Rdzeń FairCoin</translation>
     </message>
     <message>
-        <source>The Bitcoin Core developers</source>
-        <translation>Deweloperzy Bitcoin Core</translation>
+        <source>The FairCoin Core developers</source>
+        <translation>Deweloperzy FairCoin Core</translation>
     </message>
     <message>
         <source>[testnet]</source>
@@ -2882,7 +2882,7 @@
     </message>
 </context>
 <context>
-    <name>bitcoin-core</name>
+    <name>FairCoin-core</name>
     <message>
         <source>Options:</source>
         <translation>Opcje:</translation>
@@ -2952,8 +2952,8 @@
         <translation>To jest testowa wersja - używaj na własne ryzyko - nie używaj do wykopywania oraz przy aplikacjach kupieckich</translation>
     </message>
     <message>
-        <source>Unable to bind to %s on this computer. Bitcoin Core is probably already running.</source>
-        <translation>Nie można przywiązać z portem %s na tym komputerze. Bitcoin Core prawdopodobnie już działa.</translation>
+        <source>Unable to bind to %s on this computer. FairCoin Core is probably already running.</source>
+        <translation>Nie można przywiązać z portem %s na tym komputerze. FairCoin Core prawdopodobnie już działa.</translation>
     </message>
     <message>
         <source>WARNING: abnormally high number of blocks generated, %d blocks received in the last %d hours (%d expected)</source>
@@ -3124,8 +3124,8 @@
         <translation>Powiąż się z podanym adresem, aby nasłuchiwać połączenia JSON-RPC. Użyj notacji [host]:port dla IPv6. Ta opcja może być określona kilka razy (domyślnie: powiąż ze wszystkimi interfejsami)</translation>
     </message>
     <message>
-        <source>Cannot obtain a lock on data directory %s. Bitcoin Core is probably already running.</source>
-        <translation>Nie można uzyskać blokady na katalogu z danymi %s. Rdzeń Bitcoin najprawdopodobniej jest już uruchomiony.</translation>
+        <source>Cannot obtain a lock on data directory %s. FairCoin Core is probably already running.</source>
+        <translation>Nie można uzyskać blokady na katalogu z danymi %s. Rdzeń FairCoin najprawdopodobniej jest już uruchomiony.</translation>
     </message>
     <message>
         <source>Create new files with system default permissions, instead of umask 077 (only effective with disabled wallet functionality)</source>
@@ -3212,12 +3212,12 @@
         <translation>Połącz przez SOCKS5 proxy</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Bitcoin Core Developers</source>
-        <translation>Copyright (C) 2009-%i The Bitcoin Core Developers</translation>
+        <source>Copyright (C) 2009-%i The FairCoin Core Developers</source>
+        <translation>Copyright (C) 2009-%i The FairCoin Core Developers</translation>
     </message>
     <message>
-        <source>Error loading wallet.dat: Wallet requires newer version of Bitcoin Core</source>
-        <translation>Błąd ładowania wallet.dat: Portfel wymaga nowszej wersji Bitcoin Core</translation>
+        <source>Error loading wallet.dat: Wallet requires newer version of FairCoin Core</source>
+        <translation>Błąd ładowania wallet.dat: Portfel wymaga nowszej wersji FairCoin Core</translation>
     </message>
     <message>
         <source>Error reading from database, shutting down.</source>
@@ -3232,8 +3232,8 @@
         <translation>Informacja</translation>
     </message>
     <message>
-        <source>Initialization sanity check failed. Bitcoin Core is shutting down.</source>
-        <translation>Wstępna kontrola poprawności nie powiodła się. Bitcoin Core wyłącza się.</translation>
+        <source>Initialization sanity check failed. FairCoin Core is shutting down.</source>
+        <translation>Wstępna kontrola poprawności nie powiodła się. FairCoin Core wyłącza się.</translation>
     </message>
     <message>
         <source>Invalid amount for -maxtxfee=&lt;amount&gt;: '%s'</source>
@@ -3344,8 +3344,8 @@
         <translation>Nazwa użytkownika dla połączeń JSON-RPC</translation>
     </message>
     <message>
-        <source>Wallet needed to be rewritten: restart Bitcoin Core to complete</source>
-        <translation>Portfel wymaga przepisania: zrestartuj Bitcoina aby ukończyć</translation>
+        <source>Wallet needed to be rewritten: restart FairCoin Core to complete</source>
+        <translation>Portfel wymaga przepisania: zrestartuj FairCoina aby ukończyć</translation>
     </message>
     <message>
         <source>Warning</source>

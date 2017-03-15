@@ -66,11 +66,11 @@
         <translation>استقبال العناوين</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <source>These are your FairCoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
         <translation>هذه هي عناوين Bitcion التابعة لك من أجل إرسال الدفعات. تحقق دائما من المبلغ و عنوان المرسل المستقبل قبل إرسال العملات</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
+        <source>These are your FairCoin addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
         <translation>هذه هي عناوين Bitcion التابعة لك من أجل إستقبال الدفعات. ينصح استخدام عنوان جديد من أجل كل صفقة</translation>
     </message>
     <message>
@@ -168,7 +168,7 @@
         <translation>هل أنت متأكد من رغبتك في تشفير محفظتك ؟</translation>
     </message>
     <message>
-        <source>Bitcoin Core will close now to finish the encryption process. Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
+        <source>FairCoin Core will close now to finish the encryption process. Remember that encrypting your wallet cannot fully protect your FairCoins from being stolen by malware infecting your computer.</source>
         <translation>بتكوين سوف يغلق الآن لإنهاء عملية التشفير. تذكر أن التشفير لا يستطيع حماية محفظتك تمامًا من السرقة من خلال البرمجيات الخبيثة التي تصيب جهازك </translation>
     </message>
     <message>
@@ -224,7 +224,7 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>BitcoinGUI</name>
+    <name>FairCoinGUI</name>
     <message>
         <source>Sign &amp;message...</source>
         <translation>التوقيع و الرسائل</translation>
@@ -298,7 +298,7 @@
         <translation>افتح &amp;URI...</translation>
     </message>
     <message>
-        <source>Bitcoin Core client</source>
+        <source>FairCoin Core client</source>
         <translation>عميل bitcion core</translation>
     </message>
     <message>
@@ -310,7 +310,7 @@
         <translation>إعادة الفهرسة الكتل على القرص ...</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
+        <source>Send coins to a FairCoin address</source>
         <translation>ارسل عملات الى عنوان بيتكوين</translation>
     </message>
     <message>
@@ -330,7 +330,7 @@
         <translation>&amp;التحقق من الرسالة...</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
+        <source>FairCoin</source>
         <translation>بت كوين</translation>
     </message>
     <message>
@@ -346,7 +346,7 @@
         <translation>&amp;استقبل</translation>
     </message>
     <message>
-        <source>Show information about Bitcoin Core</source>
+        <source>Show information about FairCoin Core</source>
         <translation>  اظهار معلومات حول bitcion core</translation>
     </message>
     <message>
@@ -378,12 +378,12 @@
         <translation>شريط أدوات علامات التبويب</translation>
     </message>
     <message>
-        <source>Bitcoin Core</source>
+        <source>FairCoin Core</source>
         <translation>جوهر البيت كوين</translation>
     </message>
     <message>
-        <source>&amp;About Bitcoin Core</source>
-        <translation>حول bitcoin core</translation>
+        <source>&amp;About FairCoin Core</source>
+        <translation>حول FairCoin core</translation>
     </message>
     <message>
         <source>%1 and %2</source>
@@ -625,7 +625,7 @@
 <context>
     <name>HelpMessageDialog</name>
     <message>
-        <source>Bitcoin Core</source>
+        <source>FairCoin Core</source>
         <translation>جوهر البيت كوين</translation>
     </message>
     <message>
@@ -633,7 +633,7 @@
         <translation>النسخة</translation>
     </message>
     <message>
-        <source>About Bitcoin Core</source>
+        <source>About FairCoin Core</source>
         <translation>عن جوهر البيت كوين</translation>
     </message>
     <message>
@@ -656,7 +656,7 @@
         <translation>استخدام دليل بيانات مخصص:</translation>
     </message>
     <message>
-        <source>Bitcoin Core</source>
+        <source>FairCoin Core</source>
         <translation>جوهر البيت كوين</translation>
     </message>
     <message>
@@ -1277,7 +1277,7 @@
         <translation>التوقيع</translation>
     </message>
     <message>
-        <source>Sign the message to prove you own this Bitcoin address</source>
+        <source>Sign the message to prove you own this FairCoin address</source>
         <translation>وقع الرسالة لتثبت انك تمتلك عنوان البت كوين هذا</translation>
     </message>
     <message>
@@ -1344,11 +1344,11 @@
 <context>
     <name>SplashScreen</name>
     <message>
-        <source>Bitcoin Core</source>
+        <source>FairCoin Core</source>
         <translation>جوهر البيت كوين</translation>
     </message>
     <message>
-        <source>The Bitcoin Core developers</source>
+        <source>The FairCoin Core developers</source>
         <translation>مطوري جوهر البيت كوين</translation>
     </message>
     <message>
@@ -1716,7 +1716,7 @@
     </message>
 </context>
 <context>
-    <name>bitcoin-core</name>
+    <name>FairCoin-core</name>
     <message>
         <source>Options:</source>
         <translation>خيارات: </translation>

@@ -66,12 +66,12 @@
         <translation>Recibiendo direcciones</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Estas son tus direcciones de Bitcoin para enviar pagos. Comprueba siempre la cantidad y la dirección receptora antes de enviar monedas.</translation>
+        <source>These are your FairCoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation>Estas son tus direcciones de FairCoin para enviar pagos. Comprueba siempre la cantidad y la dirección receptora antes de enviar monedas.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
-        <translation>Estas son tus direcciones de Bitcoin para recibir pagos. Se recomienda usar una nueva dirección receptora para cada transacción</translation>
+        <source>These are your FairCoin addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
+        <translation>Estas son tus direcciones de FairCoin para recibir pagos. Se recomienda usar una nueva dirección receptora para cada transacción</translation>
     </message>
     <message>
         <source>Copy &amp;Label</source>
@@ -168,8 +168,8 @@
         <translation>Estás seguro ue deseas encriptar tu cartera?</translation>
     </message>
     <message>
-        <source>Bitcoin Core will close now to finish the encryption process. Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation>Bitcoin Core se cerrará ahora para finalizar el proceso de encriptación. Recuerda que encriptar tu cartera no protege completamente tus bitcoins de ser robados por malware infectando tu ordenador.</translation>
+        <source>FairCoin Core will close now to finish the encryption process. Remember that encrypting your wallet cannot fully protect your FairCoins from being stolen by malware infecting your computer.</source>
+        <translation>FairCoin Core se cerrará ahora para finalizar el proceso de encriptación. Recuerda que encriptar tu cartera no protege completamente tus FairCoins de ser robados por malware infectando tu ordenador.</translation>
     </message>
     <message>
         <source>IMPORTANT: Any previous backups you have made of your wallet file should be replaced with the newly generated, encrypted wallet file. For security reasons, previous backups of the unencrypted wallet file will become useless as soon as you start using the new, encrypted wallet.</source>
@@ -224,7 +224,7 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>BitcoinGUI</name>
+    <name>FairCoinGUI</name>
     <message>
         <source>Sign &amp;message...</source>
         <translation>Firmar &amp;mensaje...</translation>
@@ -298,8 +298,8 @@
         <translation>Abrir &amp;URI...</translation>
     </message>
     <message>
-        <source>Bitcoin Core client</source>
-        <translation>Cliente Bitcoin Core</translation>
+        <source>FairCoin Core client</source>
+        <translation>Cliente FairCoin Core</translation>
     </message>
     <message>
         <source>Importing blocks from disk...</source>
@@ -310,8 +310,8 @@
         <translation>Reindexando bloques en el disco...</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation>Envia monedas a una dirección Bitcoin</translation>
+        <source>Send coins to a FairCoin address</source>
+        <translation>Envia monedas a una dirección FairCoin</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -476,6 +476,6 @@
     </message>
     </context>
 <context>
-    <name>bitcoin-core</name>
+    <name>FairCoin-core</name>
     </context>
 </TS>

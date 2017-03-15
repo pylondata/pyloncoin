@@ -66,12 +66,12 @@
         <translation>Mottagaradresser</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Detta är dina Bitcoin-adresser för att skicka betalningar. Kolla alltid summan och den mottagande adressen innan du skickar Bitcoins.</translation>
+        <source>These are your FairCoin addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <translation>Detta är dina FairCoin-adresser för att skicka betalningar. Kolla alltid summan och den mottagande adressen innan du skickar FairCoins.</translation>
     </message>
     <message>
-        <source>These are your Bitcoin addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
-        <translation>Detta är dina Bitcoin-adresser för att ta emot betalningar. Det rekommenderas att använda en ny mottagningsadress för varje transaktion.</translation>
+        <source>These are your FairCoin addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
+        <translation>Detta är dina FairCoin-adresser för att ta emot betalningar. Det rekommenderas att använda en ny mottagningsadress för varje transaktion.</translation>
     </message>
     <message>
         <source>Copy &amp;Label</source>
@@ -169,8 +169,8 @@ Var vänlig och försök igen.</translation>
         <translation>Är du säker på att du vill kryptera din plånbok?</translation>
     </message>
     <message>
-        <source>Bitcoin Core will close now to finish the encryption process. Remember that encrypting your wallet cannot fully protect your bitcoins from being stolen by malware infecting your computer.</source>
-        <translation>Bitcoin Core kommer att stängas för att slutföra krypteringsprocessen. Kom ihåg att plånbokskryptering inte garanterar fullt skydd mot skadlig kod på din dator.</translation>
+        <source>FairCoin Core will close now to finish the encryption process. Remember that encrypting your wallet cannot fully protect your FairCoins from being stolen by malware infecting your computer.</source>
+        <translation>FairCoin Core kommer att stängas för att slutföra krypteringsprocessen. Kom ihåg att plånbokskryptering inte garanterar fullt skydd mot skadlig kod på din dator.</translation>
     </message>
     <message>
         <source>IMPORTANT: Any previous backups you have made of your wallet file should be replaced with the newly generated, encrypted wallet file. For security reasons, previous backups of the unencrypted wallet file will become useless as soon as you start using the new, encrypted wallet.</source>
@@ -233,7 +233,7 @@ Var vänlig och försök igen.</translation>
     </message>
 </context>
 <context>
-    <name>BitcoinGUI</name>
+    <name>FairCoinGUI</name>
     <message>
         <source>Sign &amp;message...</source>
         <translation>Signera &amp;meddelande...</translation>
@@ -307,8 +307,8 @@ Var vänlig och försök igen.</translation>
         <translation>Öppna &amp;URI...</translation>
     </message>
     <message>
-        <source>Bitcoin Core client</source>
-        <translation>Bitcoin Core-klient</translation>
+        <source>FairCoin Core client</source>
+        <translation>FairCoin Core-klient</translation>
     </message>
     <message>
         <source>Importing blocks from disk...</source>
@@ -319,8 +319,8 @@ Var vänlig och försök igen.</translation>
         <translation>Återindexerar block på disken...</translation>
     </message>
     <message>
-        <source>Send coins to a Bitcoin address</source>
-        <translation>Skicka bitcoins till en Bitcoin-adress</translation>
+        <source>Send coins to a FairCoin address</source>
+        <translation>Skicka FairCoins till en FairCoin-adress</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -343,8 +343,8 @@ Var vänlig och försök igen.</translation>
         <translation>&amp;Verifiera meddelande...</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
-        <translation>Bitcoin</translation>
+        <source>FairCoin</source>
+        <translation>FairCoin</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -359,8 +359,8 @@ Var vänlig och försök igen.</translation>
         <translation>&amp;Ta emot</translation>
     </message>
     <message>
-        <source>Show information about Bitcoin Core</source>
-        <translation>Visa information om Bitcoin Core</translation>
+        <source>Show information about FairCoin Core</source>
+        <translation>Visa information om FairCoin Core</translation>
     </message>
     <message>
         <source>&amp;Show / Hide</source>
@@ -375,12 +375,12 @@ Var vänlig och försök igen.</translation>
         <translation>Kryptera de privata nycklar som tillhör din plånbok</translation>
     </message>
     <message>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
-        <translation>Signera meddelanden med din Bitcoin-adress för att bevisa att du äger dem</translation>
+        <source>Sign messages with your FairCoin addresses to prove you own them</source>
+        <translation>Signera meddelanden med din FairCoin-adress för att bevisa att du äger dem</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
-        <translation>Verifiera meddelanden för att vara säker på att de var signerade med specificerade Bitcoin-adresser</translation>
+        <source>Verify messages to ensure they were signed with specified FairCoin addresses</source>
+        <translation>Verifiera meddelanden för att vara säker på att de var signerade med specificerade FairCoin-adresser</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -399,20 +399,20 @@ Var vänlig och försök igen.</translation>
         <translation>Verktygsfält för tabbar</translation>
     </message>
     <message>
-        <source>Faircoin Core</source>
-        <translation>Faircoin Core</translation>
+        <source>FairCoin Core</source>
+        <translation>FairCoin Core</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and bitcoin: URIs)</source>
-        <translation>Begär betalning (genererar QR-koder och bitcoin-URI)</translation>
+        <source>Request payments (generates QR codes and FairCoin: URIs)</source>
+        <translation>Begär betalning (genererar QR-koder och FairCoin-URI)</translation>
     </message>
     <message>
-        <source>&amp;About Bitcoin Core</source>
-        <translation>&amp;Om Bitcoin Core</translation>
+        <source>&amp;About FairCoin Core</source>
+        <translation>&amp;Om FairCoin Core</translation>
     </message>
     <message>
-        <source>Modify configuration options for Bitcoin Core</source>
-        <translation>Ändra konfigurationsalternativ för Bitcoin Core</translation>
+        <source>Modify configuration options for FairCoin Core</source>
+        <translation>Ändra konfigurationsalternativ för FairCoin Core</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -423,20 +423,20 @@ Var vänlig och försök igen.</translation>
         <translation>Visa listan av använda mottagningsadresser och etiketter</translation>
     </message>
     <message>
-        <source>Open a bitcoin: URI or payment request</source>
-        <translation>Öppna en bitcoin: URI eller betalningsbegäran</translation>
+        <source>Open a FairCoin: URI or payment request</source>
+        <translation>Öppna en FairCoin: URI eller betalningsbegäran</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>
         <translation>&amp;Kommandoradsalternativ</translation>
     </message>
     <message>
-        <source>Show the Bitcoin Core help message to get a list with possible Bitcoin command-line options</source>
-        <translation>Visa Bitcoin Cores hjälpmeddelande för att få en lista med möjliga Bitcoin-kommandoradsalternativ.</translation>
+        <source>Show the FairCoin Core help message to get a list with possible FairCoin command-line options</source>
+        <translation>Visa FairCoin Cores hjälpmeddelande för att få en lista med möjliga FairCoin-kommandoradsalternativ.</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Bitcoin network</source>
-        <translation><numerusform>%n aktiva anslutningar till Bitcoin-nätverket.</numerusform><numerusform>%n aktiva anslutningar till Bitcoin-nätverket.</numerusform></translation>
+        <source>%n active connection(s) to FairCoin network</source>
+        <translation><numerusform>%n aktiva anslutningar till FairCoin-nätverket.</numerusform><numerusform>%n aktiva anslutningar till FairCoin-nätverket.</numerusform></translation>
     </message>
     <message>
         <source>No block source available...</source>
@@ -818,8 +818,8 @@ Var vänlig och försök igen.</translation>
         <translation>Den angivna adressen "%1" finns redan i adressboken.</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Bitcoin address.</source>
-        <translation>Den angivna adressen "%1" är inte en giltig Bitcoin-adress.</translation>
+        <source>The entered address "%1" is not a valid FairCoin address.</source>
+        <translation>Den angivna adressen "%1" är inte en giltig FairCoin-adress.</translation>
     </message>
     <message>
         <source>Could not unlock wallet.</source>
@@ -856,8 +856,8 @@ Var vänlig och försök igen.</translation>
 <context>
     <name>HelpMessageDialog</name>
     <message>
-        <source>Faircoin Core</source>
-        <translation>Faircoin Core</translation>
+        <source>FairCoin Core</source>
+        <translation>FairCoin Core</translation>
     </message>
     <message>
         <source>version</source>
@@ -868,8 +868,8 @@ Var vänlig och försök igen.</translation>
         <translation>(%1-bit)</translation>
     </message>
     <message>
-        <source>About Bitcoin Core</source>
-        <translation>Om Bitcoin Core</translation>
+        <source>About FairCoin Core</source>
+        <translation>Om FairCoin Core</translation>
     </message>
     <message>
         <source>Command-line options</source>
@@ -919,16 +919,16 @@ Var vänlig och försök igen.</translation>
         <translation>Välkommen</translation>
     </message>
     <message>
-        <source>Welcome to Bitcoin Core.</source>
-        <translation>Välkommen till Bitcoin Core.</translation>
+        <source>Welcome to FairCoin Core.</source>
+        <translation>Välkommen till FairCoin Core.</translation>
     </message>
     <message>
-        <source>As this is the first time the program is launched, you can choose where Bitcoin Core will store its data.</source>
-        <translation>Eftersom detta är första gången programmet startas får du välja var Bitcoin Core skall lagra sina data.</translation>
+        <source>As this is the first time the program is launched, you can choose where FairCoin Core will store its data.</source>
+        <translation>Eftersom detta är första gången programmet startas får du välja var FairCoin Core skall lagra sina data.</translation>
     </message>
     <message>
-        <source>Bitcoin Core will download and store a copy of the Bitcoin block chain. At least %1GB of data will be stored in this directory, and it will grow over time. The wallet will also be stored in this directory.</source>
-        <translation>Bitcoin Core kommer att ladda ner och spara en kopia av Bitcoin-blockkedjan. Åtminstone %1GB av data kommer att sparas i denna katalog, och den kommer att växa över tiden. Plånboken kommer också att sparas i denna katalog.</translation>
+        <source>FairCoin Core will download and store a copy of the FairCoin block chain. At least %1GB of data will be stored in this directory, and it will grow over time. The wallet will also be stored in this directory.</source>
+        <translation>FairCoin Core kommer att ladda ner och spara en kopia av FairCoin-blockkedjan. Åtminstone %1GB av data kommer att sparas i denna katalog, och den kommer att växa över tiden. Plånboken kommer också att sparas i denna katalog.</translation>
     </message>
     <message>
         <source>Use the default data directory</source>
@@ -939,8 +939,8 @@ Var vänlig och försök igen.</translation>
         <translation>Använd en anpassad datakatalog:</translation>
     </message>
     <message>
-        <source>Faircoin Core</source>
-        <translation>Faircoin Core</translation>
+        <source>FairCoin Core</source>
+        <translation>FairCoin Core</translation>
     </message>
     <message>
         <source>Error: Specified data directory "%1" cannot be created.</source>
@@ -1021,8 +1021,8 @@ Var vänlig och försök igen.</translation>
         <translation>Minimera istället för att stänga programmet när fönstret stängs. När detta alternativ är aktiverat stängs programmet endast genom att välja Stäng i menyn.</translation>
     </message>
     <message>
-        <source>The user interface language can be set here. This setting will take effect after restarting Bitcoin Core.</source>
-        <translation>Gränssnittets språk kan väljas här. Denna inställning träder i kraft efter omstart av Bitcoin Core.</translation>
+        <source>The user interface language can be set here. This setting will take effect after restarting FairCoin Core.</source>
+        <translation>Gränssnittets språk kan väljas här. Denna inställning träder i kraft efter omstart av FairCoin Core.</translation>
     </message>
     <message>
         <source>Third party URLs (e.g. a block explorer) that appear in the transactions tab as context menu items. %s in the URL is replaced by transaction hash. Multiple URLs are separated by vertical bar |.</source>
@@ -1049,12 +1049,12 @@ Var vänlig och försök igen.</translation>
         <translation>&amp;Nätverk</translation>
     </message>
     <message>
-        <source>Automatically start Bitcoin Core after logging in to the system.</source>
-        <translation>Kör Bitcoin Core automatiskt vid systeminloggning.</translation>
+        <source>Automatically start FairCoin Core after logging in to the system.</source>
+        <translation>Kör FairCoin Core automatiskt vid systeminloggning.</translation>
     </message>
     <message>
-        <source>&amp;Start Bitcoin Core on system login</source>
-        <translation>&amp;Kör Bitcoin Core vid systeminloggning</translation>
+        <source>&amp;Start FairCoin Core on system login</source>
+        <translation>&amp;Kör FairCoin Core vid systeminloggning</translation>
     </message>
     <message>
         <source>(0 = auto, &lt;0 = leave that many cores free)</source>
@@ -1081,16 +1081,16 @@ Var vänlig och försök igen.</translation>
         <translation>&amp;Spendera obekräftad växel</translation>
     </message>
     <message>
-        <source>Automatically open the Bitcoin client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Öppna automatiskt Bitcoin-klientens port på routern. Detta fungerar endast om din router har UPnP aktiverat.</translation>
+        <source>Automatically open the FairCoin client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Öppna automatiskt FairCoin-klientens port på routern. Detta fungerar endast om din router har UPnP aktiverat.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
         <translation>Tilldela port med hjälp av &amp;UPnP</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a SOCKS5 proxy.</source>
-        <translation>Anslut till Bitcoin-nätverket genom en SOCKS5-proxy.</translation>
+        <source>Connect to the FairCoin network through a SOCKS5 proxy.</source>
+        <translation>Anslut till FairCoin-nätverket genom en SOCKS5-proxy.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1129,8 +1129,8 @@ Var vänlig och försök igen.</translation>
         <translation>Tor</translation>
     </message>
     <message>
-        <source>Connect to the Bitcoin network through a separate SOCKS5 proxy for Tor hidden services.</source>
-        <translation>Anslut till Bitcoin-nätverket genom en separat SOCKS5-proxy för dolda tjänster i Tor.</translation>
+        <source>Connect to the FairCoin network through a separate SOCKS5 proxy for Tor hidden services.</source>
+        <translation>Anslut till FairCoin-nätverket genom en separat SOCKS5-proxy för dolda tjänster i Tor.</translation>
     </message>
     <message>
         <source>Use separate SOCKS5 proxy to reach peers via Tor hidden services:</source>
@@ -1216,8 +1216,8 @@ Var vänlig och försök igen.</translation>
         <translation>Formulär</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Bitcoin network after a connection is established, but this process has not completed yet.</source>
-        <translation>Den visade informationen kan vara inaktuell. Plånboken synkroniseras automatiskt med Bitcoin-nätverket efter att anslutningen är upprättad, men denna process har inte slutförts ännu.</translation>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the FairCoin network after a connection is established, but this process has not completed yet.</source>
+        <translation>Den visade informationen kan vara inaktuell. Plånboken synkroniseras automatiskt med FairCoin-nätverket efter att anslutningen är upprättad, men denna process har inte slutförts ännu.</translation>
     </message>
     <message>
         <source>Watch-only:</source>
@@ -1315,16 +1315,16 @@ Var vänlig och försök igen.</translation>
         <translation>Fel vid betalningsbegäran</translation>
     </message>
     <message>
-        <source>Cannot start bitcoin: click-to-pay handler</source>
-        <translation>Kan inte starta bitcoin: klicka-och-betala handhavare</translation>
+        <source>Cannot start FairCoin: click-to-pay handler</source>
+        <translation>Kan inte starta FairCoin: klicka-och-betala handhavare</translation>
     </message>
     <message>
         <source>Payment request fetch URL is invalid: %1</source>
         <translation>Betalningsbegärans hämta URL är felaktig: %1</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
-        <translation>URI går inte att tolkas! Detta kan orsakas av en ogiltig Bitcoin-adress eller felaktiga URI parametrar.</translation>
+        <source>URI cannot be parsed! This can be caused by an invalid FairCoin address or malformed URI parameters.</source>
+        <translation>URI går inte att tolkas! Detta kan orsakas av en ogiltig FairCoin-adress eller felaktiga URI parametrar.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -1397,8 +1397,8 @@ Var vänlig och försök igen.</translation>
         <translation>Mängd</translation>
     </message>
     <message>
-        <source>Enter a Bitcoin address (e.g. %1)</source>
-        <translation>Ange en Bitcoin-adress (t.ex. %1)</translation>
+        <source>Enter a FairCoin address (e.g. %1)</source>
+        <translation>Ange en FairCoin-adress (t.ex. %1)</translation>
     </message>
     <message>
         <source>%1 d</source>
@@ -1519,8 +1519,8 @@ Var vänlig och försök igen.</translation>
         <translation>Minnesåtgång</translation>
     </message>
     <message>
-        <source>Open the Bitcoin Core debug log file from the current data directory. This can take a few seconds for large log files.</source>
-        <translation>Öppna felsökningsloggfilen för Bitcoin Core från den nuvarande datakatalogen. Detta kan ta några sekunder om loggfilen är stor.</translation>
+        <source>Open the FairCoin Core debug log file from the current data directory. This can take a few seconds for large log files.</source>
+        <translation>Öppna felsökningsloggfilen för FairCoin Core från den nuvarande datakatalogen. Detta kan ta några sekunder om loggfilen är stor.</translation>
     </message>
     <message>
         <source>Received</source>
@@ -1679,8 +1679,8 @@ Var vänlig och försök igen.</translation>
         <translation>&amp;Ta bort ban från nod</translation>
     </message>
     <message>
-        <source>Welcome to the Bitcoin Core RPC console.</source>
-        <translation>Välkommen till RPC-konsolen för Bitcoin Core.</translation>
+        <source>Welcome to the FairCoin Core RPC console.</source>
+        <translation>Välkommen till RPC-konsolen för FairCoin Core.</translation>
     </message>
     <message>
         <source>Use up and down arrows to navigate history, and &lt;b&gt;Ctrl-L&lt;/b&gt; to clear screen.</source>
@@ -1762,8 +1762,8 @@ Var vänlig och försök igen.</translation>
         <translation>Åt&amp;eranvänd en existerande mottagningsadress (rekommenderas inte)</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Bitcoin network.</source>
-        <translation>Ett frivilligt meddelande att bifoga betalningsbegäran, vilket visas när begäran öppnas. NB: Meddelandet kommer inte att sändas med betalningen över Bitcoinnätverket.</translation>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the FairCoin network.</source>
+        <translation>Ett frivilligt meddelande att bifoga betalningsbegäran, vilket visas när begäran öppnas. NB: Meddelandet kommer inte att sändas med betalningen över FairCoinnätverket.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -1995,8 +1995,8 @@ Var vänlig och försök igen.</translation>
         <translation>totalt minst</translation>
     </message>
     <message>
-        <source>Paying only the minimum fee is just fine as long as there is less transaction volume than space in the blocks. But be aware that this can end up in a never confirming transaction once there is more demand for bitcoin transactions than the network can process.</source>
-        <translation>Att betala endast den minsta avgiften är bara bra så länge det är mindre transaktionsvolym än utrymme i blocken. Men tänk på att det kan hamna i en aldrig bekräftar transaktion när det finns mer efterfrågan på bitcoin transaktioner än nätverket kan bearbeta.</translation>
+        <source>Paying only the minimum fee is just fine as long as there is less transaction volume than space in the blocks. But be aware that this can end up in a never confirming transaction once there is more demand for FairCoin transactions than the network can process.</source>
+        <translation>Att betala endast den minsta avgiften är bara bra så länge det är mindre transaktionsvolym än utrymme i blocken. Men tänk på att det kan hamna i en aldrig bekräftar transaktion när det finns mer efterfrågan på FairCoin transaktioner än nätverket kan bearbeta.</translation>
     </message>
     <message>
         <source>(read the tooltip)</source>
@@ -2155,8 +2155,8 @@ Var vänlig och försök igen.</translation>
         <translation>Duplicerad adress upptäckt: adresser skall endast användas en gång var.</translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
-        <translation>Varning: Felaktig Bitcoinadress</translation>
+        <source>Warning: Invalid FairCoin address</source>
+        <translation>Varning: Felaktig FairCoinadress</translation>
     </message>
     <message>
         <source>(no label)</source>
@@ -2206,8 +2206,8 @@ Var vänlig och försök igen.</translation>
         <translation>Detta är en normal betalning.</translation>
     </message>
     <message>
-        <source>The Bitcoin address to send the payment to</source>
-        <translation>Bitcoinadress att sända betalning till</translation>
+        <source>The FairCoin address to send the payment to</source>
+        <translation>FairCoinadress att sända betalning till</translation>
     </message>
     <message>
         <source>Alt+A</source>
@@ -2226,8 +2226,8 @@ Var vänlig och försök igen.</translation>
         <translation>Radera denna post</translation>
     </message>
     <message>
-        <source>The fee will be deducted from the amount being sent. The recipient will receive less bitcoins than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
-        <translation>Avgiften dras från beloppet som skickas. Mottagaren kommer att få mindre bitcoins än du angivit i belopp-fältet. Om flera mottagare valts kommer avgiften delas jämt.</translation>
+        <source>The fee will be deducted from the amount being sent. The recipient will receive less FairCoins than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</source>
+        <translation>Avgiften dras från beloppet som skickas. Mottagaren kommer att få mindre FairCoins än du angivit i belopp-fältet. Om flera mottagare valts kommer avgiften delas jämt.</translation>
     </message>
     <message>
         <source>S&amp;ubtract fee from amount</source>
@@ -2250,8 +2250,8 @@ Var vänlig och försök igen.</translation>
         <translation>Ange en etikett för denna adress att adderas till listan över använda adresser</translation>
     </message>
     <message>
-        <source>A message that was attached to the bitcoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Bitcoin network.</source>
-        <translation>Ett meddelande som bifogades bitcoin-URI, vilket lagras med transaktionen som referens. NB: Meddelandet kommer inte att sändas över Bitcoinnätverket.</translation>
+        <source>A message that was attached to the FairCoin: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the FairCoin network.</source>
+        <translation>Ett meddelande som bifogades FairCoin-URI, vilket lagras med transaktionen som referens. NB: Meddelandet kommer inte att sändas över FairCoinnätverket.</translation>
     </message>
     <message>
         <source>Pay To:</source>
@@ -2265,8 +2265,8 @@ Var vänlig och försök igen.</translation>
 <context>
     <name>ShutdownWindow</name>
     <message>
-        <source>Bitcoin Core is shutting down...</source>
-        <translation>Bitcoin Core stängs av...</translation>
+        <source>FairCoin Core is shutting down...</source>
+        <translation>FairCoin Core stängs av...</translation>
     </message>
     <message>
         <source>Do not shut down the computer until this window disappears.</source>
@@ -2284,12 +2284,12 @@ Var vänlig och försök igen.</translation>
         <translation>&amp;Signera Meddelande</translation>
     </message>
     <message>
-        <source>You can sign messages/agreements with your addresses to prove you can receive bitcoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
-        <translation>Du kan underteckna meddelanden/avtal med dina adresser för att bevisa att du kan ta emot bitcoins som skickats till dem. Var försiktig så du inte undertecknar något oklart eller konstigt, eftersom phishing-angrepp kan försöka få dig att underteckna din identitet till dem. Underteckna endast väldetaljerade meddelanden som du godkänner.</translation>
+        <source>You can sign messages/agreements with your addresses to prove you can receive FairCoins sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</source>
+        <translation>Du kan underteckna meddelanden/avtal med dina adresser för att bevisa att du kan ta emot FairCoins som skickats till dem. Var försiktig så du inte undertecknar något oklart eller konstigt, eftersom phishing-angrepp kan försöka få dig att underteckna din identitet till dem. Underteckna endast väldetaljerade meddelanden som du godkänner.</translation>
     </message>
     <message>
-        <source>The Bitcoin address to sign the message with</source>
-        <translation>Bitcoinadress att signera meddelandet med</translation>
+        <source>The FairCoin address to sign the message with</source>
+        <translation>FairCoinadress att signera meddelandet med</translation>
     </message>
     <message>
         <source>Choose previously used address</source>
@@ -2320,7 +2320,7 @@ Var vänlig och försök igen.</translation>
         <translation>Kopiera signaturen till systemets Urklipp</translation>
     </message>
     <message>
-        <source>Sign the message to prove you own this Bitcoin address</source>
+        <source>Sign the message to prove you own this FairCoin address</source>
         <translation>Signera meddelandet för att bevisa att du äger denna adress</translation>
     </message>
     <message>
@@ -2344,12 +2344,12 @@ Var vänlig och försök igen.</translation>
         <translation>Ange mottagarens adress, meddelande (kopiera radbrytningar, mellanrum, flikar, etc. exakt) och signatur nedan för att verifiera meddelandet. Undvik att läsa in mera information i signaturen än vad som stod i själva undertecknade meddelandet, för att undvika ett man-in-the-middle-angrepp. Notera att detta endast bevisar att undertecknad tar emot med adressen, det bevisar inte vem som skickat transaktionen!</translation>
     </message>
     <message>
-        <source>The Bitcoin address the message was signed with</source>
-        <translation>Bitcoinadressen som meddelandet signerades med</translation>
+        <source>The FairCoin address the message was signed with</source>
+        <translation>FairCoinadressen som meddelandet signerades med</translation>
     </message>
     <message>
-        <source>Verify the message to ensure it was signed with the specified Bitcoin address</source>
-        <translation>Verifiera meddelandet för att vara säker på att den var signerad med den angivna Bitcoin-adressen</translation>
+        <source>Verify the message to ensure it was signed with the specified FairCoin address</source>
+        <translation>Verifiera meddelandet för att vara säker på att den var signerad med den angivna FairCoin-adressen</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -2415,12 +2415,12 @@ Var vänlig och försök igen.</translation>
 <context>
     <name>SplashScreen</name>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Bitcoin Kärna</translation>
+        <source>FairCoin Core</source>
+        <translation>FairCoin Kärna</translation>
     </message>
     <message>
-        <source>The Bitcoin Core developers</source>
-        <translation>Bitcoin Core-utvecklarna</translation>
+        <source>The FairCoin Core developers</source>
+        <translation>FairCoin Core-utvecklarna</translation>
     </message>
     <message>
         <source>[testnet]</source>
@@ -2907,7 +2907,7 @@ Var vänlig och försök igen.</translation>
     </message>
 </context>
 <context>
-    <name>bitcoin-core</name>
+    <name>FairCoin-core</name>
     <message>
         <source>Options:</source>
         <translation>Inställningar:</translation>
@@ -2937,8 +2937,8 @@ Var vänlig och försök igen.</translation>
         <translation>Maximal total avgift (i %s) att använda i en plånbokstransaktion. Sätts denna för lågtkan stora transaktioner komma att avbrytas (förvalt: %s)</translation>
     </message>
     <message>
-        <source>Please check that your computer's date and time are correct! If your clock is wrong Bitcoin Core will not work properly.</source>
-        <translation>Vänligen kontrollera att din dators datum och tid är korrekt! Om din klocka går fel kommer Bitcoin Core inte att fungera ordentligt.</translation>
+        <source>Please check that your computer's date and time are correct! If your clock is wrong FairCoin Core will not work properly.</source>
+        <translation>Vänligen kontrollera att din dators datum och tid är korrekt! Om din klocka går fel kommer FairCoin Core inte att fungera ordentligt.</translation>
     </message>
     <message>
         <source>Prune configured below the minimum of %d MiB.  Please use a higher number.</source>
@@ -3009,8 +3009,8 @@ Var vänlig och försök igen.</translation>
         <translation>Detta är ett förhands testbygge - använd på egen risk - använd inte för mining eller handels applikationer</translation>
     </message>
     <message>
-        <source>Unable to bind to %s on this computer. Bitcoin Core is probably already running.</source>
-        <translation>Det går inte att binda till %s på den här datorn. Bitcoin Core är förmodligen redan igång.</translation>
+        <source>Unable to bind to %s on this computer. FairCoin Core is probably already running.</source>
+        <translation>Det går inte att binda till %s på den här datorn. FairCoin Core är förmodligen redan igång.</translation>
     </message>
     <message>
         <source>Use UPnP to map the listening port (default: 1 when listening and no -proxy)</source>
@@ -3217,8 +3217,8 @@ Var vänlig och försök igen.</translation>
         <translation>Bind till angiven adress för att lyssna på JSON-RPC-anslutningar. Använd [värd]:port-format for IPv6. Detta alternativ kan anges flera gånger (förvalt: bind till alla gränssnitt)</translation>
     </message>
     <message>
-        <source>Cannot obtain a lock on data directory %s. Bitcoin Core is probably already running.</source>
-        <translation>Kan inte låsa data-mappen %s. Bitcoin Core körs förmodligen redan.</translation>
+        <source>Cannot obtain a lock on data directory %s. FairCoin Core is probably already running.</source>
+        <translation>Kan inte låsa data-mappen %s. FairCoin Core körs förmodligen redan.</translation>
     </message>
     <message>
         <source>Create new files with system default permissions, instead of umask 077 (only effective with disabled wallet functionality)</source>
@@ -3317,12 +3317,12 @@ Var vänlig och försök igen.</translation>
         <translation>Anslut genom SOCKS5 proxy</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Bitcoin Core Developers</source>
-        <translation>Copyright (C) 2009-%i Bitcoin Core Utvecklarna</translation>
+        <source>Copyright (C) 2009-%i The FairCoin Core Developers</source>
+        <translation>Copyright (C) 2009-%i FairCoin Core Utvecklarna</translation>
     </message>
     <message>
-        <source>Error loading wallet.dat: Wallet requires newer version of Bitcoin Core</source>
-        <translation>Fel vid inläsningen av wallet.dat: Kontofilen kräver en senare version av Bitcoin Core</translation>
+        <source>Error loading wallet.dat: Wallet requires newer version of FairCoin Core</source>
+        <translation>Fel vid inläsningen av wallet.dat: Kontofilen kräver en senare version av FairCoin Core</translation>
     </message>
     <message>
         <source>Error reading from database, shutting down.</source>
@@ -3337,8 +3337,8 @@ Var vänlig och försök igen.</translation>
         <translation>Information</translation>
     </message>
     <message>
-        <source>Initialization sanity check failed. Bitcoin Core is shutting down.</source>
-        <translation>Initieringschecken fallerade. Bitcoin Core stängs av...</translation>
+        <source>Initialization sanity check failed. FairCoin Core is shutting down.</source>
+        <translation>Initieringschecken fallerade. FairCoin Core stängs av...</translation>
     </message>
     <message>
         <source>Invalid amount for -maxtxfee=&lt;amount&gt;: '%s'</source>
@@ -3457,8 +3457,8 @@ Var vänlig och försök igen.</translation>
         <translation>Användarnamn för JSON-RPC-anslutningar</translation>
     </message>
     <message>
-        <source>Wallet needed to be rewritten: restart Bitcoin Core to complete</source>
-        <translation>Kontot behöver sparas om: Starta om Bitcoin Core för att fullfölja</translation>
+        <source>Wallet needed to be rewritten: restart FairCoin Core to complete</source>
+        <translation>Kontot behöver sparas om: Starta om FairCoin Core för att fullfölja</translation>
     </message>
     <message>
         <source>Warning</source>
@@ -3682,7 +3682,7 @@ Var vänlig och försök igen.</translation>
     </message>
     <message>
         <source>Insufficient funds</source>
-        <translation>Otillräckligt med bitcoins</translation>
+        <translation>Otillräckligt med FairCoins</translation>
     </message>
     <message>
         <source>Loading block index...</source>

@@ -12,14 +12,14 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>BitcoinGUI</name>
+    <name>FairCoinGUI</name>
     <message>
-        <source>Faircoin Core</source>
-        <translation>Faircoin Core</translation>
+        <source>FairCoin Core</source>
+        <translation>FairCoin Core</translation>
     </message>
     <message>
-        <source>&amp;About Bitcoin Core</source>
-        <translation>О Bitcoin Core</translation>
+        <source>&amp;About FairCoin Core</source>
+        <translation>О FairCoin Core</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>
@@ -81,16 +81,16 @@
 <context>
     <name>HelpMessageDialog</name>
     <message>
-        <source>Faircoin Core</source>
-        <translation>Faircoin Core</translation>
+        <source>FairCoin Core</source>
+        <translation>FairCoin Core</translation>
     </message>
     <message>
         <source>version</source>
         <translation>версия</translation>
     </message>
     <message>
-        <source>About Bitcoin Core</source>
-        <translation>О Bitcoin Core</translation>
+        <source>About FairCoin Core</source>
+        <translation>О FairCoin Core</translation>
     </message>
     <message>
         <source>Command-line options</source>
@@ -104,8 +104,8 @@
 <context>
     <name>Intro</name>
     <message>
-        <source>Faircoin Core</source>
-        <translation>Faircoin Core</translation>
+        <source>FairCoin Core</source>
+        <translation>FairCoin Core</translation>
     </message>
     <message>
         <source>Error</source>
@@ -176,8 +176,8 @@
 <context>
     <name>SplashScreen</name>
     <message>
-        <source>Faircoin Core</source>
-        <translation>Faircoin Core</translation>
+        <source>FairCoin Core</source>
+        <translation>FairCoin Core</translation>
     </message>
     </context>
 <context>
@@ -228,7 +228,7 @@
     <name>WalletView</name>
     </context>
 <context>
-    <name>bitcoin-core</name>
+    <name>FairCoin-core</name>
     <message>
         <source>Information</source>
         <translation>Информация</translation>
