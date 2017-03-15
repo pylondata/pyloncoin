@@ -9,12 +9,12 @@
  * network protocol versioning
  */
 
-static const int PROTOCOL_VERSION = 90202;
+static const int PROTOCOL_VERSION = 90203;
 
 //! initial proto version, to be increased after version/verack negotiation
 static const int INIT_PROTO_VERSION = 209;
 
 //! disconnect from peers older than this proto version
-static const int MIN_PEER_PROTO_VERSION = 90202;
+static const int MIN_PEER_PROTO_VERSION = 90203;
 
 #endif // BITCOIN_VERSION_H
