@@ -141,13 +141,15 @@ static bool AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
             params.nBlockPropagationWaitTime = jsonParams[key].get_int();
         } else if (key == "retryNewSigSetInterval") {
             params.nRetryNewSigSetInterval = jsonParams[key].get_int();
+        } else if (key == "description") {
+            params.strDescription = jsonParams[key].get_str();
         } else {
             LogPrintf("parameter %s is invalid\n", key);
             fAllGood = false;
         }
     }
 
-    return fAllGood;
+    return fAllGood & (params.strDescription.length() > MIN_CHAIN_DATA_DESCRIPTION_LEN);
 }
 
 UniValue getgenerate(const UniValue& params, bool fHelp)
@@ -549,6 +551,7 @@ void DynamicChainparametersToJSON(CDynamicChainParams& cp, UniValue& result)
     result.push_back(Pair("maxBlockSize", (int)cp.nMaxBlockSize));
     result.push_back(Pair("blockPropagationWaitTime", (int)cp.nBlockPropagationWaitTime));
     result.push_back(Pair("retryNewSigSetInterval", (int)cp.nRetryNewSigSetInterval));
+    result.push_back(Pair("description", cp.strDescription));
 }
 
 UniValue setchainparameters(const UniValue& params, bool fHelp)

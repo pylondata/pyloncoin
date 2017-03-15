@@ -382,7 +382,7 @@ public:
     /** minimum percentage of the number of nSignatureMean that are required to create the next block */
     uint32_t nPercentageOfSignaturesMean;
 
-    /** The maximum allowed size for a serialized block */
+    /** The maximum allowed size for a serialised block */
     uint32_t nMaxBlockSize;
 
     /** The time (in sec.) to wait before CVNs start to create chain signatures again */
@@ -391,6 +391,11 @@ public:
     /** If a CVN has not received all partial signatures of a set it re-tries every
      ** nRetryNewSigSetInterval sec. to create a new set without the CVN IDs that were missing*/
     uint32_t nRetryNewSigSetInterval;
+
+    /** A short description of the changes
+     * A description string should be built like this:
+     * #nnnnn <URI to a document where the decision is documented> <text that describes the change> */
+    string strDescription;
 
     CDynamicChainParams()
     {
@@ -415,6 +420,7 @@ public:
         READWRITE(nMaxBlockSize);
         READWRITE(nBlockPropagationWaitTime);
         READWRITE(nRetryNewSigSetInterval);
+        READWRITE(strDescription);
     }
 
     void SetNull()
@@ -432,6 +438,7 @@ public:
         nMaxBlockSize = 0;
         nBlockPropagationWaitTime = 0;
         nRetryNewSigSetInterval = 0;
+        strDescription = "";
     }
 
     uint256 GetHash() const;

@@ -25,14 +25,15 @@ std::string CDynamicChainParams::ToString() const
     std::stringstream s;
         s << strprintf("CDynamicChainParams(ver=%d, minAdminSigs=%u, maxAdminSigs=%u, blockSpacing=%u, blockSpacingGracePeriod=%u, "
                        "transactionFee=%u, dustThreshold=%u, minSuccessiveSignatures=%u, nBlocksToConsiderForSigCheck=%u, nPercentageOfSignaturesMean=%u, nMaxBlockSize=%u, "
-                       "blockPropagationWaitTime=%u, retryNewSigSetInterval=%u)",
+                       "blockPropagationWaitTime=%u, retryNewSigSetInterval=%u, description='%s')",
             nVersion,
             nMinAdminSigs, nMaxAdminSigs,
             nBlockSpacing, nBlockSpacingGracePeriod,
             nTransactionFee, nDustThreshold,
             nMinSuccessiveSignatures, nBlocksToConsiderForSigCheck,
             nPercentageOfSignaturesMean, nMaxBlockSize,
-            nBlockPropagationWaitTime, nRetryNewSigSetInterval
+            nBlockPropagationWaitTime, nRetryNewSigSetInterval,
+            strDescription
         );
     return s.str();
 }
@@ -64,7 +65,7 @@ std::string CCvnPartialSignatureUnsinged::ToString() const
     std::stringstream s;
     s << strprintf("CCvnSignatureUnsinged(signerId=0x%08x, nextCreatorId=0x%08x, hashPrev=%s, ver=%d, sig=%s, missing=%d)",
         nSignerId, nCreatorId, hashPrevBlock.ToString(), nVersion,
-        signature.ToString(), vMissingSignerIds.size()); //TODO: limit again .substr(0, 30));
+        signature.ToString(), vMissingSignerIds.size());
     return s.str();
 }
 

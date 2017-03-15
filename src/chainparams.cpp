@@ -87,6 +87,7 @@ public:
         dynParams.nMaxBlockSize                = 1500000; // 1.5Mb
         dynParams.nBlockPropagationWaitTime    = 50; // 50 sec.
         dynParams.nRetryNewSigSetInterval      = 15; // 15 sec.
+        dynParams.strDescription               = "#00001 https://fair-coin.org/ The genesis dynamic chain parameters";
 
         genesis = CreateGenesisBlock(GENESIS_BLOCK_TIMESTAMP, GENESIS_NODE_ID, dynParams);
 
@@ -172,6 +173,7 @@ public:
         dynParams.nMaxBlockSize                = 1500000; // 1.5Mb
         dynParams.nBlockPropagationWaitTime    = 50; // 50 sec.
         dynParams.nRetryNewSigSetInterval      = 15; // 15 sec.
+        dynParams.strDescription               = "#00001 https://fair-coin.org/ The genesis dynamic chain parameters";
 
         genesis = CreateGenesisBlock(GENESIS_BLOCK_TIMESTAMP + 1, GENESIS_NODE_ID, dynParams);
 
@@ -258,6 +260,7 @@ public:
         dynParams.nMaxBlockSize                = 1500000; // 1.5Mb
         dynParams.nBlockPropagationWaitTime    = 20; // 20 sec.
         dynParams.nRetryNewSigSetInterval      = 7; // 7 sec.
+        dynParams.strDescription               = "#00001 https://fair-coin.org/ The genesis dynamic chain parameters";
 
         genesis = CreateGenesisBlock(GENESIS_BLOCK_TIMESTAMP + 2, GENESIS_NODE_ID, dynParams);
 

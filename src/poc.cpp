@@ -1011,13 +1011,13 @@ bool AddChainData(const CChainDataMsg& msg)
 
         mapChainData.insert(std::make_pair(hashBlock, msg));
 
-        LogPrintf("AddChainData : signed by %u (minimum %u) admins of %u to be added after blockHash %s\n",
+        LogPrintf("%s : signed by %u (minimum %u) admins of %u to be added after blockHash %s\n", __func__,
                 msg.vAdminIds.size(), dynParams.nMinAdminSigs, dynParams.nMaxAdminSigs, hashBlock.ToString());
     } else if(msg.nPayload & CChainDataMsg::BLOCK_PAYLOAD_MASK) {
-        LogPrintf("AddChainData : cannor mix FLUSH payload with any other payload, ignoreing...\n");
+        LogPrintf("%s : cannot mix FLUSH payload with any other payload, ignoring...\n", __func__);
         return false;
     } else {
-        LogPrintf("flushing all entries from sigHolder due to admins request.\n");
+        LogPrintf("%s : flushing all entries from sigHolder due to admins request.\n", __func__);
         sigHolder.SetNull();
     }
 
@@ -1213,48 +1213,53 @@ void UpdateChainAdmins(const CBlock* pblock)
 bool CheckDynamicChainParameters(const CDynamicChainParams& params)
 {
     if (params.nBlockSpacing > MAX_BLOCK_SPACING || params.nBlockSpacing < MIN_BLOCK_SPACING) {
-        LogPrintf("CheckDynamicChainParameters : ERROR, block spacing %u exceeds limit\n", params.nBlockSpacing);
+        LogPrintf("%s : block spacing %u exceeds limit\n",__func__ , params.nBlockSpacing);
         return false;
     }
 
     if (params.nTransactionFee > MAX_TX_FEE_THRESHOLD || params.nTransactionFee < MIN_TX_FEE_THRESHOLD) {
-        LogPrintf("CheckDynamicChainParameters : ERROR, tx fee threshold %u exceeds limit\n", params.nTransactionFee);
+        LogPrintf("%s : tx fee threshold %u exceeds limit\n",__func__ , params.nTransactionFee);
         return false;
     }
 
     if (params.nDustThreshold > MAX_DUST_THRESHOLD || params.nDustThreshold < MIN_DUST_THRESHOLD) {
-        LogPrintf("CheckDynamicChainParameters : ERROR, dust threshold %u exceeds limit\n", params.nDustThreshold);
+        LogPrintf("%s : dust threshold %u exceeds limit\n",__func__ , params.nDustThreshold);
         return false;
     }
 
     if (!params.nMinAdminSigs || params.nMinAdminSigs > params.nMaxAdminSigs) {
-        LogPrintf("CheckDynamicChainParameters : ERROR, number of CVN signers %u/%u exceeds limit\n", params.nMinAdminSigs, params.nMaxAdminSigs);
+        LogPrintf("%s : number of CVN signers %u/%u exceeds limit\n",__func__ , params.nMinAdminSigs, params.nMaxAdminSigs);
         return false;
     }
 
     if (params.nBlocksToConsiderForSigCheck < MIN_BLOCKS_TO_CONSIDER_FOR_SIG_CHECK || params.nBlocksToConsiderForSigCheck > MAX_BLOCKS_TO_CONSIDER_FOR_SIG_CHECK) {
-        LogPrintf("CheckDynamicChainParameters : ERROR, %u blocksToConsiderForSigCheck is out of bounds\n", params.nBlocksToConsiderForSigCheck);
+        LogPrintf("%s : %u blocksToConsiderForSigCheck is out of bounds\n",__func__ , params.nBlocksToConsiderForSigCheck);
         return false;
     }
 
     if (params.nPercentageOfSignaturesMean < MIN_PERCENTAGE_OF_SIGNATURES_MEAN || params.nPercentageOfSignaturesMean > MAX_PERCENTAGE_OF_SIGNATURES_MEAN) {
-        LogPrintf("CheckDynamicChainParameters : ERROR, %u nPercentageOfSignatureMean is out of bounds\n", params.nPercentageOfSignaturesMean);
+        LogPrintf("%s : %u nPercentageOfSignatureMean is out of bounds\n",__func__ , params.nPercentageOfSignaturesMean);
         return false;
     }
 
     if (params.nMaxBlockSize < MIN_SIZE_OF_BLOCK || params.nMaxBlockSize > MAX_SIZE_OF_BLOCK) {
-        LogPrintf("CheckDynamicChainParameters : ERROR, %u nMaxBlockSize is out of bounds\n", params.nMaxBlockSize);
+        LogPrintf("%s : %u nMaxBlockSize is out of bounds\n",__func__ , params.nMaxBlockSize);
         return false;
     }
 
-    if (params.nBlockPropagationWaitTime < MIN_BLOCK_PROPAGATION_WAIT_TIME || params.nMaxBlockSize > MAX_BLOCK_PROPAGATION_WAIT_TIME ||
+    if (params.nBlockPropagationWaitTime < MIN_BLOCK_PROPAGATION_WAIT_TIME || params.nBlockPropagationWaitTime > MAX_BLOCK_PROPAGATION_WAIT_TIME ||
             params.nBlockPropagationWaitTime >= params.nBlockSpacing) {
-        LogPrintf("CheckDynamicChainParameters : ERROR, %u nBlockPropagationWaitTime is out of bounds\n", params.nBlockPropagationWaitTime);
+        LogPrintf("%s : %u nBlockPropagationWaitTime is out of bounds\n",__func__ , params.nBlockPropagationWaitTime);
         return false;
     }
 
     if (params.nRetryNewSigSetInterval < MIN_RETRY_NEW_SIG_SET_INTERVAL || params.nRetryNewSigSetInterval > MAX_RETRY_NEW_SIG_SET_INTERVAL) {
-        LogPrintf("CheckDynamicChainParameters : ERROR, %u nRetryNewSigSetInterval is out of bounds\n", params.nRetryNewSigSetInterval);
+        LogPrintf("%s : %u nRetryNewSigSetInterval is out of bounds\n",__func__ , params.nRetryNewSigSetInterval);
+        return false;
+    }
+
+    if (params.strDescription.length() <= MIN_CHAIN_DATA_DESCRIPTION_LEN) {
+        LogPrintf("%s : chain data description is too short: %s\n",__func__ , params.strDescription);
         return false;
     }
 
@@ -1266,7 +1271,7 @@ void UpdateChainParameters(const CBlock* pblock)
     LogPrint("cvn", "UpdateChainParameters : updating dynamic block chain parameters\n");
 
     if (!pblock->HasChainParameters()) {
-        LogPrintf("UpdateChainParameters : ERROR, block is not of type 'chain parameter'\n");
+        LogPrintf("UpdateChainParameters : block is not of type 'chain parameter'\n");
         return;
     }
 
@@ -1284,6 +1289,7 @@ void UpdateChainParameters(const CBlock* pblock)
     dynParams.nMaxBlockSize                = pblock->dynamicChainParams.nMaxBlockSize;
     dynParams.nBlockPropagationWaitTime    = pblock->dynamicChainParams.nBlockPropagationWaitTime;
     dynParams.nRetryNewSigSetInterval      = pblock->dynamicChainParams.nRetryNewSigSetInterval;
+    dynParams.strDescription               = pblock->dynamicChainParams.strDescription;
 
     ::minRelayTxFee = CFeeRate(dynParams.nTransactionFee);
 }
@@ -1475,7 +1481,7 @@ static uint32_t FindNewlyAddedCVN(const CBlockIndex* pindexStart)
     return nLastAddedNode;
 }
 
-/* try to find a node that did not *create* a block with the
+/* try to find a node that did not create a block within the
  * last POC_BLOCKS_TO_SCAN blocks but recently successively *signed* the
  * required number of last blocks. This node will then be chosen to create
  * the next block
