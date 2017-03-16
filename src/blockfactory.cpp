@@ -576,8 +576,6 @@ static bool CreateNewBlock(CBlockTemplate& blockTemplate)
             CChainDataMsg& msg = mapChainData[hashBlock];
             if (!AddChainDataToBlock(pblock, msg)) {
                 LogPrintf("CreateNewBlock : could not add chain data to block\n");
-            } else if (!CheckDynamicChainParameters(pblock->dynamicChainParams)) {
-                LogPrintf("CreateNewBlock : received invalied chain parameters\n");
             }
         }
     }
