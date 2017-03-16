@@ -1830,7 +1830,9 @@ static bool CreateNoncePoolFile(CNoncePool& pool, const uint16_t nPoolSize, CNon
         vNoncePrivate.clear();
     }
 
-    for (uint16_t i = 0 ; i < nPoolSize - nOldPoolAge ; i++) {
+    const uint16_t nCreateNew = nPoolSize - pool.vPublicNonces.size();
+
+    for (uint16_t i = 0 ; i < nCreateNew ; i++) {
         CSchnorrNonce nonce;
         unsigned char privateData[32];
         if (!CreateNoncePairForHash(nonce, privateData, hash4noncePool, pool.nCvnId, false)) {
@@ -1881,7 +1883,9 @@ static bool CreateNoncePoolFasito(CNoncePool& pool, const uint16_t nPoolSize, CN
         }
     }
 
-    for (uint16_t i = 0 ; i < nPoolSize - nOldPoolAge ; i++) {
+    const uint16_t nCreateNew = nPoolSize - pool.vPublicNonces.size();
+
+    for (uint16_t i = 0 ; i < nCreateNew ; i++) {
         CSchnorrNonce nonce;
         unsigned char privateData[32];
         if (!CreateNoncePairForHash(nonce, privateData, hash4noncePool, pool.nCvnId, true)) {
