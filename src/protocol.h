@@ -250,9 +250,9 @@ enum {
     // Bitcoin Core nodes used to support this by default, without advertising this bit,
     // but no longer do as of protocol version 70011 (= NO_BLOOM_VERSION)
     NODE_BLOOM = (1 << 2),
-    // NODE_CVN_SIG means the node is capable and willing to send and received CVN chain
-    // signature messages.
-    NODE_CVN_SIG = (1 << 3),
+    // NODE_CVN_SIG means the node is capable and willing to send and received PoC data
+    // messages.
+    NODE_POC_DATA = (1 << 3),
 
     // Bits 24-31 are reserved for temporary experiments. Just pick a bit that
     // isn't getting used, or one not being used much, and notify the

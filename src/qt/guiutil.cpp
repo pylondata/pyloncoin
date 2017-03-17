@@ -909,8 +909,8 @@ QString formatServicesStr(quint64 mask)
             case NODE_BLOOM:
                 strList.append("BLOOM");
                 break;
-            case NODE_CVN_SIG:
-                strList.append("CVN_SIG");
+            case NODE_POC_DATA:
+                strList.append("NODE_POC_DATA");
                 break;
             default:
                 strList.append(QString("%1[%2]").arg("UNKNOWN").arg(check));

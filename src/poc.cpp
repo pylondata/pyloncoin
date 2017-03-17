@@ -720,8 +720,9 @@ bool CvnSignPartial(const uint256 &hashPrevBlock, CCvnPartialSignatureUnsinged &
     signature.nSignerId     = nNodeId;
     signature.nCreatorId    = nNextCreator;
     signature.hashPrevBlock = hashPrevBlock;
+    signature.nCreationTime = GetTime();
 
-    /* create a plain schnorr signature in case only one CVN is available (e.g. during bootstrap) */
+    /* create a plain Schnorr signature in case only one CVN is available (e.g. during bootstrap) */
     if (mapCVNs.size() == 1)
         return CvnSignHash(hasher.GetHash(), signature.signature);
 
@@ -899,7 +900,7 @@ bool CvnVerifySignature(const uint256 &hash, const CSchnorrSig &sig, const uint3
 bool CvnVerifyAdminSignature(const vector<uint32_t> &vAdminIds, const uint256& hashAdmin, const CSchnorrSig& sig)
 {
     if (vAdminIds.empty()) {
-        LogPrintf("CvnVerifyAdminSignature : no admin IDs avaialbe for hash: %s\n", hashAdmin.ToString());
+        LogPrintf("%s : no admin IDs avaialbe for hash: %s\n", __func__, hashAdmin.ToString());
         return false;
     }
 
@@ -907,12 +908,12 @@ bool CvnVerifyAdminSignature(const vector<uint32_t> &vAdminIds, const uint256& h
     if (mapChainAdmins.size() == 1) {
         uint32_t nAdminId = mapChainAdmins.begin()->first;
         if (!mapChainAdmins.count(nAdminId)) {
-            LogPrintf("CvnVerifyAdminSignature : could not find CChainAdmin for admin ID 0x%08x\n", nAdminId);
+            LogPrintf("%s : could not find CChainAdmin for admin ID 0x%08x\n", __func__, nAdminId);
             return false;
         }
 
         if (!CPubKey::VerifySchnorr(hashAdmin, sig, mapChainAdmins[nAdminId].pubKey)) {
-            LogPrintf("CvnVerifyAdminSignature : could not verify single sig %s for hash %s for admin Id 0x%08x (%s)\n", sig.ToString(), hashAdmin.ToString(), nAdminId, mapChainAdmins[nAdminId].pubKey.ToString());
+            LogPrintf("%s : could not verify single sig %s for hash %s for admin Id 0x%08x (%s)\n", __func__, sig.ToString(), hashAdmin.ToString(), nAdminId, mapChainAdmins[nAdminId].pubKey.ToString());
             return false;
         } else {
             return true;
@@ -920,7 +921,7 @@ bool CvnVerifyAdminSignature(const vector<uint32_t> &vAdminIds, const uint256& h
     }
 
     if (mapChainAdmins.size() > 1) {
-        LogPrintf("CvnVerifyAdminSignature : multiple admin sigs not yet supported\n");
+        LogPrintf("%s : multiple admin sigs not yet supported\n", __func__);
         return false;
     }
 
@@ -966,7 +967,7 @@ void RelayChainData(const CChainDataMsg& msg)
     LOCK(cs_vNodes);
     BOOST_FOREACH(CNode* pnode, vNodes)
     {
-        if(!pnode->fRelayCvnSig)
+        if(!pnode->fRelayPoCMessages)
             continue;
         pnode->PushInventory(inv);
     }
@@ -977,17 +978,17 @@ bool CheckAdminSignature(const vector<uint32_t> &vAdminIds, const uint256 &hashA
     const uint32_t nSigs = vAdminIds.size();
 
     if (nSigs < dynParams.nMinAdminSigs) {
-        LogPrintf("not enough admin signatures supplied (got %u signatures, but need at least %u to sign)\n", nSigs, dynParams.nMinAdminSigs);
+        LogPrintf("%s : not enough admin signatures supplied (got %u signatures, but need at least %u to sign)\n", __func__, nSigs, dynParams.nMinAdminSigs);
         return false;
     }
 
     if (nSigs > dynParams.nMaxAdminSigs) {
-        LogPrintf("too many admin signatures supplied %u (%u max)\n", nSigs, dynParams.nMaxAdminSigs);
+        LogPrintf("%s : too many admin signatures supplied %u (%u max)\n", __func__, nSigs, dynParams.nMaxAdminSigs);
         return false;
     }
 
     if (fCoinSupply && nSigs < dynParams.nMaxAdminSigs) {
-        LogPrintf("not enough admin signatures supplied (got %u signatures, but need at least %u to sign for coin supply)\n",
+        LogPrintf("%s : not enough admin signatures supplied (got %u signatures, but need at least %u to sign for coin supply)\n", __func__,
             nSigs, dynParams.nMaxAdminSigs);
         return false;
     }
@@ -1052,14 +1053,14 @@ void RelayCvnSignature(const CCvnPartialSignature& msg)
         }
 
         mapRelaySigs.insert(std::make_pair(inv.hash, msg));
-        // we keep them around for 30min. so AlreadyHave() works properly
+        // we keep them around for 30 min. so AlreadyHave() works properly
         vRelayExpiration.push_back(std::make_pair(GetTime() + 1800, inv.hash));
     }
 
     LOCK(cs_vNodes);
     BOOST_FOREACH(CNode* pnode, vNodes)
     {
-        if(!pnode->fRelayCvnSig)
+        if(!pnode->fRelayPoCMessages)
             continue;
         pnode->PushInventory(inv);
     }
@@ -1071,12 +1072,12 @@ bool CvnVerifyPartialSignature(const CCvnPartialSignature& sig)
     hasher << sig.hashPrevBlock << sig.nCreatorId;
 
     if (!mapCVNs.count(sig.nCreatorId)) {
-        LogPrintf("CvnVerifyPartialSignature : next creator CVN not found 0x%08x\n", sig.nCreatorId);
+        LogPrintf("%s : next creator CVN not found 0x%08x\n", sig.nCreatorId, __func__);
         return false;
     }
 
     if (!mapCVNs.count(sig.nSignerId)) {
-        LogPrintf("CvnVerifyPartialSignature : signer CVN not found 0x%08x\n", sig.nSignerId);
+        LogPrintf("%s : signer CVN not found 0x%08x\n", __func__, sig.nSignerId);
         return false;
     }
 
@@ -1089,7 +1090,7 @@ bool CvnVerifyPartialSignature(const CCvnPartialSignature& sig)
         return false;
 
     if (vMissingPubNonces != sig.vMissingSignerIds){
-        LogPrintf("CvnVerifyPartialSignature : missingPubNonces mismatch: %s (%d != %d)\n", sig.ToString(), vMissingPubNonces.size(), sig.vMissingSignerIds.size());
+        LogPrintf("%s : missingPubNonces mismatch: %s (%d != %d)\n", __func__, sig.ToString(), vMissingPubNonces.size(), sig.vMissingSignerIds.size());
         return false;
     }
 
@@ -1111,11 +1112,11 @@ bool AddCvnSignature(CCvnPartialSignature& msg)
 
     msg.fValidated = CvnVerifyPartialSignature(msg);
     if (!msg.fValidated)
-        LogPrintf("AddCvnSignature : invalid signature received for 0x%08x by 0x%08x, hash %s. Marked as invalid.\n", msg.nCreatorId, msg.nSignerId, msg.hashPrevBlock.ToString());
+        LogPrintf("%s : invalid signature received for 0x%08x by 0x%08x, hash %s. Marked as invalid.\n", __func__, msg.nCreatorId, msg.nSignerId, msg.hashPrevBlock.ToString());
 
     sigHolder.AddSig(msg);
 
-    LogPrint("cvnsig", "AddCvnSignature : add sig for 0x%08x by 0x%08x, hash %s, missing: %s\n", msg.nCreatorId, msg.nSignerId,
+    LogPrint("cvnsig", "%s : add sig for 0x%08x by 0x%08x, hash %s, missing: %s\n", __func__, msg.nCreatorId, msg.nSignerId,
             msg.hashPrevBlock.ToString(),
             (msg.vMissingSignerIds.empty() ? "none" : CreateSignerIdList(msg.vMissingSignerIds)));
 
@@ -1124,14 +1125,11 @@ bool AddCvnSignature(CCvnPartialSignature& msg)
 
 static bool SendCVNSignature(POCStateHolder &s, const vector<uint32_t> &vMissingSignatures)
 {
-    if (IsInitialBlockDownload())
-        return false;
-
     const CBlockIndex *pTip = s.pindexPrev;
     uint32_t nNextCreator = CheckNextBlockCreator(pTip, GetAdjustedTime());
 
     if (!nNextCreator) {
-        LogPrintf("SendCVNSignature : could not find next block creator\n");
+        LogPrintf("%s : could not find next block creator\n", __func__);
         return false;
     }
 
@@ -1140,7 +1138,7 @@ static bool SendCVNSignature(POCStateHolder &s, const vector<uint32_t> &vMissing
     CCvnPartialSignatureUnsinged signature;
 
     if (!CvnSignPartial(hashPrevBlock, signature, nNextCreator, nCvnNodeId, vMissingSignatures)) {
-        LogPrintf("SendCVNSignature : could not create sig for 0x%08x by 0x%08x, hash %s\n",
+        LogPrintf("%s : could not create sig for 0x%08x by 0x%08x, hash %s\n", __func__,
                 nNextCreator, nCvnNodeId, hashPrevBlock.ToString());
         return false;
     }
@@ -1149,14 +1147,17 @@ static bool SendCVNSignature(POCStateHolder &s, const vector<uint32_t> &vMissing
 
     CSchnorrSig msgSig;
     if (!CvnSignHash(msg.GetHash(), msgSig)) {
-        LogPrintf("SendCVNSignature : could not sign signature message\n");
+        LogPrintf("%s : could not sign signature message\n", __func__);
         return false;
     }
 
     msg.msgSig = msgSig;
 
-    if (AddCvnSignature(msg))
-        RelayCvnSignature(msg);
+    {
+        LOCK(cs_main);
+        if (AddCvnSignature(msg))
+            RelayCvnSignature(msg);
+    }
 
     s.commonRxs.push_back(msg.signature.GetRx());
 
@@ -1766,7 +1767,7 @@ void RelayNoncePool(const CNoncePool& msg)
     LOCK(cs_vNodes);
     BOOST_FOREACH(CNode* pnode, vNodes)
     {
-        if(!pnode->fRelayCvnSig)
+        if(!pnode->fRelayPoCMessages)
             continue;
 
         pnode->PushInventory(inv);
@@ -1941,6 +1942,7 @@ void CreateNewNoncePool(const POCStateHolder& s)
         return;
     }
 
+    LOCK(cs_main);
     if (AddNoncePool(pool)) {
         SaveNoncesPool();
         RelayNoncePool(pool);
@@ -2118,6 +2120,7 @@ static void handleInit(POCStateHolder& s)
     s.nSleep = 2;
 
     if (mapCVNs.count(s.nNodeId)) {
+        LOCK(cs_main);
         if (SetUpNoncePool()) {
             LogPrintf("Using saved nonces pool\n");
             RelayNoncePool(mapNoncePool[s.nNodeId]);

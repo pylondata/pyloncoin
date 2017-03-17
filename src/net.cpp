@@ -74,7 +74,7 @@ namespace {
 //
 bool fDiscover = true;
 bool fListen = true;
-uint64_t nLocalServices = NODE_NETWORK | NODE_CVN_SIG;
+uint64_t nLocalServices = NODE_NETWORK | NODE_POC_DATA;
 CCriticalSection cs_mapLocalHost;
 map<CNetAddr, LocalServiceInfo> mapLocalHost;
 static bool vfLimited[NET_MAX] = {};

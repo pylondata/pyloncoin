@@ -193,6 +193,8 @@ public:
     uint32_t nCreatorId; // the CVN node ID of the creator of the next block
     uint256 hashPrevBlock;
     CSchnorrSig signature;
+    uint32_t nCreationTime;
+
     bool fValidated; // memory only
 
     // contains the CVN IDs that did not co-sign (usually all in IDs in mapCVNs should sign)
@@ -212,6 +214,7 @@ public:
         this->signature         = sig.signature;
         this->fValidated        = sig.fValidated;
         this->vMissingSignerIds = sig.vMissingSignerIds;
+        this->nCreationTime     = sig.nCreationTime;
     }
 
     ADD_SERIALIZE_METHODS;
@@ -225,14 +228,16 @@ public:
         READWRITE(hashPrevBlock);
         READWRITE(signature);
         READWRITE(vMissingSignerIds);
+        READWRITE(nCreationTime);
     }
 
     void SetNull()
     {
-        nVersion   = CCvnPartialSignatureUnsinged::CURRENT_VERSION;
-        nSignerId  = 0;
-        nCreatorId = 0;
-        fValidated = false;
+        nVersion      = CCvnPartialSignatureUnsinged::CURRENT_VERSION;
+        nSignerId     = 0;
+        nCreatorId    = 0;
+        fValidated    = false;
+        nCreationTime = 0;
         hashPrevBlock.SetNull();
         signature.SetNull();
         vMissingSignerIds.clear();
@@ -492,6 +497,7 @@ public:
     static const int32_t  FLUSH_SIGHOLDER_PAYLOAD = 1 << 4;
     static const int32_t       BLOCK_PAYLOAD_MASK = CVN_PAYLOAD | CHAIN_ADMINS_PAYLOAD | CHAIN_PARAMETERS_PAYLOAD | COIN_SUPPLY_PAYLOAD;
     uint32_t nPayload;
+    uint32_t nCreationTime;
 
     // this chain data must be contained in the block after this hash
     uint256 hashPrevBlock;
@@ -517,6 +523,7 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(nPayload);
+        READWRITE(nCreationTime);
         READWRITE(hashPrevBlock);
         READWRITE(adminMultiSig);
         READWRITE(vAdminIds);
@@ -535,7 +542,8 @@ public:
 
     void SetNull()
     {
-        nPayload = 0;
+        nPayload      = 0;
+        nCreationTime = 0;
         hashPrevBlock.SetNull();
         adminMultiSig.SetNull();
         vAdminIds.clear();

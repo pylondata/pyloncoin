@@ -4541,8 +4541,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             pfrom->PushVersion();
 
         pfrom->fClient = !(pfrom->nServices & NODE_NETWORK);
-        //pfrom->fRelayCvnSig = !(pfrom->nServices & NODE_CVN_SIG) && !IsInitialBlockDownload();
-        pfrom->fRelayCvnSig = !IsInitialBlockDownload();
+        pfrom->fRelayPoCMessages = (pfrom->nServices & NODE_POC_DATA);
 
         // Potentially mark this peer as a preferred download peer.
         UpdatePreferredDownload(pfrom, State(pfrom->GetId()));
@@ -4630,7 +4629,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         pfrom->PushMessage(NetMsgType::SENDHEADERS);
 
         // Advertise the partial signatures and public nonces we've got
-        if (pfrom->fRelayCvnSig)
+        if (pfrom->fRelayPoCMessages)
             AdvertiseSigsAndNonces(pfrom);
     }
 
