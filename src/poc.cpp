@@ -1160,7 +1160,6 @@ static bool SendCVNSignature(POCStateHolder &s, const vector<uint32_t> &vMissing
     }
 
     s.commonRxs.push_back(msg.signature.GetRx());
-
     return true;
 }
 
@@ -1984,7 +1983,6 @@ static void handleWaitingForSignatures(POCStateHolder& s)
         return;
     }
 
-    LOCK(sigHolder.cs_sigHolder);
     int32_t nLastBlockSeconds = GetAdjustedTime() - s.pindexPrev->nTime;
 
     if (nLastBlockSeconds - (int32_t)dynParams.nBlockPropagationWaitTime < 0)
