@@ -161,9 +161,6 @@ extern int nMaxConnections;
 
 extern std::vector<CNode*> vNodes;
 extern CCriticalSection cs_vNodes;
-extern std::map<uint256, CTransaction> mapRelay;
-extern std::deque<std::pair<int64_t, uint256> > vRelayExpiration;
-extern CCriticalSection cs_mapRelay;
 extern limitedmap<uint256, int64_t> mapAlreadyAskedFor;
 
 extern std::vector<std::string> vAddedNodes;
@@ -171,15 +168,6 @@ extern CCriticalSection cs_vAddedNodes;
 
 extern NodeId nLastNodeId;
 extern CCriticalSection cs_nLastNodeId;
-
-extern CCriticalSection cs_mapRelayNonces;
-extern std::map<uint256, CNoncePool> mapRelayNonces;
-
-extern CCriticalSection cs_mapRelaySigs;
-extern std::map<uint256, CCvnPartialSignature> mapRelaySigs;
-
-extern CCriticalSection cs_mapRelayChainData;
-extern std::map<uint256, CChainDataMsg> mapRelayChainData;
 
 /** Subversion as sent to the P2P network in `version` messages */
 extern std::string strSubVersion;
@@ -527,21 +515,20 @@ public:
     void PushInventory(const CInv& inv)
     {
         LOCK(cs_inventory);
-        if (inv.type == MSG_TX) {
-            if (!filterInventoryKnown.contains(inv.hash)) {
-                setInventoryTxToSend.insert(inv.hash);
-            }
-        } else if (inv.type == MSG_BLOCK) {
+        if (inv.type == MSG_BLOCK)
             vInventoryBlockToSend.push_back(inv.hash);
+
+        if (filterInventoryKnown.contains(inv.hash))
+            return;
+
+        if (inv.type == MSG_TX) {
+            setInventoryTxToSend.insert(inv.hash);
         } else if (inv.type == MSG_CVN_PUB_NONCE_POOL) {
-            if (!filterInventoryKnown.contains(inv.hash))
-                vInventoryNoncePoolsToSend.insert(inv.hash);
+            vInventoryNoncePoolsToSend.insert(inv.hash);
         } else if (inv.type == MSG_CVN_SIGNATURE) {
-            if (!filterInventoryKnown.contains(inv.hash))
-                vInventoryChainSignaturesToSend.insert(inv.hash);
+            vInventoryChainSignaturesToSend.insert(inv.hash);
         } else if (inv.type == MSG_POC_CHAIN_DATA) {
-            if (!filterInventoryKnown.contains(inv.hash))
-                vInventoryChainDataToSend.insert(inv.hash);
+            vInventoryChainDataToSend.insert(inv.hash);
         }
     }
 

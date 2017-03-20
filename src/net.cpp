@@ -88,19 +88,7 @@ std::string strSubVersion;
 
 vector<CNode*> vNodes;
 CCriticalSection cs_vNodes;
-map<uint256, CTransaction> mapRelay;
-deque<pair<int64_t, uint256> > vRelayExpiration;
-CCriticalSection cs_mapRelay;
 limitedmap<uint256, int64_t> mapAlreadyAskedFor(MAX_INV_SZ);
-
-CCriticalSection cs_mapRelayNonces;
-map<uint256, CNoncePool> mapRelayNonces;
-
-CCriticalSection cs_mapRelaySigs;
-map<uint256, CCvnPartialSignature> mapRelaySigs;
-
-CCriticalSection cs_mapRelayChainData;
-map<uint256, CChainDataMsg> mapRelayChainData;
 
 static deque<string> vOneShots;
 CCriticalSection cs_vOneShots;
@@ -2057,18 +2045,6 @@ instance_of_cnetcleanup;
 void RelayTransaction(const CTransaction& tx)
 {
     CInv inv(MSG_TX, tx.GetHash());
-    {
-        LOCK(cs_mapRelay);
-        // Expire old relay messages
-        while (!vRelayExpiration.empty() && vRelayExpiration.front().first < GetTime())
-        {
-            mapRelay.erase(vRelayExpiration.front().second);
-            vRelayExpiration.pop_front();
-        }
-
-        mapRelay.insert(std::make_pair(inv.hash, tx));
-        vRelayExpiration.push_back(std::make_pair(GetTime() + 15 * 60, inv.hash));
-    }
     LOCK(cs_vNodes);
     BOOST_FOREACH(CNode* pnode, vNodes)
     {

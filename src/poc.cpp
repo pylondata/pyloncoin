@@ -953,15 +953,7 @@ void RelayChainData(const CChainDataMsg& msg)
     CInv inv(MSG_POC_CHAIN_DATA, msg.GetHash());
     {
         LOCK(cs_mapRelayChainData);
-        // Expire old relay messages
-        while (!vRelayExpiration.empty() && vRelayExpiration.front().first < GetTime())
-        {
-            mapRelayChainData.erase(vRelayExpiration.front().second);
-            vRelayExpiration.pop_front();
-        }
-
         mapRelayChainData.insert(std::make_pair(inv.hash, msg));
-        vRelayExpiration.push_back(std::make_pair(GetTime() + dynParams.nBlockSpacing, inv.hash));
     }
 
     LOCK(cs_vNodes);
@@ -1045,16 +1037,7 @@ void RelayCvnSignature(const CCvnPartialSignature& msg)
     CInv inv(MSG_CVN_SIGNATURE, msg.GetHash());
     {
         LOCK(cs_mapRelaySigs);
-        // Expire old relay messages
-        while (!vRelayExpiration.empty() && vRelayExpiration.front().first < GetTime())
-        {
-            mapRelaySigs.erase(vRelayExpiration.front().second);
-            vRelayExpiration.pop_front();
-        }
-
         mapRelaySigs.insert(std::make_pair(inv.hash, msg));
-        // we keep them around for 30 min. so AlreadyHave() works properly
-        vRelayExpiration.push_back(std::make_pair(GetTime() + 1800, inv.hash));
     }
 
     LOCK(cs_vNodes);
@@ -1749,18 +1732,10 @@ bool AddNoncePool(CNoncePool& msg)
 void RelayNoncePool(const CNoncePool& msg)
 {
     CInv inv(MSG_CVN_PUB_NONCE_POOL, msg.GetHash());
+
     {
         LOCK(cs_mapRelayNonces);
-        // Expire old relay messages
-        while (!vRelayExpiration.empty() && vRelayExpiration.front().first < GetTime())
-        {
-            mapRelayNonces.erase(vRelayExpiration.front().second);
-            vRelayExpiration.pop_front();
-        }
-
         mapRelayNonces.insert(std::make_pair(inv.hash, msg));
-        // we keep them around for 5h so AlreadyHave() works properly
-        vRelayExpiration.push_back(std::make_pair(GetTime() + 18000, inv.hash));
     }
 
     LOCK(cs_vNodes);
@@ -2013,6 +1988,7 @@ static void handleWaitingForBlock(POCStateHolder& s)
     if (s.nNextCreator == s.nNodeId) {
         int32_t nBlockTime = GetAdjustedTime() - s.pindexPrev->nTime;
         if (nBlockTime >= (int32_t)dynParams.nBlockSpacing) {
+            LOCK(cs_main);
             if (CreateBlock(s)) {
                 s.state = WAITING_FOR_NEW_TIP;
             } else {
