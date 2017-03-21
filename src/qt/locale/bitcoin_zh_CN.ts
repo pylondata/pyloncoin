@@ -232,7 +232,7 @@
     </message>
 </context>
 <context>
-    <name>FairCoinGUI</name>
+    <name>BitcoinGUI</name>
     <message>
         <source>Sign &amp;message...</source>
         <translation>消息签名(&amp;M)...</translation>

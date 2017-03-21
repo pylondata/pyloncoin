@@ -32,7 +32,7 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>FairCoinGUI</name>
+    <name>BitcoinGUI</name>
     <message>
         <source>FairCoin Core</source>
         <translation>Биткойн ядро</translation>

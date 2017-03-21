@@ -72,7 +72,7 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>FairCoinGUI</name>
+    <name>BitcoinGUI</name>
     </context>
 <context>
     <name>ClientModel</name>

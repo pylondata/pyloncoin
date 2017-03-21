@@ -48,7 +48,7 @@
 using namespace std;
 
 #if defined(NDEBUG)
-# error "Bitcoin cannot be compiled without assertions."
+# error "FairCoin cannot be compiled without assertions."
 #endif
 
 /**

@@ -12,7 +12,7 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>FairCoinGUI</name>
+    <name>BitcoinGUI</name>
     <message>
         <source>FairCoin</source>
         <translation>FairCoin</translation>

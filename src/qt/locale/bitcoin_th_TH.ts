@@ -188,7 +188,7 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>FairCoinGUI</name>
+    <name>BitcoinGUI</name>
     <message>
         <source>Synchronizing with network...</source>
         <translation>กำลังทำข้อมูลให้ตรงกันกับเครือข่าย ...</translation>

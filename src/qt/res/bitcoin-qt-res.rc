@@ -1,4 +1,4 @@
-IDI_ICON1 ICON DISCARDABLE "icons/bitcoin.ico"
+IDI_ICON1 ICON DISCARDABLE "icons/faircoin.ico"
 
 #include <windows.h>             // needed for VERSIONINFO
 #include "../../clientversion.h" // holds the needed client version information
@@ -18,14 +18,14 @@ BEGIN
     BEGIN
         BLOCK "040904E4" // U.S. English - multilingual (hex)
         BEGIN
-            VALUE "CompanyName",        "Bitcoin"
-            VALUE "FileDescription",    "Bitcoin Core (GUI node for Bitcoin)"
+            VALUE "CompanyName",        "FairCoin"
+            VALUE "FileDescription",    "FairCoin Core (GUI node for FairCoin)"
             VALUE "FileVersion",        VER_FILEVERSION_STR
-            VALUE "InternalName",       "bitcoin-qt"
+            VALUE "InternalName",       "faircoin-qt"
             VALUE "LegalCopyright",     COPYRIGHT_STR
             VALUE "LegalTrademarks1",   "Distributed under the MIT software license, see the accompanying file COPYING or http://www.opensource.org/licenses/mit-license.php."
-            VALUE "OriginalFilename",   "bitcoin-qt.exe"
-            VALUE "ProductName",        "Bitcoin Core"
+            VALUE "OriginalFilename",   "faircoin-qt.exe"
+            VALUE "ProductName",        "FairCoin Core"
             VALUE "ProductVersion",     VER_PRODUCTVERSION_STR
         END
     END

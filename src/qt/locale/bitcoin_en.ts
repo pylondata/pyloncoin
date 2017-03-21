@@ -297,7 +297,7 @@
     </message>
 </context>
 <context>
-    <name>FairCoinGUI</name>
+    <name>BitcoinGUI</name>
     <message>
         <location filename="../FairCoingui.cpp" line="+335"/>
         <source>Sign &amp;message...</source>

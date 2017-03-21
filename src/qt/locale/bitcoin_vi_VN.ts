@@ -140,7 +140,7 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>FairCoinGUI</name>
+    <name>BitcoinGUI</name>
     <message>
         <source>&amp;Overview</source>
         <translation>&amp;Tổng quan</translation>
