@@ -361,6 +361,23 @@ bool CSignatureHolder::GetAllMissing(vector<uint32_t> &vMissingSignerIds, const 
     return true;
 }
 
+void CSignatureHolder::clear(const uint32_t nNextCreator)
+{
+    LOCK(cs_sigHolder);
+    BOOST_FOREACH(MapSigCommonR::value_type& commonRx, sigs) {
+        MapSigSigner &m = commonRx.second;
+        MapSigSigner::iterator mi = m.begin();
+        while(mi != m.end()) {
+            const CCvnPartialSignature& sig = mi->second;
+            if (sig.nCreatorId != nNextCreator) {
+                m.erase(mi++);
+            } else {
+                mi++;
+            }
+        }
+    }
+}
+
 string CSignatureHolder::ToString()
 {
     std::stringstream s;
@@ -1984,7 +2001,7 @@ static void handleWaitingForBlock(POCStateHolder& s)
 {
     if (s.NewTip()) {
         s.Reset(s.nNextCreator, chainActive.Tip());
-        sigHolder.SetNull();
+        sigHolder.clear(s.nNextCreator);
     }
 
     if (s.nNextCreator == s.nNodeId) {
@@ -2004,7 +2021,7 @@ static void handleWaitingForNewTip(POCStateHolder& s)
 {
     if (s.NewTip()) {
         s.Reset(s.nNextCreator, chainActive.Tip());
-        sigHolder.SetNull();
+        sigHolder.clear(s.nNextCreator);
     }
 
     return;
@@ -2187,7 +2204,7 @@ void static POCThread(const CChainParams& chainparams, const uint32_t& nNodeId)
             if ((s.NewTip() || s.BlockSpacingTimeout()) && s.state != WAITING_FOR_CVN_DATA) {
                 LogPrintf(s.NewTip() ? "new tip detected.\n" : "block spacing timeout detected.\n");
                 s.Reset(s.nNextCreator, s.pindexPrev);
-                sigHolder.SetNull();
+                sigHolder.clear(s.nNextCreator);
             }
 
             if (s.state != lastState) {

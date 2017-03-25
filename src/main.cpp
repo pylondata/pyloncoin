@@ -2437,7 +2437,7 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
         UpdateChainAdmins(pblock);
 
     if (!IsInitialBlockDownload()) {
-        sigHolder.SetNull();
+        sigHolder.clear(CheckNextBlockCreator(pindexNew, block.nTime + 1));
         CheckNoncePools(pindexNew);
     }
 

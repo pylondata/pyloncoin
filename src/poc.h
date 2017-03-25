@@ -195,6 +195,7 @@ public:
     bool HasSigSetsToContributeTo(vector<vector<uint32_t> > &vSigSetsToContributeTo, const uint32_t nNodeId, const uint32_t nMaxSignatures);
     bool GetAllMissing(vector<uint32_t> &vMissingSignerIds, const uint32_t nNodeId, const vector<CSchnorrRx> &commonRxs, const CNoncePoolType &mapNoncePool, const uint32_t nMaxSignatures);
     bool HasCompleteSigSets(const uint32_t nMaxSignatures) const;
+    void clear(const uint32_t nNextCreator);
 
     std::string ToString();
 };
