@@ -4480,7 +4480,7 @@ void static AdvertiseSigsAndNonces(CNode *pfrom)
     if (sigHolder.GetSignatures(sigs)) {
         BOOST_FOREACH(const CCvnPartialSignature &s, sigs) {
             if (s.hashPrevBlock != hashPrevBlock || s.nCreatorId != nNextCreator) {
-                LogPrintf("AdvertiseSigsAndNonces : not sending outdated signature: %d vs %d, %s vs %s\n", s.nCreatorId, nNextCreator, s.hashPrevBlock.ToString(), hashPrevBlock.ToString());
+                LogPrintf("AdvertiseSigsAndNonces : not sending outdated signature: 0x%08x vs 0x%08x, %s vs %s\n", s.nCreatorId, nNextCreator, s.hashPrevBlock.ToString(), hashPrevBlock.ToString());
                 continue;
             }
 

@@ -450,7 +450,7 @@ bool DetermineBestSignatureSet(CBlockIndex * const pindexPrev, CBlock *pblock)
             }
 
             if (sig.nCreatorId != pblock->nCreatorId) {
-                LogPrintf("Invalid signature found for wrong tip. Trying next set.\n%s\n", sig.ToString());
+                LogPrintf("Invalid signature found for wrong creator ID. Trying next set.\n%s\n", sig.ToString());
                 fAllSigsValid = false;
                 break;
             }
