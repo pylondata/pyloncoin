@@ -117,7 +117,7 @@ static bool AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
     vector<string> paramsList = jsonParams.getKeys();
     BOOST_FOREACH(const string& key, paramsList) {
         LogPrintf("AddDynParamsToMsg : adding %s: %u\n", key, jsonParams[key].getValStr());
-        if (key == "nBlockSpacing") {
+        if (key == "blockSpacing") {
             params.nBlockSpacing = jsonParams[key].get_int();
         } else if (key == "blockSpacingGracePeriod") {
             params.nBlockSpacingGracePeriod = jsonParams[key].get_int();
