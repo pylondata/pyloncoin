@@ -1982,8 +1982,10 @@ static void handleWaitingForSignatures(POCStateHolder& s)
 
 static void handleWaitingForBlock(POCStateHolder& s)
 {
-    if (s.NewTip())
+    if (s.NewTip()) {
         s.Reset(s.nNextCreator, chainActive.Tip());
+        sigHolder.SetNull();
+    }
 
     if (s.nNextCreator == s.nNodeId) {
         int32_t nBlockTime = GetAdjustedTime() - s.pindexPrev->nTime;
@@ -1992,7 +1994,7 @@ static void handleWaitingForBlock(POCStateHolder& s)
             if (CreateBlock(s)) {
                 s.state = WAITING_FOR_NEW_TIP;
             } else {
-                s.nSleep = 10;
+                s.nSleep = 3;
             }
         }
     }
@@ -2000,8 +2002,10 @@ static void handleWaitingForBlock(POCStateHolder& s)
 
 static void handleWaitingForNewTip(POCStateHolder& s)
 {
-    if (s.NewTip())
+    if (s.NewTip()) {
         s.Reset(s.nNextCreator, chainActive.Tip());
+        sigHolder.SetNull();
+    }
 
     return;
 }
