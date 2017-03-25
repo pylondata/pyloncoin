@@ -2036,9 +2036,10 @@ void CheckNoncePools(CBlockIndex *pindex)
         const CNoncePool &p = it->second;
         const uint32_t nPoolAge = GetPoolAge(p, pindex);
         const CNoncePoolType::iterator itErase = it++;
+        const bool fCvnRemoved = mapCVNs.find(p.nCvnId) == mapCVNs.end();
 
-        if (nPoolAge >= p.vPublicNonces.size()) {
-            LogPrintf("nonce pool expired, removing pool for 0x%08x.\n", itErase->first);
+        if (fCvnRemoved || nPoolAge >= p.vPublicNonces.size()) {
+            LogPrintf("%s, removing pool for 0x%08x.\n", (fCvnRemoved ? "CVN has been removed from the network" : "nonce pool expired"), itErase->first);
             mapNoncePool.erase(itErase);
         }
     }
@@ -2048,8 +2049,10 @@ void CheckNoncePools(CBlockIndex *pindex)
         CNoncePool &p = it->second;
         const CNoncePoolType::iterator itErase = it++;
         if (p.hashRootBlock == pindex->GetBlockHash()) {
-            LogPrintf("reconsidering nonce pool for 0x%08x\n", itErase->first);
-            AddNoncePool(p);
+            if (mapCVNs.find(p.nCvnId) != mapCVNs.end()) {
+                LogPrintf("reconsidering nonce pool for 0x%08x\n", itErase->first);
+                AddNoncePool(p);
+            }
             mapNoncePoolCheckLater.erase(itErase);
         }
     }
