@@ -364,16 +364,26 @@ bool CSignatureHolder::GetAllMissing(vector<uint32_t> &vMissingSignerIds, const 
 void CSignatureHolder::clear(const uint32_t nNextCreator)
 {
     LOCK(cs_sigHolder);
-    BOOST_FOREACH(MapSigCommonR::value_type& commonRx, sigs) {
-        MapSigSigner &m = commonRx.second;
+
+    MapSigCommonR::iterator ci = sigs.begin();
+
+    while(ci != sigs.end()) {
+        MapSigSigner &m = ci->second;
         MapSigSigner::iterator mi = m.begin();
+
         while(mi != m.end()) {
             const CCvnPartialSignature& sig = mi->second;
             if (sig.nCreatorId != nNextCreator) {
                 m.erase(mi++);
             } else {
-                mi++;
+                ++mi;
             }
+        }
+
+        if (m.empty()) {
+            sigs.erase(ci++);
+        } else {
+            ++ci;
         }
     }
 }
