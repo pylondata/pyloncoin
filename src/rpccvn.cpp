@@ -804,3 +804,21 @@ UniValue addcoinsupply(const UniValue& params, bool fHelp)
     return result;
 }
 #endif
+
+UniValue estimatefee(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1)
+        throw std::runtime_error(
+            "estimatefee nblocks\n"
+            "\nReturns the current mandatory fee per kilobyte needed for a transaction to be accepted.\n"
+            "\nArguments:\n"
+            "1. nblocks     (numeric, required) - dummy value for API compatibility\n"
+            "\nResult:\n"
+            "n              (numeric) mandatory fee-per-kilobyte\n"
+            "\n"
+            "\nExample:\n"
+            + HelpExampleCli("estimatefee", "123")
+            );
+
+    return ValueFromAmount(dynParams.nTransactionFee);
+}

@@ -302,6 +302,7 @@ static const CRPCCommand vRPCCommands[] =
 #ifdef ENABLE_COINSUPPLY
     { "cvn",                "addcoinsupply",          &addcoinsupply,          true  },
 #endif
+    { "cvn",                "estimatefee",            &estimatefee,            true  },
 
     /* Coin generation */
     { "generating",         "getgenerate",            &getgenerate,            true  },

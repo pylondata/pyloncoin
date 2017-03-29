@@ -424,6 +424,30 @@ static bool rest_getactivecvns(HTTPRequest* req, const std::string& strURIPart)
     return true; // continue to process further HTTP reqs on this cxn
 }
 
+static bool rest_estimatefee(HTTPRequest* req, const std::string& strURIPart)
+{
+    if (!CheckWarmup(req))
+        return false;
+    std::string param;
+    const RetFormat rf = ParseDataFormat(param, strURIPart);
+
+    switch (rf) {
+    case RF_JSON: {
+        UniValue rpcParams(UniValue::VOBJ);
+        UniValue feePerKb = estimatefee(rpcParams, false);
+        req->WriteHeader("Content-Type", "application/json");
+        req->WriteReply(HTTP_OK, feePerKb.get_str());
+        return true;
+    }
+    default: {
+        return RESTERR(req, HTTP_NOT_FOUND, "output format not found (available: json)");
+    }
+    }
+
+    // not reached
+    return true; // continue to process further HTTP reqs on this cxn
+}
+
 static bool rest_mempool_info(HTTPRequest* req, const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
@@ -732,6 +756,7 @@ static const struct {
       {"/rest/block/", rest_block_extended},
       {"/rest/chaininfo", rest_chaininfo},
       {"/rest/chainparameters", rest_chainparameters},
+      {"/rest/estimatefee", rest_estimatefee},
       {"/rest/mempool/info", rest_mempool_info},
       {"/rest/mempool/contents", rest_mempool_contents},
       {"/rest/headers/", rest_headers},
