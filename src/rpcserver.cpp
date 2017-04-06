@@ -298,6 +298,7 @@ static const CRPCCommand vRPCCommands[] =
     { "cvn",                "setchainparameters",     &setchainparameters,     true  },
     { "cvn",                "getchainparameters",     &getchainparameters,     true  },
     { "cvn",                "getactivecvns",          &getactivecvns,          true  },
+    { "cvn",                "getactiveadmins",        &getactiveadmins,        true  },
     { "cvn",                "submitblock",            &submitblock,            true  },
 #ifdef ENABLE_COINSUPPLY
     { "cvn",                "addcoinsupply",          &addcoinsupply,          true  },
@@ -541,13 +542,13 @@ UniValue CRPCTable::execute(const std::string &strMethod, const UniValue &params
 
 std::string HelpExampleCli(const std::string& methodname, const std::string& args)
 {
-    return "> bitcoin-cli " + methodname + " " + args + "\n";
+    return "> faircoin-cli " + methodname + " " + args + "\n";
 }
 
 std::string HelpExampleRpc(const std::string& methodname, const std::string& args)
 {
     return "> curl --user myusername --data-binary '{\"jsonrpc\": \"1.0\", \"id\":\"curltest\", "
-        "\"method\": \"" + methodname + "\", \"params\": [" + args + "] }' -H 'content-type: text/plain;' http://127.0.0.1:8332/\n";
+        "\"method\": \"" + methodname + "\", \"params\": [" + args + "] }' -H 'content-type: text/plain;' http://127.0.0.1:40405/\n";
 }
 
 void RPCRegisterTimerInterface(RPCTimerInterface *iface)

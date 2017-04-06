@@ -436,7 +436,7 @@ UniValue getcvninfo(const UniValue& params, bool fHelp)
             "{\n"
                 "  \"nextBlockToCreate\":height     ,           (int) The estimated next block to create\n"
                 "  \"reserved\":\"reserved\",                   (string) reserved\n"
-             "}\n"
+            "}\n"
             "\nExamples:\n"
             "\nDisplay CVN state\n"
             + HelpExampleCli("getcvninfo", "0x12345678")
@@ -491,26 +491,31 @@ UniValue getactivecvns(const UniValue& params, bool fHelp)
         throw runtime_error(
             "getactivecvns\n"
             "\nDisplay a list of all currently active CVN\n"
-            "\nArguments:\n"
+            "\nArguments: none\n"
             "\nResult:\n"
             "{\n"
-            "  \"nCvns\" : \"n\",               (numeric) The number currently activated CNVs\n"
-            "  \"currentHeight\" : \"n\",       (numberc) The current block height the result relates to\n"
-            "  \"cvns\" : [                   (array of json objects)\n"
+            "  \"count\" : \"n\",                (numeric) The number currently activated CNVs\n"
+            "  \"currentHeight\" : \"n\",        (numberc) The current block height the result relates to\n"
+            "  \"cvns\" : [                    (array of json objects)\n"
             "     {\n"
-            "       \"nodeId\": \"id\",         (string) The transaction id\n"
-            "       \"pubKey\": \"public key\", (string) The public key of the CVN\n"
-            "       \"heightAdded\": n        (numeric) The height when the CVN was added to the network\n"
+            "       \"nodeId\": \"id\",          (string) The transaction id\n"
+            "       \"pubKey\": \"public key\",  (string) The public key of the CVN\n"
+            "       \"heightAdded\": n,        (numeric) The height when the CVN was added to the network\n"
+            "       \"predictedNextBlock\": n, (numeric) The height of the next block this CVNs most probably will create\n"
+            "       \"lastBlocksSigned\": n    (numeric) The number of blocks signed within the last " + strprintf("%d", (int)dynParams.nMinSuccessiveSignatures) + " blocks\n"
             "     }\n"
             "     ,...\n"
             "  ],\n"
+            "}\n"
             "\nExamples:\n"
             "\nDisplay CVN list\n"
             + HelpExampleCli("getactivecvns","")
         );
 
+    LOCK(cs_mapCVNs);
+
     UniValue result(UniValue::VOBJ);
-    result.push_back(Pair("nCvns", (int)mapCVNs.size()));
+    result.push_back(Pair("count", (int)mapCVNs.size()));
     result.push_back(Pair("currentHeight", chainActive.Tip()->nHeight));
     UniValue cvns(UniValue::VARR);
 
@@ -518,20 +523,69 @@ UniValue getactivecvns(const UniValue& params, bool fHelp)
     {
         const CCvnInfo& c = cvn.second;
 
-        UniValue cvnEntry(UniValue::VOBJ);
-        cvnEntry.push_back(Pair("nodeId", strprintf("0x%08x", c.nNodeId)));
-        cvnEntry.push_back(Pair("pubKey", c.pubKey.ToString()));
-        cvnEntry.push_back(Pair("heightAdded", (int)c.nHeightAdded));
+        UniValue entry(UniValue::VOBJ);
+        entry.push_back(Pair("nodeId", strprintf("0x%08x", c.nNodeId)));
+        entry.push_back(Pair("pubKey", c.pubKey.ToString()));
+        entry.push_back(Pair("heightAdded", (int)c.nHeightAdded));
 
         CCvnStatus status(c.nNodeId);
         CheckNextBlockCreator(chainActive.Tip(), GetAdjustedTime(), &status);
-        cvnEntry.push_back(Pair("predictedNextBlock", (int)status.nPredictedNextBlock));
-        cvnEntry.push_back(Pair("lastBlocksSigned", (int)status.nBlockSigned));
+        entry.push_back(Pair("predictedNextBlock", (int)status.nPredictedNextBlock));
+        entry.push_back(Pair("lastBlocksSigned", (int)status.nBlockSigned));
 
-        cvns.push_back(cvnEntry);
+        cvns.push_back(entry);
     }
 
     result.push_back(Pair("cvns", cvns));
+
+    return result;
+}
+
+UniValue getactiveadmins(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() > 1)
+        throw runtime_error(
+            "getactiveadmins\n"
+            "\nDisplay a list of all currently active chain administrators\n"
+            "\nArguments: none\n"
+            "\nResult:\n"
+            "{\n"
+            "  \"count\" : \"n\",               (numeric) The number currently activated CNVs\n"
+            "  \"currentHeight\" : \"n\",       (numberc) The current block height the result relates to\n"
+            "  \"admins\" : [                 (array of json objects)\n"
+            "     {\n"
+            "       \"adminId\": \"id\",        (string) The transaction id\n"
+            "       \"pubKey\": \"public key\", (string) The public key of the CVN\n"
+            "       \"heightAdded\": n        (numeric) The height when the CVN was added to the network\n"
+            "     }\n"
+            "     ,...\n"
+            "  ],\n"
+            "}\n"
+            "\nExamples:\n"
+            "\nDisplay Chain Admins list\n"
+            + HelpExampleCli("getactiveadmins","")
+        );
+
+    LOCK(cs_mapChainAdmins);
+
+    UniValue result(UniValue::VOBJ);
+    result.push_back(Pair("count", (int)mapChainAdmins.size()));
+    result.push_back(Pair("currentHeight", chainActive.Tip()->nHeight));
+    UniValue admins(UniValue::VARR);
+
+    BOOST_FOREACH(const ChainAdminMapType::value_type& admin, mapChainAdmins)
+    {
+        const CChainAdmin& a = admin.second;
+
+        UniValue entry(UniValue::VOBJ);
+        entry.push_back(Pair("adminId", strprintf("0x%08x", a.nAdminId)));
+        entry.push_back(Pair("pubKey", a.pubKey.ToString()));
+        entry.push_back(Pair("heightAdded", (int)a.nHeightAdded));
+
+        admins.push_back(entry);
+    }
+
+    result.push_back(Pair("admins", admins));
 
     return result;
 }

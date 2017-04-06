@@ -424,6 +424,31 @@ static bool rest_getactivecvns(HTTPRequest* req, const std::string& strURIPart)
     return true; // continue to process further HTTP reqs on this cxn
 }
 
+static bool rest_getactiveadmins(HTTPRequest* req, const std::string& strURIPart)
+{
+    if (!CheckWarmup(req))
+        return false;
+    std::string param;
+    const RetFormat rf = ParseDataFormat(param, strURIPart);
+
+    switch (rf) {
+    case RF_JSON: {
+        UniValue rpcParams(UniValue::VOBJ);
+        UniValue adminListObject = getactiveadmins(rpcParams, false);
+        string strJSON = adminListObject.write() + "\n";
+        req->WriteHeader("Content-Type", "application/json");
+        req->WriteReply(HTTP_OK, strJSON);
+        return true;
+    }
+    default: {
+        return RESTERR(req, HTTP_NOT_FOUND, "output format not found (available: json)");
+    }
+    }
+
+    // not reached
+    return true; // continue to process further HTTP reqs on this cxn
+}
+
 static bool rest_estimatefee(HTTPRequest* req, const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
@@ -764,6 +789,7 @@ static const struct {
       {"/rest/cvninfo/", rest_getcvninfo},
       {"/rest/bancvn/", rest_bancvn},
       {"/rest/activecvns", rest_getactivecvns},
+      {"/rest/activeadmins", rest_getactiveadmins},
 };
 
 bool StartREST()
