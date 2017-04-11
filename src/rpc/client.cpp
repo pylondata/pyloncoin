@@ -3,9 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "rpcclient.h"
+#include "client.h"
 
-#include "rpcprotocol.h"
 #include "util.h"
 
 #include <set>
@@ -13,6 +12,7 @@
 
 #include <boost/algorithm/string/case_conv.hpp> // for to_lower()
 #include <univalue.h>
+#include "protocol.h"
 
 using namespace std;
 

@@ -2,9 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <blockfactory.h>
+#include "blockfactory.h"
 #include "base58.h"
-#include "rpcserver.h"
 #include "util.h"
 #include "main.h"
 #include "utilstrencodings.h"
@@ -17,6 +16,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <univalue.h>
+#include "server.h"
 
 using namespace std;
 
