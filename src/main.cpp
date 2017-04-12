@@ -100,6 +100,13 @@ map<uint256, CChainDataMsg> mapRelayChainData;
 deque<pair<int64_t, uint256> > vRelayExpirationChainData;
 CCriticalSection cs_mapRelayChainData;
 
+map<uint256, CAdminNonce> mapRelayAdminNonces;
+deque<pair<int64_t, uint256> > vRelayExpirationAdminNonces;
+CCriticalSection cs_mapRelayAdminNonces;
+
+map<uint256, CAdminPartialSignature> mapRelayAdminSigs;
+deque<pair<int64_t, uint256> > vRelayExpirationAdminSigs;
+CCriticalSection cs_mapRelayAdminSigs;
 
 struct COrphanTx {
     CTransaction tx;
@@ -2439,6 +2446,7 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
     if (!IsInitialBlockDownload()) {
         sigHolder.clear(CheckNextBlockCreator(pindexNew, block.nTime + 1));
         CheckNoncePools(pindexNew);
+        ExpireChainAdminData();
     }
 
     return true;
@@ -4278,6 +4286,10 @@ bool static AlreadyHave(const CInv& inv) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
         return mapRelayNonces.count(inv.hash);
     case MSG_CVN_SIGNATURE:
         return mapRelaySigs.count(inv.hash);
+    case MSG_CHAIN_ADMIN_NONCE:
+        return mapRelayAdminNonces.count(inv.hash);
+    case MSG_CHAIN_ADMIN_SIGNATURE:
+        return mapRelayAdminSigs.count(inv.hash);
     case MSG_POC_CHAIN_DATA:
         return mapRelayChainData.count(inv.hash);
     }
@@ -4406,6 +4418,32 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
                 }
                 if (sig)
                     pfrom->PushMessage(NetMsgType::SIG, *sig);
+                else
+                    vNotFound.push_back(inv);
+            }
+            else if (inv.type == MSG_CHAIN_ADMIN_NONCE) {
+                CAdminNonce *nonce = NULL;
+                {
+                    LOCK(cs_mapRelayAdminNonces);
+                    map<uint256, CAdminNonce>::iterator mi = mapRelayAdminNonces.find(inv.hash);
+                    if (mi != mapRelayAdminNonces.end())
+                        nonce = &(*mi).second;
+                }
+                if (nonce)
+                    pfrom->PushMessage(NetMsgType::NONCEADMIN, *nonce);
+                else
+                    vNotFound.push_back(inv);
+            }
+            else if (inv.type == MSG_CHAIN_ADMIN_SIGNATURE) {
+                CAdminPartialSignature *sig = NULL;
+                {
+                    LOCK(cs_mapRelayAdminSigs);
+                    map<uint256, CAdminPartialSignature>::iterator mi = mapRelayAdminSigs.find(inv.hash);
+                    if (mi != mapRelayAdminSigs.end())
+                        sig = &(*mi).second;
+                }
+                if (sig)
+                    pfrom->PushMessage(NetMsgType::SIGADMIN, *sig);
                 else
                     vNotFound.push_back(inv);
             }
@@ -4793,7 +4831,9 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                     LogPrint("net", "getheaders (%d) %s to peer=%d\n", pindexBestHeader->nHeight, inv.hash.ToString(), pfrom->id);
                 }
             }
-            else if (!IsInitialBlockDownload() && (inv.type == MSG_CVN_PUB_NONCE_POOL || inv.type == MSG_CVN_SIGNATURE || inv.type == MSG_POC_CHAIN_DATA)) {
+            else if (!IsInitialBlockDownload() &&
+                    (inv.type == MSG_CVN_PUB_NONCE_POOL || inv.type == MSG_CVN_SIGNATURE ||
+                            inv.type == MSG_CHAIN_ADMIN_NONCE || inv.type == MSG_CHAIN_ADMIN_SIGNATURE || inv.type == MSG_POC_CHAIN_DATA)) {
                 if (!fAlreadyHave && !fImporting && !fReindex)
                     pfrom->AskFor(inv);
             }
@@ -4948,14 +4988,16 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         mapAlreadyAskedFor.erase(inv.hash);
 
         if (!AlreadyHave(inv)) {
-            if (msg.hashPrevBlock != chainActive.Tip()->GetBlockHash())
+            if (msg.hashPrevBlock != chainActive.Tip()->GetBlockHash()) {
                 LogPrintf("received outdated chain data for tip %s: %s\n", msg.hashPrevBlock.ToString(), msg.ToString());
-            else if (AddChainData(msg))
+            } else if (AddChainData(msg)) {
                 RelayChainData(msg);
-            else
+            } else {
                 LogPrintf("received invalid chain data %s\n", msg.ToString());
-        } else
+            }
+        } else {
             LogPrint("net", "AlreadyHave chain data %s\n", hashData.ToString());
+        }
     }
 
 
@@ -4975,9 +5017,9 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         if (!AlreadyHave(inv)) {
             if (!mapBannedCVNs.count(msg.nCvnId)) {
                 LogPrint("net", "received nonce pool %s for CvnID 0x%08x\n", msg.GetHash().ToString(), msg.nCvnId);
-                if (AddNoncePool(msg))
+                if (AddNoncePool(msg)) {
                     RelayNoncePool(msg);
-                else {
+                } else {
                     LogPrintf("received invalid nonce pool %s\n", msg.ToString());
                     Misbehaving(pfrom->GetId(), 50);
                 }
@@ -4985,8 +5027,9 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                 LogPrintf("Ignoring nonce pool of banned CvnID 0x%08x\n", msg.nCvnId);
                 Misbehaving(pfrom->GetId(), 20);
             }
-        } else
+        } else {
             LogPrint("net", "AlreadyHave nonce pool for CvnID 0x%08x\n", msg.nCvnId);
+        }
     }
 
 
@@ -5005,21 +5048,84 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
 
         if (!AlreadyHave(inv)) {
             if (!mapBannedCVNs.count(msg.nSignerId)) {
-                if (msg.hashPrevBlock != chainActive.Tip()->GetBlockHash())
+                if (msg.hashPrevBlock != chainActive.Tip()->GetBlockHash()) {
                     LogPrintf("received outdated chain signature from peer %d for tip %s signed by 0x%08x\n", pfrom->id, msg.hashPrevBlock.ToString(), msg.nCreatorId);
-                else {
+                } else {
                     LogPrint("net", "received chain signature %s for tip %s\n", msg.GetHash().ToString(), msg.hashPrevBlock.ToString());
-                    if (AddCvnSignature(msg))
+                    if (AddCvnSignature(msg)) {
                         RelayCvnSignature(msg);
-                    else
+                    } else {
                         LogPrintf("received invalid signature data %s\n", msg.ToString());
+                    }
                 }
             } else {
                 LogPrintf("Ignoring chain signature of banned CvnID 0x%08x\n", msg.nSignerId);
                 Misbehaving(pfrom->GetId(), 20);
             }
-        } else
+        } else {
             LogPrint("net", "AlreadyHave sig %s\n", msg.hashPrevBlock.ToString());
+        }
+    }
+
+
+    else if (strCommand == NetMsgType::NONCEADMIN)
+    {
+        CAdminNonce msg;
+        vRecv >> msg;
+
+        CInv inv(MSG_CHAIN_ADMIN_NONCE, msg.GetHash());
+        pfrom->AddInventoryKnown(inv);
+
+        LOCK(cs_main);
+
+        pfrom->setAskFor.erase(inv.hash);
+        mapAlreadyAskedFor.erase(inv.hash);
+
+        if (!AlreadyHave(inv)) {
+            if (msg.hashRootBlock != chainActive.Tip()->GetBlockHash()) {
+                LogPrintf("received outdated admin nonce from peer %d for tip %s signed by 0x%08x\n", pfrom->id, msg.hashRootBlock.ToString(), msg.nAdminId);
+            } else {
+                LogPrint("net", "received admin nonce %s for admin ID 0x%08x\n", msg.GetHash().ToString(), msg.nAdminId);
+                if (AddNonceAdmin(msg)) {
+                    RelayNonceAdmin(msg);
+                } else {
+                    LogPrintf("received invalid admin nonce %s\n", msg.ToString());
+                    Misbehaving(pfrom->GetId(), 50);
+                }
+            }
+        } else {
+            LogPrint("net", "AlreadyHave admin nonce for admin ID 0x%08x\n", msg.nAdminId);
+        }
+    }
+
+
+    else if (strCommand == NetMsgType::SIGADMIN)
+    {
+        CAdminPartialSignature msg;
+        vRecv >> msg;
+
+        CInv inv(MSG_CHAIN_ADMIN_SIGNATURE, msg.GetHash());
+        pfrom->AddInventoryKnown(inv);
+
+        LOCK(cs_main);
+
+        pfrom->setAskFor.erase(inv.hash);
+        mapAlreadyAskedFor.erase(inv.hash);
+
+        if (!AlreadyHave(inv)) {
+            if (msg.hashRootBlock != chainActive.Tip()->GetBlockHash()) {
+                LogPrintf("received outdated admin signature from peer %d for tip %s signed by 0x%08x\n", pfrom->id, msg.hashRootBlock.ToString(), msg.nAdminId);
+            } else {
+                LogPrint("net", "received admin signature %s for tip %s\n", msg.GetHash().ToString(), msg.hashRootBlock.ToString());
+                if (AddAdminSignature(msg)) {
+                    RelayAdminSignature(msg);
+                } else {
+                    LogPrintf("received invalid admin signature data %s\n", msg.ToString());
+                }
+            }
+        } else {
+            LogPrint("net", "AlreadyHave admin sig %s\n", msg.hashRootBlock.ToString());
+        }
     }
 
 
@@ -5995,7 +6101,6 @@ bool SendMessages(CNode* pto)
             //
             // Handle: PoC public nonces
             //
-
             const uint256& hashTip = chainActive.Tip()->GetBlockHash();
             BOOST_FOREACH(const uint256& hash, pto->vInventoryNoncePoolsToSend) {
                 map<uint256, CNoncePool>::iterator mi = mapRelayNonces.find(hash);
@@ -6030,11 +6135,9 @@ bool SendMessages(CNode* pto)
             }
             pto->vInventoryNoncePoolsToSend.clear();
 
-
             //
             // Handle: PoC chain signatures
             //
-
             BOOST_FOREACH(const uint256& hash, pto->vInventoryChainSignaturesToSend) {
                 map<uint256, CCvnPartialSignature>::iterator mi = mapRelaySigs.find(hash);
                 if (mi != mapRelaySigs.end()) {
@@ -6065,6 +6168,74 @@ bool SendMessages(CNode* pto)
 
             }
             pto->vInventoryChainSignaturesToSend.clear();
+
+            //
+            // Handle: chain admin public nonces
+            //
+            BOOST_FOREACH(const uint256& hash, pto->vInventoryAdminNoncesToSend) {
+                map<uint256, CAdminNonce>::iterator mi = mapRelayAdminNonces.find(hash);
+                if (mi != mapRelayAdminNonces.end()) {
+                    CInv inv(MSG_CHAIN_ADMIN_NONCE, hash);
+                    {
+                        LOCK(cs_mapRelayAdminNonces);
+                        // Expire old relay messages
+                        while (!vRelayExpirationAdminNonces.empty() && vRelayExpirationAdminNonces.front().first < GetTime()) {
+                            mapRelayAdminNonces.erase(vRelayExpirationAdminNonces.front().second);
+                            vRelayExpirationAdminNonces.pop_front();
+                        }
+
+                        // we keep them around for 30min so AlreadyHave() works properly
+                        vRelayExpirationAdminNonces.push_back(std::make_pair(GetTime() + 1800, inv.hash));
+                    }
+
+                    const CAdminNonce& nonce = mi->second;
+
+                    // we only relay signatures for the active chain tip
+                    if (nonce.hashRootBlock == hashTip) {
+                        vInv.push_back(inv);
+                        if (vInv.size() == MAX_INV_SZ) {
+                            pto->PushMessage(NetMsgType::INV, vInv);
+                            vInv.clear();
+                        }
+                    }
+                }
+
+            }
+            pto->vInventoryAdminNoncesToSend.clear();
+
+            //
+            // Handle: chain admin signatures
+            //
+            BOOST_FOREACH(const uint256& hash, pto->vInventoryAdminSignaturesToSend) {
+                map<uint256, CAdminPartialSignature>::iterator mi = mapRelayAdminSigs.find(hash);
+                if (mi != mapRelayAdminSigs.end()) {
+                    CInv inv(MSG_CHAIN_ADMIN_SIGNATURE, hash);
+                    {
+                        LOCK(cs_mapRelayAdminSigs);
+                        // Expire old relay messages
+                        while (!vRelayExpirationAdminSigs.empty() && vRelayExpirationAdminSigs.front().first < GetTime()) {
+                            mapRelayAdminSigs.erase(vRelayExpirationAdminSigs.front().second);
+                            vRelayExpirationAdminSigs.pop_front();
+                        }
+
+                        // we keep them around for 30min so AlreadyHave() works properly
+                        vRelayExpirationAdminSigs.push_back(std::make_pair(GetTime() + 1800, inv.hash));
+                    }
+
+                    const CAdminPartialSignature& sig = mi->second;
+
+                    // we only relay signatures for the active chain tip
+                    if (sig.hashRootBlock == hashTip) {
+                        vInv.push_back(inv);
+                        if (vInv.size() == MAX_INV_SZ) {
+                            pto->PushMessage(NetMsgType::INV, vInv);
+                            vInv.clear();
+                        }
+                    }
+                }
+
+            }
+            pto->vInventoryAdminSignaturesToSend.clear();
 
             //
             // Handle: PoC chain data

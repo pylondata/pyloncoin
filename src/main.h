@@ -156,7 +156,10 @@ extern map<uint256, CCvnPartialSignature> mapRelaySigs;
 extern CCriticalSection cs_mapRelaySigs;
 extern map<uint256, CChainDataMsg> mapRelayChainData;
 extern CCriticalSection cs_mapRelayChainData;
-
+extern map<uint256, CAdminNonce> mapRelayAdminNonces;
+extern CCriticalSection cs_mapRelayAdminNonces;
+extern map<uint256, CAdminPartialSignature> mapRelayAdminSigs;
+extern CCriticalSection cs_mapRelayAdminSigs;
 
 /** Best header we've seen so far (used for getheaders queries' starting points). */
 extern CBlockIndex *pindexBestHeader;

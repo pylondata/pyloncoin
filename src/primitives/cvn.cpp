@@ -55,6 +55,33 @@ std::string CCoinSupply::ToString() const
     return s.str();
 }
 
+uint256 CAdminNonceUnsigned::GetHash() const
+{
+    return SerializeHash(*this);
+}
+
+std::string CAdminNonceUnsigned::ToString() const
+{
+    std::stringstream s;
+    s << strprintf("CAdminNonceUnsigned(adminId=0x%08x, hashRoot=%s, creationTime=%u, nonce=%s)",
+        nAdminId, hashRootBlock.ToString(), nCreationTime, publicNonce.ToString());
+    return s.str();
+}
+
+uint256 CAdminPartialSignatureUnsinged::GetHash() const
+{
+    return SerializeHash(*this);
+}
+
+std::string CAdminPartialSignatureUnsinged::ToString() const
+{
+    std::stringstream s;
+    s << strprintf("CAdminPartialSignatureUnsinged(adminId=0x%08x, hashRoot=%s, sig=%s, signers=%s)",
+        nAdminId, hashRootBlock.ToString(),
+        signature.ToString(), vSignerIds.size());
+    return s.str();
+}
+
 uint256 CCvnPartialSignatureUnsinged::GetHash() const
 {
     return SerializeHash(*this);
@@ -63,7 +90,7 @@ uint256 CCvnPartialSignatureUnsinged::GetHash() const
 std::string CCvnPartialSignatureUnsinged::ToString() const
 {
     std::stringstream s;
-    s << strprintf("CCvnSignatureUnsinged(signerId=0x%08x, nextCreatorId=0x%08x, hashPrev=%s, ver=%d, sig=%s, missing=%d)",
+    s << strprintf("CCvnPartialSignatureUnsinged(signerId=0x%08x, nextCreatorId=0x%08x, hashPrev=%s, ver=%d, sig=%s, missing=%d)",
         nSignerId, nCreatorId, hashPrevBlock.ToString(), nVersion,
         signature.ToString(), vMissingSignerIds.size());
     return s.str();

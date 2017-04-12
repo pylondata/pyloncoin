@@ -19,10 +19,18 @@ CSchnorrPubKey cvnPubKey;
 CKey adminPrivKey;
 CSchnorrPubKey adminPubKey;
 
-static X509* ParseCertificate(FILE* file, const bool fChainAdmin)
+static X509* ParseCertificate(FILE* file, const bool fChainAdmin, const string *strPassword = NULL)
 {
+    OpenSSL_add_all_algorithms(); // needed to load encrypted private keys
+
     EVP_PKEY *privkey = EVP_PKEY_new();
-    PEM_read_PrivateKey(file, &privkey, NULL, NULL);
+
+    if (!PEM_read_PrivateKey(file, &privkey, NULL, strPassword == NULL ? NULL : (char *)strPassword->c_str())) {
+        fclose(file);
+        LogPrintf("ERROR: could not open certificate file.\n");
+        return NULL;
+    }
+
     fclose(file);
 
     const EC_KEY* eckey = EVP_PKEY_get1_EC_KEY(privkey);
@@ -156,7 +164,7 @@ uint32_t InitCVNWithCertificate()
     return 0;
 }
 
-uint32_t InitChainAdminWithCertificate()
+uint32_t InitChainAdminWithCertificate(const string& strPassword)
 {
     boost::filesystem::path privkeyFile = GetDataDir() / GetArg("-adminkeyfile", "admin.pem");
     FILE* file = fopen(privkeyFile.string().c_str(), "r");
@@ -165,7 +173,7 @@ uint32_t InitChainAdminWithCertificate()
         return 0;
     }
 
-    X509 *x509Cert = ParseCertificate(file, true);
+    X509 *x509Cert = ParseCertificate(file, true, &strPassword);
 
     if (x509Cert) {
         adminPubKey = adminPrivKey.GetRawPubKey();

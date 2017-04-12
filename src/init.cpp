@@ -1113,26 +1113,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
     LogPrintf("Using at most %i connections (%i file descriptors available)\n", nMaxConnections, nFD);
     std::ostringstream strErrors;
 
-    if (mapArgs.count("-admin")) {
-        if (GetArg("-admin", "") == "fasito") {
-#ifdef USE_FASITO
-            LogPrintf("Initializing fasito\n");
-            uiInterface.InitMessage(_("Initializing fasito..."));
-            nChainAdminId = InitChainAdminWithFasito();
-#else
-            LogPrintf("ERROR: invalid parameter -cvn=fasito. This wallet version was not compiled with fasito support\n");
-#endif
-        } else if (GetArg("-admin", "") == "file") {
-            nChainAdminId = InitChainAdminWithCertificate();
-        } else
-            return InitError("-admin configuration invalid. Parameter must be 'fasito' or 'file'\n");
-
-        if (!nChainAdminId)
-            return InitError("could not find a vaild chain admin ID\n");
-
-        LogPrintf("Configuring node with chain admin ID 0x%08x\n", nChainAdminId);
-    }
-
     if (mapArgs.count("-cvn")) {
         if (GetArg("-cvn", "") == "fasito") {
 #ifdef USE_FASITO

@@ -184,6 +184,10 @@ extern UniValue importwallet(const UniValue& params, bool fHelp);
 
 extern UniValue getgenerate(const UniValue& params, bool fHelp); // in rpc/cvn.cpp
 extern UniValue setgenerate(const UniValue& params, bool fHelp);
+extern UniValue chainadminlogin(const UniValue& params, bool fHelp);
+extern UniValue chainadminlogout(const UniValue& params, bool fHelp);
+extern UniValue chainadminnonce(const UniValue& params, bool fHelp);
+extern UniValue chainadminsign(const UniValue& params, bool fHelp);
 extern UniValue addcvn(const UniValue& params, bool fHelp);
 extern UniValue removecvn(const UniValue& params, bool fHelp);
 extern UniValue signchaindata(const UniValue& params, bool fHelp);

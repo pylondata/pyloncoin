@@ -53,10 +53,10 @@ static void proptForPassword(const std::string &strPrompt, std::string &strPassw
     cout << "\n";
 }
 
-bool CreateNonceWithFasito(const uint256& hashData, const uint8_t nKey, unsigned char *pPrivateData, CSchnorrNonce& noncePublic, const CCvnInfo& cvnInfo)
+bool CreateNonceWithFasito(const uint256& hashData, const uint8_t nKey, unsigned char *pPrivateData, CSchnorrNonce& noncePublic, const CSchnorrPubKey& pubKey)
 {
-    if (!fasito.mapKeys.count(nKey) || fasito.mapKeys[nKey].pubKey != cvnInfo.pubKey) {
-        LogPrintf("CreateNonceWithFasito : public key in Fasito does not match cvnInfo in blockchain: %s != %s\n", fasito.mapKeys[nKey].pubKey.ToString(), cvnInfo.pubKey.ToString());
+    if (!fasito.mapKeys.count(nKey) || fasito.mapKeys[nKey].pubKey != pubKey) {
+        LogPrintf("CreateNonceWithFasito : public key in Fasito does not match cvnInfo in blockchain: %s != %s\n", fasito.mapKeys[nKey].pubKey.ToString(), pubKey.ToString());
         return false;
     }
 
@@ -131,11 +131,7 @@ bool CvnSignWithFasito(const uint256 &hashToSign, const uint8_t nKey, CSchnorrSi
    return true;
 }
 
-/**
- * PARTSIG <key index: 0-8> <nonce slot: 0-25> <sha256 hashToSign> <sum of all other public nonces>
- */
-
-bool CvnSignPartialWithFasito(const uint256& hashToSign, const uint8_t nKey, const CSchnorrPubKey& sumPublicNoncesOthers, CCvnPartialSignatureUnsinged& signature, const int nCurrentHeight)
+bool CvnSignPartialWithFasito(const uint256& hashToSign, const uint8_t nKey, const CSchnorrPubKey& sumPublicNoncesOthers, CSchnorrSig& signature, const int nCurrentHeight)
 {
     if (!fasito.mapKeys.count(nKey)) {
         LogPrintf("CvnSignPartialWithFasito : public key #%d not found.\n", nKey);
@@ -143,10 +139,10 @@ bool CvnSignPartialWithFasito(const uint256& hashToSign, const uint8_t nKey, con
     }
     int nPoolOffset = nCurrentHeight - mapNoncePool[nCvnNodeId].nHeightAdded;
 
-    uint8_t nHanlde = fasito.vNonceHandles[nPoolOffset];
+    uint8_t nHandle = fasito.vNonceHandles[nPoolOffset];
 
     std::stringstream s;
-    s << strprintf("PARTSIG %d %d %s %s", nKey, nHanlde, bin2hex(&hashToSign.begin()[0], 32), bin2hex(&sumPublicNoncesOthers.begin()[0], 64));
+    s << strprintf("PARTSIG %d %d %s %s", nKey, nHandle, bin2hex(&hashToSign.begin()[0], 32), bin2hex(&sumPublicNoncesOthers.begin()[0], 64));
     vector<string> res;
 
     try {
@@ -156,7 +152,7 @@ bool CvnSignPartialWithFasito(const uint256& hashToSign, const uint8_t nKey, con
         }
         vector<uint8_t> vSig = ParseHex(res[0]);
 
-        memcpy(&signature.signature.begin()[0], &vSig.begin()[0], 64);
+        memcpy(&signature.begin()[0], &vSig.begin()[0], 64);
     } catch(const std::exception &e) {
         LogPrintf("failed to send PARTSIG command: %s\n", e.what());
         return false;
@@ -164,6 +160,38 @@ bool CvnSignPartialWithFasito(const uint256& hashToSign, const uint8_t nKey, con
 
 #if FASITO_DEBUG
     LogPrintf("CvnSignPartialWithFasito : OK\n  Hash: %s\nsigner: 0x%08x\n   sum: %s\n   sig: %s\n",
+            hashToSign.ToString(), signature.nSignerId,
+            sumPublicNoncesOthers.ToString(), signature.ToString());
+#endif
+    return true;
+}
+
+bool AdminSignPartialWithFasito(const uint256& hashToSign, const uint8_t nKey, const CSchnorrPubKey& sumPublicNoncesOthers, CSchnorrSig& signature, const uint8_t nHandle)
+{
+    if (!fasito.mapKeys.count(nKey)) {
+        LogPrintf("%s : public key #%d not found.\n", __func__, nKey);
+        return false;
+    }
+
+    std::stringstream s;
+    s << strprintf("PARTSIG %d %d %s %s", nKey, nHandle, bin2hex(&hashToSign.begin()[0], 32), bin2hex(&sumPublicNoncesOthers.begin()[0], 64));
+    vector<string> res;
+
+    try {
+        if (!fasito.sendAndReceive(s.str(), res)) {
+            LogPrintf("%s : could not partial sign hash: %s\nCOMMAND: %s\n", __func__, (!res.empty() ? res[0] : "error not available"), s.str());
+            return false;
+        }
+        vector<uint8_t> vSig = ParseHex(res[0]);
+
+        memcpy(&signature.begin()[0], &vSig.begin()[0], 64);
+    } catch(const std::exception &e) {
+        LogPrintf("%s : failed to send PARTSIG command: %s\n", __func__, e.what());
+        return false;
+    }
+
+#if FASITO_DEBUG
+    LogPrintf("%s : OK\n  Hash: %s\nsigner: 0x%08x\n   sum: %s\n   sig: %s\n", __func__,
             hashToSign.ToString(), signature.nSignerId,
             sumPublicNoncesOthers.ToString(), signature.ToString());
 #endif
@@ -181,7 +209,7 @@ string CFasitoKey::ToString() const
     return s.str();
 }
 
-bool CFasito::login()
+bool CFasito::login(const string& strPassword)
 {
     if (!fInitialized)
         return false;
@@ -338,7 +366,7 @@ static void RetrievePubKeys()
     }
 }
 
-static bool InitFasito()
+static bool InitFasito(const string& strPassword)
 {
     const string strDevice = GetArg("-fasitodevice", "/dev/ttyACM0");
 
@@ -353,16 +381,20 @@ static bool InitFasito()
             return false;
         }
 
-        size_t nPassLen = 0;
-        while ((nPassLen = fasito.strPassword.length()) == 0 && !ShutdownRequested())
-            proptForPassword("Enter Fasito PIN: ", fasito.strPassword);
+        size_t nPassLen = strPassword.length();
+        string strPromptedPassord;
+        if (strPassword.empty()) {
+            while ((nPassLen = strPromptedPassord.length()) == 0 && !ShutdownRequested()) {
+                proptForPassword("Enter Fasito PIN: ", strPromptedPassord);
+            }
+        }
 
         if (nPassLen != 6) {
             LogPrintf("ERROR: invalid Fasito PIN\n");
             return false;
         }
 
-        if (!fasito.login()) {
+        if (!fasito.login(strPassword.empty() ? strPromptedPassord : strPassword)) {
             LogPrintf("ERROR: wrong Fasito PIN\n");
             return false;
         }
@@ -381,10 +413,8 @@ static bool InitFasito()
 
 uint32_t InitCVNWithFasito()
 {
-    if (!fasito.fInitialized) {
-        if (!InitFasito())
-             return false;
-    }
+    if (!InitFasito(""))
+          return false;
 
     uint32_t nKeyIndex = GetArg("-fasitocvnkeyindex", 0);
     if (nKeyIndex > 6) {
@@ -394,38 +424,56 @@ uint32_t InitCVNWithFasito()
     }
 
     if (!fasito.mapKeys.count(nKeyIndex)) {
-        LogPrintf("key #%d not configured on Fasito\n", nKeyIndex);
+        LogPrintf("key #%d not found on Fasito\n", nKeyIndex);
         fasito.close();
         return 0;
     }
 
+    CFasitoKey &fasitoKeys = fasito.mapKeys[nKeyIndex];
+    if (fasitoKeys.status != CONFIGURED) {
+        LogPrintf("key #%d not configured on Fasito\n", nKeyIndex);
+        fasito.close();
+        return 0;
+    }
     fasito.nCVNKeyIndex = nKeyIndex;
     CFasitoKey fKey = fasito.mapKeys[nKeyIndex];
 
     vector<unsigned char> vPubKey;
     fKey.pubKey.GetPubKeyDER(vPubKey);
 
-    LogPrintf("Using Fasito config for CVN ID 0x%08x with public key %s\n", fKey.nCvnId, HexStr(vPubKey));
+    LogPrintf("Using Fasito for CVN ID 0x%08x with public key %s\n", fKey.nCvnId, HexStr(vPubKey));
     return fKey.nCvnId;
 }
 
-uint32_t InitChainAdminWithFasito()
+uint32_t InitChainAdminWithFasito(const string& strPassword, const uint32_t nKeyIndex)
 {
+    bool fWasInitialised = true;
     if (!fasito.fInitialized) {
-        if (!InitFasito())
+        if (!InitFasito(strPassword))
              return false;
+
+        fWasInitialised = false;
     }
 
-    uint32_t nKeyIndex = GetArg("-fasitoadminkeyindex", 1);
     if (nKeyIndex > 6) {
-        LogPrintf("invalid value for -fasitoadminkeyindex\n");
-        fasito.close();
+        LogPrintf("invalid value for adminkeyindex: %d\n", nKeyIndex);
+        if (!fWasInitialised)
+            fasito.close();
         return 0;
     }
 
     if (!fasito.mapKeys.count(nKeyIndex)) {
+        LogPrintf("key #%d not found on Fasito\n", nKeyIndex);
+        if (!fWasInitialised)
+            fasito.close();
+        return 0;
+    }
+
+    CFasitoKey &fasitoKeys = fasito.mapKeys[nKeyIndex];
+    if (fasitoKeys.status != CONFIGURED) {
         LogPrintf("key #%d not configured on Fasito\n", nKeyIndex);
-        fasito.close();
+        if (!fWasInitialised)
+            fasito.close();
         return 0;
     }
 
@@ -435,6 +483,6 @@ uint32_t InitChainAdminWithFasito()
     vector<unsigned char> vPubKey;
     fKey.pubKey.GetPubKeyDER(vPubKey);
 
-    LogPrintf("Using Fasito config for ADMIN ID 0x%08x with public key %s\n", fKey.nCvnId, HexStr(vPubKey));
+    LogPrintf("Using Fasito for ADMIN ID 0x%08x with public key %s\n", fKey.nCvnId, HexStr(vPubKey));
     return fKey.nCvnId;
 }

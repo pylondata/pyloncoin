@@ -440,7 +440,7 @@ bool DetermineBestSignatureSet(CBlockIndex * const pindexPrev, CBlock *pblock)
             if (!setSigners.insert(entry.first).second) {
                 LogPrintf("duplicate signature detected: %s\n%s\n", sig.ToString(), sigHolder.ToString());
                 fAllSigsValid = false;
-                 break;
+                break;
             }
 
             if (sig.hashPrevBlock != pblock->hashPrevBlock) {

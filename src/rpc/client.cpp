@@ -102,6 +102,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "addcoinsupply", 3 },
     { "setchainparameters", 0 },
     { "setchainparameters", 1 },
+    { "chainadminlogin", 2 },
 };
 
 class CRPCConvertTable

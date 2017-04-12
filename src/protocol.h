@@ -228,6 +228,14 @@ extern const char *NONCEPOOL;
  */
 extern const char *SIG;
 /**
+ * The admin nonce message transmits a single serialised CAdminNonce
+ */
+extern const char *NONCEADMIN;
+/**
+ * The admin signature message transmits a single serialised CAdminPartialSignature
+ */
+extern const char *SIGADMIN;
+/**
  * The chaindata sends chain data that a chain admin compiled
  */
 extern const char *CHAINDATA;
@@ -334,6 +342,8 @@ enum {
     MSG_CVN_PUB_NONCE_POOL,
     MSG_CVN_SIGNATURE,
     MSG_POC_CHAIN_DATA,
+    MSG_CHAIN_ADMIN_NONCE,
+    MSG_CHAIN_ADMIN_SIGNATURE,
 };
 
 #endif // BITCOIN_PROTOCOL_H

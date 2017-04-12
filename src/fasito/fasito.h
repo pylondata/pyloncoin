@@ -45,7 +45,6 @@ class CFasito : public SerialConnection
 public:
     bool fInitialized;
     bool fLoggedIn;
-    string strPassword;
 
     string strFasitoVersion;
     string strSerialNumber;
@@ -70,7 +69,6 @@ public:
     {
         fInitialized = false;
         fLoggedIn = false;
-        strPassword.clear();
         strFasitoVersion.clear();
         strSerialNumber.clear();
         strTokenStatus.clear();
@@ -86,15 +84,16 @@ public:
 
     void open(const std::string& devname);
     void close();
-    bool login();
+    bool login(const string& strPassword);
     bool logout();
 };
 
 extern uint32_t InitCVNWithFasito();
-extern bool CreateNonceWithFasito(const uint256& hashData, const uint8_t nKey, unsigned char *pPrivateData, CSchnorrNonce& noncePublic, const CCvnInfo& cvnInfo);
+extern bool CreateNonceWithFasito(const uint256& hashData, const uint8_t nKey, unsigned char *pPrivateData, CSchnorrNonce& noncePublic, const CSchnorrPubKey& pubKey);
 extern bool CvnSignWithFasito(const uint256 &hashToSign, const uint8_t nKey, CSchnorrSig& signaturee);
-extern bool CvnSignPartialWithFasito(const uint256& hashUnsignedBlock, const uint8_t nKey, const CSchnorrPubKey& sumPublicNoncesOthers, CCvnPartialSignatureUnsinged& signature, const int nCurrentHeight);
-extern uint32_t InitChainAdminWithFasito();
+extern bool CvnSignPartialWithFasito(const uint256& hashUnsignedBlock, const uint8_t nKey, const CSchnorrPubKey& sumPublicNoncesOthers, CSchnorrSig& signature, const int nCurrentHeight);
+extern bool AdminSignPartialWithFasito(const uint256& hashToSign, const uint8_t nKey, const CSchnorrPubKey& sumPublicNoncesOthers, CSchnorrSig& signature, const uint8_t nHandle);
+extern uint32_t InitChainAdminWithFasito(const string& strPassword, const uint32_t nKeyIndex);
 
 extern CFasito fasito;
 

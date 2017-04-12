@@ -397,6 +397,8 @@ public:
     std::vector<uint256> vInventoryBlockToSend;
     std::set<uint256> vInventoryNoncePoolsToSend;
     std::set<uint256> vInventoryChainSignaturesToSend;
+    std::set<uint256> vInventoryAdminNoncesToSend;
+    std::set<uint256> vInventoryAdminSignaturesToSend;
     std::set<uint256> vInventoryChainDataToSend;
     CCriticalSection cs_inventory;
     std::set<uint256> setAskFor;
@@ -527,6 +529,10 @@ public:
             vInventoryNoncePoolsToSend.insert(inv.hash);
         } else if (inv.type == MSG_CVN_SIGNATURE) {
             vInventoryChainSignaturesToSend.insert(inv.hash);
+        } else if (inv.type == MSG_CHAIN_ADMIN_NONCE) {
+            vInventoryAdminNoncesToSend.insert(inv.hash);
+        } else if (inv.type == MSG_CHAIN_ADMIN_SIGNATURE) {
+            vInventoryAdminSignaturesToSend.insert(inv.hash);
         } else if (inv.type == MSG_POC_CHAIN_DATA) {
             vInventoryChainDataToSend.insert(inv.hash);
         }

@@ -57,6 +57,12 @@ BlockIndexByPrevHashType mapBlockIndexByPrevHash;
 CCriticalSection cs_mapBannedCVNs;
 BannedCVNMapType mapBannedCVNs;
 
+CCriticalSection cs_mapAdminNonces;
+CNoncesMapType mapAdminNonces;
+
+CCriticalSection cs_mapAdminSigs;
+MapSigAdmin mapAdminSigs;
+
 /* private nonces when starting faircoind with -cvn=file */
 static vector<CSchnorrPrivNonce> vNoncePrivate;
 static secp256k1_context *secp256k1_context_none = NULL;
@@ -178,7 +184,7 @@ uint32_t GetNumChainSigs(const CBlock *pblock)
     return info->nActiveCvns - pblock->vMissingSignerIds.size();
 }
 
-static const string CreateSignerIdList(const std::vector<uint32_t>& vNodeIds)
+const string CreateSignerIdList(const std::vector<uint32_t>& vNodeIds)
 {
     std::stringstream s;
 
@@ -529,19 +535,12 @@ void SaveNoncesPool()
             mapNoncePool[nCvnNodeId].vPublicNonces.size(), vNoncePrivate.size(), vNonceHandles.size());
 }
 
-bool static CreateNonceWithKey(const uint256& hashData, const CKey& cvnPrivKey, unsigned char *pPrivateData, CSchnorrNonce& noncePublic, const CCvnInfo& cvnInfo)
+bool static CreateNonceWithKey(const uint256& hashData, const CKey& privKey, unsigned char *pPrivateData, CSchnorrNonce& noncePublic)
 {
-    if (cvnInfo.pubKey != cvnPubKey) {
-        LogPrintf("%s : key does not match node ID\n"
-                "  block chain pubkey: %s\n"
-                "  FASITO/FILE pubkey: %s\n", __func__, cvnInfo.pubKey.ToString(), cvnPubKey.ToString());
-        return false;
-    }
+    uint256 hashRandom;
+    GetStrongRandBytes(&hashRandom.begin()[0], 32);
 
-    CHashWriter hasher(SER_GETHASH, 0);
-    hasher << GetTimeMillis() << string("we need random nonces") << rand();
-
-    if (!cvnPrivKey.SchnorrCreateNoncePair(hashData, noncePublic, pPrivateData, hasher.GetHash())) {
+    if (!privKey.SchnorrCreateNoncePair(hashData, noncePublic, pPrivateData, hashRandom)) {
         LogPrintf("%s : could not create block signature\n", __func__);
         return false;
     }
@@ -556,24 +555,36 @@ bool static CreateNonceWithKey(const uint256& hashData, const CKey& cvnPrivKey, 
     return true;
 }
 
-static bool CreateNoncePairForHash(CSchnorrNonce& noncePublic, unsigned char *pPrivateData, const uint256& hashToSign, const uint32_t& nNodeId, const bool fUseFasito)
+bool CreateNoncePairForHash(CSchnorrNonce& noncePublic, unsigned char *pPrivateData, const uint256& hashData, const uint32_t& nNodeId, const bool fUseFasito, const bool fAdmin)
 {
-    if (!nNodeId) {
-        LogPrintf("%s : CVN node not initialized\n", __func__);
-        return false;
+    if (fAdmin) {
+        if (!nNodeId) {
+            LogPrintf("%s : chain admin not logged on\n", __func__);
+            return false;
+        }
+
+        if (!mapChainAdmins.count(nNodeId)) {
+            LogPrintf("%s : could not find ChainAdmin for signer ID 0x%08x\n", __func__, nNodeId);
+            return false;
+        }
+    } else {
+        if (!nNodeId) {
+            LogPrintf("%s : CVN node not initialized\n", __func__);
+            return false;
+        }
+
+        if (!mapCVNs.count(nNodeId)) {
+            LogPrintf("%s : could not find CvnInfo for signer ID 0x%08x\n", __func__, nNodeId);
+            return false;
+        }
+
+        if (!mapArgs.count("-cvn")) {
+            LogPrintf("%s : this node was not configured to run as CVN\n", __func__, nNodeId);
+            return false;
+        }
     }
 
-    if (!mapCVNs.count(nNodeId)) {
-        LogPrintf("%s : could not find CvnInfo for signer ID 0x%08x\n", __func__, nNodeId);
-        return false;
-    }
-
-    if (!mapArgs.count("-cvn")) {
-        LogPrintf("%s : this node was not configured to run as CVN\n", __func__, nNodeId);
-        return false;
-    }
-
-    CCvnInfo cvnInfo = mapCVNs[nNodeId];
+    const CSchnorrPubKey& pubKey = fAdmin ? mapChainAdmins[nNodeId].pubKey : mapCVNs[nNodeId].pubKey;
 
     if (fUseFasito) {
 #ifdef USE_FASITO
@@ -581,7 +592,7 @@ static bool CreateNoncePairForHash(CSchnorrNonce& noncePublic, unsigned char *pP
             LogPrint("cvn", "%s : Fasito is not ready.\n", __func__);
             return false;
         }
-        if (!CreateNonceWithFasito(hashToSign, fasito.nCVNKeyIndex, pPrivateData, noncePublic, cvnInfo)) {
+        if (!CreateNonceWithFasito(hashData, fAdmin ? fasito.nADMINKeyIndex : fasito.nCVNKeyIndex, pPrivateData, noncePublic, pubKey)) {
             noncePublic.SetNull();
             return false;
         }
@@ -590,7 +601,14 @@ static bool CreateNoncePairForHash(CSchnorrNonce& noncePublic, unsigned char *pP
         return false;
 #endif
     } else {
-        if (!CreateNonceWithKey(hashToSign, cvnPrivKey, pPrivateData, noncePublic, cvnInfo)) {
+        if ((fAdmin && pubKey != adminPubKey) || (!fAdmin && pubKey != cvnPubKey)) {
+            LogPrintf("%s : key does not match node ID\n"
+                    "  block chain pubkey: %s\n"
+                    "  FILE pubkey: %s\n", __func__, pubKey.ToString(), cvnPubKey.ToString());
+            return false;
+        }
+
+        if (!CreateNonceWithKey(hashData, fAdmin ? adminPrivKey : cvnPrivKey, pPrivateData, noncePublic)) {
             noncePublic.SetNull();
             return false;
         }
@@ -599,14 +617,19 @@ static bool CreateNoncePairForHash(CSchnorrNonce& noncePublic, unsigned char *pP
     return true;
 }
 
-bool static CvnSignWithKey(const uint256& hashToSign, const CKey& cvnPrivKey, CSchnorrSig& signature)
+bool static CvnSignWithKey(const uint256& hashToSign, const CKey& privKey, const CSchnorrPubKey &pubKey, CSchnorrSig& signature)
 {
-    if (!cvnPrivKey.SchnorrSign(hashToSign, signature)) {
-        LogPrintf("%s : could not create chain signature\n", __func__);
+    if (!privKey.IsValid()) {
+        LogPrintf("%s : could not create signature. Private key is invalid.\n", __func__);
         return false;
     }
 
-    if (!CvnVerifySignature(hashToSign, signature, cvnPubKey)) {
+    if (!privKey.SchnorrSign(hashToSign, signature)) {
+        LogPrintf("%s : could not create signature\n", __func__);
+        return false;
+    }
+
+    if (!CvnVerifySignature(hashToSign, signature, pubKey)) {
         LogPrintf("%s : created invalid signature\n", __func__);
         return false;
     }
@@ -620,7 +643,7 @@ bool static CvnSignWithKey(const uint256& hashToSign, const CKey& cvnPrivKey, CS
     return true;
 }
 
-bool static CvnSignPartialWithKey(const uint256& hashToSign, const CKey& cvnPrivKey, const CSchnorrPubKey& sumPublicNoncesOthers, CCvnPartialSignatureUnsinged& signature)
+bool static CvnSignPartialWithKey(const uint256& hashToSign, const CKey& cvnPrivKey, const CSchnorrPubKey& sumPublicNoncesOthers, CSchnorrSig& signature)
 {
     int nPoolOffset = chainActive.Tip()->nHeight - mapNoncePool[nCvnNodeId].nHeightAdded;
 
@@ -629,7 +652,7 @@ bool static CvnSignPartialWithKey(const uint256& hashToSign, const CKey& cvnPriv
         return false;
     }
 
-    if (!cvnPrivKey.SchnorrSignParial(hashToSign, sumPublicNoncesOthers, vNoncePrivate[nPoolOffset], signature.signature)) {
+    if (!cvnPrivKey.SchnorrSignParial(hashToSign, sumPublicNoncesOthers, vNoncePrivate[nPoolOffset], signature)) {
         LogPrintf("%s : could not create chain signature\n", __func__);
         return false;
     }
@@ -656,9 +679,136 @@ bool CvnSignHash(const uint256 &hashToSign, CSchnorrSig& signature)
         return false;
 #endif
     } else {
-        return CvnSignWithKey(hashToSign, cvnPrivKey, signature);
+        return CvnSignWithKey(hashToSign, cvnPrivKey, cvnPubKey, signature);
     }
 
+}
+
+bool AdminSignHash(const uint256 &hashToSign, CSchnorrSig& signature, bool fFasito)
+{
+    if (fFasito) {
+#ifdef USE_FASITO
+        if (!fasito.fLoggedIn) {
+            LogPrintf("%s : Fasito is not ready.\n", __func__);
+            return false;
+        }
+        return CvnSignWithFasito(hashToSign, fasito.nCVNKeyIndex, signature);
+#else
+        LogPrintf("%s : this wallet was not compiled with Fasito support.\n", __func__);
+        return false;
+#endif
+    } else {
+        return CvnSignWithKey(hashToSign, adminPrivKey, adminPubKey, signature);
+    }
+}
+
+static bool AdminSignPartialWithKey(const uint256& hashToSign, const CKey& adminPrivKey, const CSchnorrPubKey& sumPublicNoncesOthers, CSchnorrSig& signature, const CSchnorrPrivNonce& privNonce)
+{
+    if (privNonce.IsNull()) {
+        LogPrintf("%s : could not create chain signature no private nonce available\n", __func__);
+        return false;
+    }
+
+    if (!adminPrivKey.SchnorrSignParial(hashToSign, sumPublicNoncesOthers, privNonce, signature)) {
+        LogPrintf("%s : could not create chain signature\n", __func__);
+        return false;
+    }
+
+#if POC_DEBUG
+    LogPrintf("%s : OK\n  Hash: %s\nsigner: 0x%08x\n   sum: %s\n   sig: %s\n", __func__,
+            hashToSign.ToString(), signature.nSignerId,
+            sumPublicNoncesOthers.ToString(), signature.ToString());
+#endif
+    return true;
+}
+
+static bool CreateSumPublicAdminNoncesOthers(CSchnorrPubKey &sumPublicNoncesOthers, const uint32_t nAdminId, vector<uint32_t> &vAdminIds)
+{
+    LOCK(cs_mapNoncePool);
+    vector<secp256k1_pubkey *> allPubOtherNonces;
+
+    BOOST_FOREACH(const ChainAdminMapType::value_type& admin, mapChainAdmins) {
+        if (mapAdminNonces.find(admin.first) == mapAdminNonces.end())
+            continue;
+
+        vAdminIds.push_back(admin.first);
+
+        if (admin.first == nAdminId)
+            continue;
+
+        LogPrint("cvn", "%s : adding 0x%08x\n", __func__, admin.first);
+
+        const CSchnorrNonce *nonce = &mapAdminNonces[admin.first];
+        allPubOtherNonces.push_back((secp256k1_pubkey *)nonce);
+    }
+
+    memset(&sumPublicNoncesOthers.begin()[0], 0, 64);
+    if (allPubOtherNonces.size() > 1) {
+        if (!secp256k1_ec_pubkey_combine(secp256k1_context_none, (secp256k1_pubkey *)&sumPublicNoncesOthers.begin()[0], &allPubOtherNonces[0], allPubOtherNonces.size())) {
+            LogPrintf("%s : could not combine nonces\n", __func__);
+            return false;
+        }
+    } else if (allPubOtherNonces.size() == 1) {
+        memcpy(&sumPublicNoncesOthers.begin()[0], allPubOtherNonces[0], 64);
+    } else {
+        LogPrintf("%s : no nonces avaialbe\n", __func__);
+        return false;
+    }
+
+    return true;
+}
+
+bool AdminSignPartial(const uint256 &hashToSign, CAdminPartialSignatureUnsinged &signature, const uint32_t &nAdminId, const CSchnorrPrivNonce *privNonce, const uint8_t nHandle)
+{
+    if (!nAdminId) {
+        LogPrintf("%s : admin id not available\n", __func__);
+        return false;
+    }
+
+    if (!mapChainAdmins.count(nAdminId)) {
+        LogPrintf("%s : could not find chain admin id for signer ID 0x%08x\n", __func__, nAdminId);
+        return false;
+    }
+
+    const bool fFasito = (privNonce == NULL);
+
+    signature.nAdminId      = nAdminId;
+    signature.hashRootBlock = chainActive.Tip()->GetBlockHash();
+    signature.hashChainData = hashToSign;
+    signature.nCreationTime = GetTime();
+
+    /* create a plain EC-Schnorr signature in case only one admin ID is used */
+    if (mapAdminNonces.size() == 1) {
+        signature.vSignerIds.push_back(nAdminId);
+        return AdminSignHash(hashToSign, signature.signature, fFasito);
+    }
+
+    CSchnorrPubKey sumPublicNoncesOthers;
+    vector<uint32_t> vAdminIds;
+    if (!CreateSumPublicAdminNoncesOthers(sumPublicNoncesOthers, nAdminId, vAdminIds))
+        return false;
+
+    if (fFasito) {
+#ifdef USE_FASITO
+        if (!fasito.fLoggedIn) {
+            LogPrint("cvn", "%s : not logged into Fasito. Cannot create partial signature.\n", __func__);
+            return false;
+        }
+
+        if (!AdminSignPartialWithFasito(hashToSign, fasito.nADMINKeyIndex, sumPublicNoncesOthers, signature.signature, nHandle))
+            return false;
+#else
+        LogPrintf("%s : this wallet was not compiled with Fasito support.\n", __func__);
+        return false;
+#endif
+    } else {
+        if (!AdminSignPartialWithKey(hashToSign, adminPrivKey, sumPublicNoncesOthers, signature.signature, *privNonce))
+            return false;
+    }
+
+    signature.vSignerIds = vAdminIds;
+
+    return VerifyPartialSignature(hashToSign, signature.signature, mapChainAdmins[nAdminId].pubKey, sumPublicNoncesOthers);
 }
 
 const CSchnorrNonce *GetCurrnetPublicNonce(const uint32_t nNodeId)
@@ -775,20 +925,20 @@ bool CvnSignPartial(const uint256 &hashPrevBlock, CCvnPartialSignatureUnsinged &
             return false;
         }
 
-        if (!CvnSignPartialWithFasito(hashToSign, fasito.nCVNKeyIndex, sumPublicNoncesOthers, signature, chainActive.Tip()->nHeight))
+        if (!CvnSignPartialWithFasito(hashToSign, fasito.nCVNKeyIndex, sumPublicNoncesOthers, signature.signature, chainActive.Tip()->nHeight))
             return false;
 #else
         LogPrintf("%s : this wallet was not compiled with Fasito support.\n", __func__);
         return false;
 #endif
     } else {
-        if (!CvnSignPartialWithKey(hashToSign, cvnPrivKey, sumPublicNoncesOthers, signature))
+        if (!CvnSignPartialWithKey(hashToSign, cvnPrivKey, sumPublicNoncesOthers, signature.signature))
             return false;
     }
 
     signature.vMissingSignerIds = vMissingPubNonces;
 
-    return CvnVerifyPartialSignature(hashToSign, signature.signature, mapCVNs[nNodeId].pubKey, sumPublicNoncesOthers);
+    return VerifyPartialSignature(hashToSign, signature.signature, mapCVNs[nNodeId].pubKey, sumPublicNoncesOthers);
 }
 
 int CombinePartialSignatures(CSchnorrSig& allsig, uint8_t *sigs[], int nSignatures)
@@ -899,7 +1049,7 @@ bool CvnVerifySignature(const uint256 &hash, const CSchnorrSig &sig, const CSchn
     return true;
 }
 
-bool CvnVerifyPartialSignature(const uint256 &hash, const CSchnorrSig &sig, const CSchnorrPubKey &pubKey, const CSchnorrPubKey &sumPublicNoncesOthers)
+bool VerifyPartialSignature(const uint256 &hash, const CSchnorrSig &sig, const CSchnorrPubKey &pubKey, const CSchnorrPubKey &sumPublicNoncesOthers)
 {
     if (!CPubKey::VerifyPartialSchnorr(hash, sig, pubKey, sumPublicNoncesOthers)) {
         LogPrintf("CvnVerifyPartialSignature : could not verify signature!\nhash: %s\nsig: %s\npubKey: %s\nsumNonces: %s\n", hash.ToString(), sig.ToString(), pubKey.ToString(), sumPublicNoncesOthers.ToString());
@@ -924,6 +1074,21 @@ bool CvnVerifySignature(const uint256 &hash, const CSchnorrSig &sig, const uint3
     return true;
 }
 
+bool VerifyAdminSignature(const uint256 &hash, const CSchnorrSig &sig, const uint32_t nAdminId)
+{
+    if (!mapChainAdmins.count(nAdminId)) {
+        LogPrintf("ERROR: could not find chain admin for signer ID 0x%08x\n", nAdminId);
+        return false;
+    }
+
+    if (!CvnVerifySignature(hash, sig, mapChainAdmins[nAdminId].pubKey)) {
+        LogPrintf("could not verify sig %s for hash %s for admin Id 0x%08x\n", sig.ToString(), hash.ToString(), nAdminId);
+        return false;
+    }
+
+    return true;
+}
+
 bool CvnVerifyAdminSignature(const vector<uint32_t> &vAdminIds, const uint256& hashAdmin, const CSchnorrSig& sig)
 {
     if (vAdminIds.empty()) {
@@ -933,7 +1098,7 @@ bool CvnVerifyAdminSignature(const vector<uint32_t> &vAdminIds, const uint256& h
 
     /* special case when bootstrapping the blockchain we have one chain admin ID only */
     if (mapChainAdmins.size() == 1) {
-        uint32_t nAdminId = mapChainAdmins.begin()->first;
+        const uint32_t nAdminId = mapChainAdmins.begin()->first;
         if (!mapChainAdmins.count(nAdminId)) {
             LogPrintf("%s : could not find CChainAdmin for admin ID 0x%08x\n", __func__, nAdminId);
             return false;
@@ -945,11 +1110,6 @@ bool CvnVerifyAdminSignature(const vector<uint32_t> &vAdminIds, const uint256& h
         } else {
             return true;
         }
-    }
-
-    if (mapChainAdmins.size() > 1) {
-        LogPrintf("%s : multiple admin sigs not yet supported\n", __func__);
-        return false;
     }
 
     int count = 0;
@@ -1112,7 +1272,30 @@ bool CvnVerifyPartialSignature(const CCvnPartialSignature& sig)
         }
     }
 
-    return CvnVerifyPartialSignature(hasher.GetHash(), sig.signature, mapCVNs[sig.nSignerId].pubKey, sumPublicNoncesOthers);
+    return VerifyPartialSignature(hasher.GetHash(), sig.signature, mapCVNs[sig.nSignerId].pubKey, sumPublicNoncesOthers);
+}
+
+bool VerifyPartialAdminSignature(const CAdminPartialSignature& sig, const uint256 hash2Sign)
+{
+    if (!mapChainAdmins.count(sig.nAdminId)) {
+        LogPrintf("%s : signer admin not found 0x%08x\n", __func__, sig.nAdminId);
+        return false;
+    }
+
+    if (mapChainAdmins.size() == 1)
+        return VerifyAdminSignature(hash2Sign, sig.signature, sig.nAdminId);
+
+    CSchnorrPubKey sumPublicNoncesOthers;
+    vector<uint32_t> vAdminIds;
+    if (!CreateSumPublicAdminNoncesOthers(sumPublicNoncesOthers, sig.nAdminId, vAdminIds))
+        return false;
+
+    if (vAdminIds != sig.vSignerIds){
+        LogPrintf("%s : admin IDs mismatch: %s (%d != %d)\n", __func__, sig.ToString(), vAdminIds.size(), sig.vSignerIds.size());
+        return false;
+    }
+
+    return VerifyPartialSignature(hash2Sign, sig.signature, mapChainAdmins[sig.nAdminId].pubKey, sumPublicNoncesOthers);
 }
 
 bool AddCvnSignature(CCvnPartialSignature& msg)
@@ -1689,6 +1872,89 @@ void POC_destroy_secp256k1_context()
     }
 }
 
+bool AddNonceAdmin(const CAdminNonce& msg)
+{
+    if (!VerifyAdminSignature(msg.GetHash(), msg.msgSig, msg.nAdminId))
+        return false;
+
+    LOCK(cs_mapAdminNonces);
+
+    if (mapAdminNonces.find(msg.nAdminId) != mapAdminNonces.end()) {
+        LogPrintf("%s : received duplicate admin nonce from admin ID 0x%08x for tip %s\n", __func__, msg.nAdminId, msg.hashRootBlock.ToString());
+        return false;
+    }
+
+    if (chainActive.Tip()->GetBlockHash() != msg.hashRootBlock) {
+        LogPrintf("%s : received invalid admin nonce from admin ID 0x%08x for outdated tip %s\n", __func__, msg.nAdminId, msg.hashRootBlock.ToString());
+        return false;
+    }
+
+    mapAdminNonces[msg.nAdminId] = msg.publicNonce;
+
+    LogPrint("cvnsig", "%s : add sig by 0x%08x, hash %s\n", __func__, msg.nAdminId,
+            msg.hashRootBlock.ToString());
+
+    return true;
+}
+
+void RelayNonceAdmin(const CAdminNonce& msg)
+{
+    CInv inv(MSG_CHAIN_ADMIN_NONCE, msg.GetHash());
+    {
+        LOCK(cs_mapRelayAdminNonces);
+        mapRelayAdminNonces.insert(std::make_pair(inv.hash, msg));
+    }
+
+    LOCK(cs_vNodes);
+    BOOST_FOREACH(CNode* pnode, vNodes)
+    {
+        if(!pnode->fRelayPoCMessages)
+            continue;
+        pnode->PushInventory(inv);
+    }
+}
+
+bool AddAdminSignature(const CAdminPartialSignature& msg)
+{
+    if (!VerifyAdminSignature(msg.GetHash(), msg.msgSig, msg.nAdminId))
+        return false;
+
+    LOCK(cs_mapAdminSigs);
+    if (mapAdminSigs.find(msg.nAdminId) != mapAdminSigs.end()) {
+        LogPrintf("%s : received duplicate admin signature from admin ID 0x%08x for tip %s\n", __func__, msg.nAdminId, msg.hashRootBlock.ToString());
+        return false;
+    }
+
+    if (chainActive.Tip()->GetBlockHash() != msg.hashRootBlock) {
+        LogPrintf("%s : received invalid admin signature from admin ID 0x%08x for outdated tip %s\n", __func__, msg.nAdminId, msg.hashRootBlock.ToString());
+        return false;
+    }
+
+    mapAdminSigs[msg.nAdminId] = msg;
+
+    LogPrint("cvnsig", "%s : add admin sig 0x%08x, hash %s, admin IDs: %s\n", __func__, msg.nAdminId,
+            msg.hashRootBlock.ToString(), CreateSignerIdList(msg.vSignerIds));
+
+    return true;
+}
+
+void RelayAdminSignature(const CAdminPartialSignature& msg)
+{
+    CInv inv(MSG_CHAIN_ADMIN_SIGNATURE, msg.GetHash());
+    {
+        LOCK(cs_mapRelayAdminSigs);
+        mapRelayAdminSigs.insert(std::make_pair(inv.hash, msg));
+    }
+
+    LOCK(cs_vNodes);
+    BOOST_FOREACH(CNode* pnode, vNodes)
+    {
+        if(!pnode->fRelayPoCMessages)
+            continue;
+        pnode->PushInventory(inv);
+    }
+}
+
 int32_t GetPoolAge(const CNoncePool &pool, CBlockIndex *pTip)
 {
     uint32_t nPoolAge = 0;
@@ -1810,8 +2076,8 @@ static bool SetUpNoncePool()
 
 static bool CreateNoncePoolFile(CNoncePool& pool, const uint16_t nPoolSize, CNoncePool * const oldPool)
 {
-    uint256 hash4noncePool;
-    GetStrongRandBytes(&hash4noncePool.begin()[0], 32);
+    uint256 hashData;
+    GetStrongRandBytes(&hashData.begin()[0], 32);
 
     LOCK(cs_mapNoncePool);
 
@@ -1837,7 +2103,7 @@ static bool CreateNoncePoolFile(CNoncePool& pool, const uint16_t nPoolSize, CNon
     for (uint16_t i = 0 ; i < nCreateNew ; i++) {
         CSchnorrNonce nonce;
         unsigned char privateData[32];
-        if (!CreateNoncePairForHash(nonce, privateData, hash4noncePool, pool.nCvnId, false)) {
+        if (!CreateNoncePairForHash(nonce, privateData, hashData, pool.nCvnId, false, false)) {
             pool.vPublicNonces.clear();
             return false;
         }
@@ -1890,7 +2156,7 @@ static bool CreateNoncePoolFasito(CNoncePool& pool, const uint16_t nPoolSize, CN
     for (uint16_t i = 0 ; i < nCreateNew ; i++) {
         CSchnorrNonce nonce;
         unsigned char privateData[32];
-        if (!CreateNoncePairForHash(nonce, privateData, hash4noncePool, pool.nCvnId, true)) {
+        if (!CreateNoncePairForHash(nonce, privateData, hash4noncePool, pool.nCvnId, true, false)) {
             pool.vPublicNonces.clear();
             return false;
         }
@@ -2035,6 +2301,15 @@ static void handleWaitingForNewTip(POCStateHolder& s)
     }
 
     return;
+}
+
+
+void ExpireChainAdminData()
+{
+    LOCK2(cs_mapAdminNonces, cs_mapAdminSigs);
+
+    mapAdminNonces.clear();
+    mapAdminSigs.clear();
 }
 
 void CheckNoncePools(CBlockIndex *pindex)

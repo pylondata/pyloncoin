@@ -13,6 +13,6 @@ extern CKey adminPrivKey;
 extern CSchnorrPubKey adminPubKey;
 
 extern uint32_t InitCVNWithCertificate();
-extern uint32_t InitChainAdminWithCertificate();
+extern uint32_t InitChainAdminWithCertificate(const string& strPassword);
 
 #endif // FAIRCOIN_CVN_H

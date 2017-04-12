@@ -38,6 +38,8 @@ const char *SENDHEADERS="sendheaders";
 const char *NONCEPOOL="noncepool";
 const char *SIG="sig";
 const char *CHAINDATA="chaindata";
+const char *NONCEADMIN="nonceadmin";
+const char *SIGADMIN="sigadmin";
 };
 
 static const char* ppszTypeName[] =
@@ -48,7 +50,9 @@ static const char* ppszTypeName[] =
     "filtered block", // Should never occur
     NetMsgType::NONCEPOOL,
     NetMsgType::SIG,
-    NetMsgType::CHAINDATA
+    NetMsgType::CHAINDATA,
+    NetMsgType::NONCEADMIN,
+    NetMsgType::SIGADMIN,
 };
 
 /** All known message types. Keep this in the same order as the list of
@@ -80,6 +84,8 @@ const static std::string allNetMessageTypes[] = {
     NetMsgType::NONCEPOOL,
     NetMsgType::SIG,
     NetMsgType::CHAINDATA,
+    NetMsgType::NONCEADMIN,
+    NetMsgType::SIGADMIN,
 };
 const static std::vector<std::string> allNetMessageTypesVec(allNetMessageTypes, allNetMessageTypes+ARRAYLEN(allNetMessageTypes));
 
@@ -201,7 +207,7 @@ const char* CInv::GetCommand() const
 
 std::string CInv::ToString() const
 {
-    return strprintf("%s %s", GetCommand(), hash.ToString());
+    return strprintf("%s %s", IsKnownType() ? GetCommand() : "unknown inv", hash.ToString());
 }
 
 const std::vector<std::string> &getAllNetMessageTypes()

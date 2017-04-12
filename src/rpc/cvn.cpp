@@ -8,11 +8,13 @@
 #include "main.h"
 #include "utilstrencodings.h"
 #include "poc.h"
+#include "fasito/fasito.h"
 #include "fasito/cert.h"
 #include "core_io.h"
 #include "timedata.h"
 #include "validationinterface.h"
 #include "consensus/validation.h"
+#include "consensus/consensus.h"
 
 #include <boost/algorithm/string.hpp>
 #include <univalue.h>
@@ -20,14 +22,26 @@
 
 using namespace std;
 
-static bool AddAdminSignatures(CChainDataMsg &msg, const UniValue& adminIds, const UniValue& multiSig)
+static string strMethod;
+static uint8_t nAdminNonceHandle = 0;
+static CSchnorrPrivNonce adminPrivNonce;
+static CSchnorrNonce adminPublicNonce;
+
+static bool AddAdminSignatures(CChainDataMsg &msg)
 {
-    const uint32_t nSigs = (uint32_t)adminIds.size();
+    CAdminPartialSignature sigFirst = mapAdminSigs.begin()->second;
+    if (sigFirst.vSignerIds.size() != mapAdminSigs.size()) {
+        return false;
+    }
+
+    const uint32_t nSigs = mapAdminSigs.size();
+    const uint256 hash2Sign = msg.GetHash();
+
     if (nSigs < dynParams.nMinAdminSigs)
         throw runtime_error(
             strprintf("not enough signatures supplied "
                       "(got %u signatures, but need at least %u to sign)", nSigs, dynParams.nMinAdminSigs));
-    if (nSigs > dynParams.nMaxAdminSigs)
+    if (nSigs > dynParams.nMaxAdminSigs || nSigs > MAX_NUMBER_OF_CHAIN_ADMINS)
         throw runtime_error(
             strprintf("too many signatures supplied %u (%u max)\nReduce the number", nSigs, dynParams.nMaxAdminSigs));
 
@@ -36,19 +50,77 @@ static bool AddAdminSignatures(CChainDataMsg &msg, const UniValue& adminIds, con
                 strprintf("not enough signatures supplied "
                        "(got %u signatures, but need at least %u to sign for coin supply)", nSigs, dynParams.nMaxAdminSigs));
 
-    msg.adminMultiSig.SetHex(multiSig.get_str());
-
-    for (uint32_t i = 0 ; i < nSigs ; i++)
-    {
-        uint32_t signerId;
-        stringstream ss;
-        ss << hex << adminIds[i].get_str().c_str();
-        ss >> signerId;
-
-        msg.vAdminIds.push_back(signerId);
+    if (mapChainAdmins.size() == 1 || (dynParams.nMinAdminSigs && mapAdminNonces.size() == 1)) {
+        msg.vAdminIds     = sigFirst.vSignerIds;
+        msg.adminMultiSig = sigFirst.signature;
+        return CheckAdminSignature(msg.vAdminIds, msg.GetHash(), msg.adminMultiSig, msg.HasCoinSupplyPayload());
     }
 
+    int count = 0;
+    bool fAllSigsValid = true;
+    uint8_t *sigs[MAX_NUMBER_OF_CHAIN_ADMINS];
+    set<uint32_t> setSigners;
+
+    BOOST_FOREACH(const MapSigAdmin::value_type& entry, mapAdminSigs) {
+        const CAdminPartialSignature& sig = entry.second;
+
+        if (!sig.fValidated && !VerifyPartialAdminSignature(sig, hash2Sign)) {
+            LogPrintf("Invalid signature found.\n%s\n", sig.ToString());
+            fAllSigsValid = false;
+        }
+
+        if (!setSigners.insert(entry.first).second) {
+            LogPrintf("duplicate signature detected: %s\n%s\n", sig.ToString(), sigHolder.ToString());
+            fAllSigsValid = false;
+        }
+
+        if (sig.hashRootBlock != chainActive.Tip()->GetBlockHash()) {
+            LogPrintf("Invalid signature found for wrong tip.\n%s\n", sig.ToString());
+            fAllSigsValid = false;
+        }
+
+        if (sig.hashChainData != hash2Sign) {
+            LogPrintf("Invalid signature found for wrong chain data hash.\n%s\n", sig.ToString());
+            fAllSigsValid = false;
+        }
+
+        if (sig.vSignerIds != sigFirst.vSignerIds) {
+            LogPrintf("Invalid signature found for for different signer set.\n%s\nCommon Rx: %s\n", sig.ToString(), sig.signature.GetRx().ToString());
+            fAllSigsValid = false;
+        }
+
+        sigs[count++] = (uint8_t *)&sig.signature.begin()[0];
+    }
+
+    if (!fAllSigsValid)
+        return false;
+
+    LogPrint("cvnsig", "all %d partial admin signatures in set found valid.\n", setSigners.size());
+
+    CSchnorrSig multiSig;
+    int ret = CombinePartialSignatures(multiSig, sigs, count);
+    if (ret != 1) {
+        LogPrintf("could not combine admin signatures: %d\n", ret);
+        return false;
+    }
+
+    msg.vAdminIds     = sigFirst.vSignerIds;
+    msg.adminMultiSig = multiSig;
+
     return CheckAdminSignature(msg.vAdminIds, msg.GetHash(), msg.adminMultiSig, msg.HasCoinSupplyPayload());
+}
+
+static bool AddAdminIds(CChainDataMsg &msg)
+{
+    if (mapAdminNonces.empty()) {
+        return false;
+    }
+
+    BOOST_FOREACH(const CNoncesMapType::value_type& nonce, mapAdminNonces) {
+        msg.vAdminIds.push_back(nonce.first);
+    }
+
+    return true;
 }
 
 static void AddCvnInfoToMsg(CChainDataMsg &msg, const uint32_t nNodeId, const uint32_t nHeightAdded, const CSchnorrPubKey &pubKey)
@@ -57,8 +129,7 @@ static void AddCvnInfoToMsg(CChainDataMsg &msg, const uint32_t nNodeId, const ui
     msg.vCvns.resize(mapCVNs.size() + 1);
 
     uint32_t index = 0;
-    BOOST_FOREACH(const CvnMapType::value_type& cvn, mapCVNs)
-    {
+    BOOST_FOREACH(const CvnMapType::value_type& cvn, mapCVNs) {
         msg.vCvns[index++] = cvn.second;
     }
 
@@ -72,8 +143,7 @@ static void AddChainAdminToMsg(CChainDataMsg &msg, const uint32_t nAdminId, cons
     msg.vChainAdmins.resize(mapChainAdmins.size() + 1);
 
     uint32_t index = 0;
-    BOOST_FOREACH(const ChainAdminMapType::value_type& cvn, mapChainAdmins)
-    {
+    BOOST_FOREACH(const ChainAdminMapType::value_type& cvn, mapChainAdmins) {
         msg.vChainAdmins[index++] = cvn.second;
     }
 
@@ -116,7 +186,7 @@ static bool AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
     bool fAllGood = true;
     vector<string> paramsList = jsonParams.getKeys();
     BOOST_FOREACH(const string& key, paramsList) {
-        LogPrintf("AddDynParamsToMsg : adding %s: %u\n", key, jsonParams[key].getValStr());
+        LogPrintf("%s : adding %s: %u\n", __func__, key, jsonParams[key].getValStr());
         if (key == "blockSpacing") {
             params.nBlockSpacing = jsonParams[key].get_int();
         } else if (key == "blockSpacingGracePeriod") {
@@ -149,7 +219,12 @@ static bool AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
         }
     }
 
-    return fAllGood & (params.strDescription.length() > MIN_CHAIN_DATA_DESCRIPTION_LEN);
+    if (params.strDescription.length() <= MIN_CHAIN_DATA_DESCRIPTION_LEN) {
+        LogPrintf("%s : missing mandatory description\n", __func__);
+        return false;
+    }
+
+    return fAllGood;
 }
 
 UniValue getgenerate(const UniValue& params, bool fHelp)
@@ -205,18 +280,224 @@ UniValue setgenerate(const UniValue& params, bool fHelp)
     return NullUniValue;
 }
 
+UniValue chainadminlogin(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() < 2 || params.size() > 3)
+        throw runtime_error(
+            "chainadminlogin type PIN\n"
+            "\nLogin to Fasito or read the admin certificate file.\n"
+            "\nArguments:\n"
+            "1. method      (string, required) Signing method: 'fasito' or 'file'.\n"
+            "2. PIN         (string, required) The PIN to unlock the Fasito or to decrypt the private key file.\n"
+            "3. key index   (numeric, optinal) The index of the key on Fasito. (default is 0)\n"
+            "\nExamples:\n"
+            "\nLogin to Fasito\n"
+            + HelpExampleCli("chainadminlogin", "fasito 123456 0")
+            + HelpExampleCli("chainadminlogin", "file mySecretPassword")
+        );
+
+    LOCK(cs_main);
+    if (IsInitialBlockDownload())
+        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "wait for block chain download to finish");
+
+    if (nChainAdminId)
+        throw JSONRPCError(RPC_MISC_ERROR, "already logged in");
+
+    string method = params[0].get_str();
+    const uint32_t nKeyIndex = params.size() == 3 ? params[2].get_int() : 0;
+    const string strPassword = params[1].get_str();
+
+    if (method == "fasito") {
+        if (params.size() < 2) {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Fasito PIN not supplied\n");
+        }
+#ifdef USE_FASITO
+        LogPrintf("Initializing fasito for chain adminstration\n");
+        nChainAdminId = InitChainAdminWithFasito(strPassword, nKeyIndex);
+#else
+        return "ERROR: This wallet version was not compiled with fasito support\n";
+#endif
+    } else if (method == "file") {
+        nChainAdminId = InitChainAdminWithCertificate(strPassword);
+    } else {
+        throw JSONRPCError(RPC_INVALID_PARAMS, "invalid signing method. Must be one of 'fasito' or 'file'\n");
+    }
+
+    if (!nChainAdminId) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "could not find a vaild chain admin ID\n");
+    }
+
+    LogPrintf("Configuring node with chain admin ID 0x%08x\n", nChainAdminId);
+
+    strMethod = method;
+
+    return "OK";
+}
+
+UniValue chainadminlogout(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size())
+        throw runtime_error(
+            "chainadminlogout\n"
+            "\nLogout from Fasito.\n"
+            "\nArguments:\n"
+            "none\n"
+            "\nExample:\n"
+            "\nLogout from Fasito\n"
+            "chainadminlogout"
+        );
+
+    LOCK(cs_main);
+
+    if (strMethod == "fasito") {
+#ifdef USE_FASITO
+        if (!nCvnNodeId) {
+            fasito.close();
+        } else {
+            throw JSONRPCError(RPC_MISC_ERROR, "cannot log off because the node is configured as a CVN\n");
+        }
+#else
+        return "ERROR: This wallet version was not compiled with fasito support\n");
+#endif
+    }
+
+    LogPrintf("Removed chain admin configuration for admin ID 0x%08x\n", nChainAdminId);
+
+    nChainAdminId = 0;
+    adminPrivKey = CKey();
+    adminPubKey.SetNull();
+    strMethod.clear();
+
+    return "OK";
+}
+
+UniValue chainadminnonce(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size())
+        throw runtime_error(
+            "chainadminnonce\n"
+            "\nCreates a nonce pair and publishes the public part on the network.\n"
+            "\nArguments:\n"
+            "none\n"
+            "\nExample:\n"
+            "\nCreate a nonce pair\n"
+            "chainadminlogin"
+        );
+
+    bool fFasito = strMethod == "fasito";
+
+    if (!nChainAdminId || (!fFasito && !adminPrivKey.IsValid()))
+        return "ERROR: wallet not configured for chain administration";
+
+    LOCK(cs_main);
+    uint256 hashRootBlock = chainActive.Tip()->GetBlockHash();
+
+    CAdminNonce msg;
+
+    msg.hashRootBlock = hashRootBlock;
+    msg.nAdminId = nChainAdminId;
+    msg.nCreationTime = GetTime();
+
+    uint256 hashData;
+    GetStrongRandBytes(&hashData.begin()[0], 32);
+    unsigned char privateData[32];
+    if (!CreateNoncePairForHash(adminPublicNonce, privateData, hashData, nChainAdminId, fFasito, true)) {
+        return "could not create nonce";
+    }
+
+    msg.publicNonce = adminPublicNonce;
+
+    if (fFasito) {
+        uint32_t *nHandle = (uint32_t *) &privateData[0];
+        nAdminNonceHandle = *nHandle;
+    } else {
+        CSchnorrPrivNonce pn(privateData);
+        adminPrivNonce = pn;
+    }
+
+    CSchnorrSig msgSig;
+    if (!AdminSignHash(msg.GetHash(), msgSig, fFasito)) {
+        return strprintf("%s : could not sign signature message\n", __func__);
+    }
+
+    msg.msgSig = msgSig;
+
+    if (AddNonceAdmin(msg)) {
+        RelayNonceAdmin(msg);
+    } else {
+        return "ERROR: could not create nonce pair";
+    }
+
+    return msg.ToString();
+}
+
+UniValue chainadminsign(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1)
+        throw runtime_error(
+            "chainadminsign\n"
+            "\nCreate a partial signature using the received nonces.\n"
+            "\nArguments:\n"
+            "1. chain data hash      (string, required) The hash of the chain data to be signed\n"
+            "\nExample:\n"
+            "\nCreate a partial signature for the hash\n"
+            + HelpExampleCli("chainadminlogin", "9afdc03617091ac720958a47dee67fea38c40396594996531564c445f2c7603a")
+        );
+
+    LOCK(cs_main);
+    UniValue result(UniValue::VOBJ);
+
+    uint256 hashToSign = ParseHashV(params[0], "parameter 1");
+
+    bool fFasito = strMethod == "fasito";
+
+    CAdminPartialSignatureUnsinged signature;
+    if (!AdminSignPartial(hashToSign, signature, nChainAdminId, fFasito ? NULL : &adminPrivNonce, nAdminNonceHandle)) {
+        string err = strprintf("%s : could not create sig by 0x%08x, hash %s\n", __func__,
+                nChainAdminId, hashToSign.ToString());
+        result.push_back(Pair("status", err));
+        return result;
+    }
+
+    CAdminPartialSignature msg(signature);
+
+    CSchnorrSig msgSig;
+    if (!AdminSignHash(msg.GetHash(), msgSig, fFasito)) {
+        string err = strprintf("%s : could not sign signature message\n", __func__);
+        result.push_back(Pair("status", err));
+        return result;
+    }
+
+    msg.msgSig = msgSig;
+
+    if (AddAdminSignature(msg)) {
+        RelayAdminSignature(msg);
+    } else {
+        result.push_back(Pair("status", "ERROR: could not create partial admin signature"));
+        return result;
+    }
+
+    result.push_back(Pair("status", "OK"));
+    result.push_back(Pair("adminId", strprintf("0x%08x", msg.nAdminId)));
+    result.push_back(Pair("hashRootBlock", msg.hashRootBlock.ToString()));
+    result.push_back(Pair("hashChainData", msg.hashChainData.ToString()));
+    result.push_back(Pair("creationTime", (int64_t)msg.nCreationTime));
+    result.push_back(Pair("signerIds", CreateSignerIdList(msg.vSignerIds)));
+    result.push_back(Pair("signature", msg.signature.ToString()));
+
+    return result;
+}
+
 UniValue addcvn(const UniValue& params, bool fHelp)
 {
-    if (fHelp || params.size() < 4 || params.size() > 5)
+    if (fHelp || params.size() != 3)
         throw runtime_error(
-            "addcvn \"type\" \"Id\" \"timestamp\" \"pubkey\" [\"n:sigs\",...] {\"nParam1\":123,\"nParam2\":456}\n"
-            "\nAdd a new CVN to the FairCoin network\n"
+            "addcvn \"type\" \"node Id\" \"pubkey\"\n"
+            "\nAdd a new CVN or admin to the FairCoin network\n"
             "\nArguments:\n"
             "1. \"type\"               (string, required) c=CVNInfo, a=ChainAdmin\n"
             "2. \"Id\"                 (string, required) The ID (in hex) of the new CVN or admin.\n"
             "3. \"pubkey\"             (string, required but can be empty) The public key of the new CVN or Chain Admin (in hex).\n"
-            "4. \"[nAdminIds]\"        (string, required) The adminIds that created the multi signature\n"
-            "5. \"adminMultiSig\"      (string, required) The combined admin signature\n"
             "\nResult:\n"
             "{\n"
                 "  \"type\":\"type of added info\",             (string) The type of the added info (c=CVNInfo, a=ChainAdmin)\n"
@@ -229,7 +510,7 @@ UniValue addcvn(const UniValue& params, bool fHelp)
              "}\n"
             "\nExamples:\n"
             "\nAdd a new CVN\n"
-            + HelpExampleCli("addcvn", "c 0x123488 1461056246 \"04...00\" [\\\"0x87654321:a1b5..9093\\\",\\\"0xdeadcafe:0432..12aa\\\"]")
+            + HelpExampleCli("addcvn", "c 0x12348899 \"042288e3...eafe\"")
         );
 
     LOCK(cs_main);
@@ -249,8 +530,6 @@ UniValue addcvn(const UniValue& params, bool fHelp)
         throw runtime_error(" Invalid public key: " + params[2].get_str());
 
     CSchnorrPubKey pubKey;
-    const UniValue& adminIds = params[3].get_array();
-
     CChainDataMsg msg;
     msg.hashPrevBlock = chainActive.Tip()->GetBlockHash();
 
@@ -262,11 +541,21 @@ UniValue addcvn(const UniValue& params, bool fHelp)
             AddChainAdminToMsg(msg, nNodeId, chainActive.Tip()->nHeight + 1, pubKey);
     }
 
-    // if no signatures are supplied we print out the CChainDataMsg's hash to sign
-    if (params[3].isNull() || params[3].empty() || params[4].isNull())
-        return msg.GetHash().ToString();
+    if (!AddAdminIds(msg)) {
+        return "could not add admin ids";
+    }
 
-    if (!AddAdminSignatures(msg, adminIds, params[4].get_str()))
+    // if no or not all signatures are available we print out the CChainDataMsg's hash to sign
+    if (mapAdminSigs.empty()) {
+        return msg.GetHash().ToString();
+    } else {
+        CAdminPartialSignature sig = mapAdminSigs.begin()->second;
+        if (sig.vSignerIds.size() != mapAdminSigs.size()) {
+            return msg.GetHash().ToString();
+        }
+    }
+
+    if (!AddAdminSignatures(msg))
         return "error in signatures";
 
     result.push_back(Pair("nodeId", strprintf("0x%08x", nNodeId)));
@@ -291,23 +580,22 @@ UniValue addcvn(const UniValue& params, bool fHelp)
 
     if (AddChainData(msg)) {
         RelayChainData(msg);
-    } else
-         LogPrintf("ERROR\n%s\n", msg.ToString());
+    } else {
+        LogPrintf("ERROR\n%s\n", msg.ToString());
+    }
 
     return result;
 }
 
 UniValue removecvn(const UniValue& params, bool fHelp)
 {
-    if (fHelp || params.size() < 3 || params.size() > 4)
+    if (fHelp || params.size() != 2)
         throw runtime_error(
-            "removecvn \"Id\" \"timestamp\" [\"n:sigs\",...]\n"
-            "\nRemove a CVN from the FairCoin network\n"
+            "removecvn \"type\" \"Id\"\n"
+            "\nRemove a CVN or and admin from the FairCoin network\n"
             "\nArguments:\n"
             "1. \"type\"         (string, required) c=CVNInfo, a=ChainAdmin\n"
             "2. \"Id\"           (string, required) The ID (in hex) of the CVN or admin to remove.\n"
-            "3. \"[adminIds]\"   (array, required) The admin signatures prefixed by the signer ID (n)\n"
-            "4. \"adminMultiSig\" (string, required) The admin signatures prefixed by the signer ID (n)\n"
             "\nResult:\n"
             "{\n"
                 "  \"type\":\"type of info\",                   (string) The type of the info (c=CVNInfo, a=ChainAdmin)\n"
@@ -315,7 +603,7 @@ UniValue removecvn(const UniValue& params, bool fHelp)
              "}\n"
             "\nExamples:\n"
             "\nRemove a CVN\n"
-            + HelpExampleCli("removecvn", "c 0x123488 [\"0x87654321:a1b5..9093\",\"0x3453:0432..12aa\"]")
+            + HelpExampleCli("removecvn", "c 0x12348899")
         );
 
     if (IsInitialBlockDownload())
@@ -331,8 +619,6 @@ UniValue removecvn(const UniValue& params, bool fHelp)
     stringstream ss;
     ss << hex << params[1].get_str();
     ss >> nNodeId;
-
-    const UniValue& adminIds = params[2].get_array();
 
     CChainDataMsg msg;
     msg.nPayload      |= (fRemoveCvn ? CChainDataMsg::CVN_PAYLOAD : CChainDataMsg::CHAIN_ADMINS_PAYLOAD);
@@ -366,11 +652,21 @@ UniValue removecvn(const UniValue& params, bool fHelp)
         }
     }
 
-    // if no signatures are supplied we print out the CChainDataMsg's hash to sign
-    if (params[3].isNull())
-        return msg.GetHash().ToString();
+    if (!AddAdminIds(msg)) {
+        return "could not add admin ids";
+    }
 
-    if (!AddAdminSignatures(msg, adminIds, params[3].get_str()))
+    // if no or not all signatures are available we print out the CChainDataMsg's hash to sign
+    if (mapAdminSigs.empty()) {
+        return msg.GetHash().ToString();
+    } else {
+        CAdminPartialSignature sig = mapAdminSigs.begin()->second;
+        if (sig.vSignerIds.size() != mapAdminSigs.size()) {
+            return msg.GetHash().ToString();
+        }
+    }
+
+    if (!AddAdminSignatures(msg))
         return "error in signatures";
 
     LogPrintf("about remove %s 0x%08x from the network\n", fRemoveCvn ? "CVN" : "Admin", nNodeId);
@@ -401,16 +697,10 @@ UniValue signchaindata(const UniValue& params, bool fHelp)
 
     LOCK(cs_main);
 
-    if (!mapArgs.count("-admin") || !nChainAdminId || !adminPrivKey.IsValid())
+    if (!nChainAdminId || !adminPrivKey.IsValid())
         return "ERROR: wallet not configured for chain administration";
 
     uint256 hashChainData = uint256S(params[0].get_str());
-
-    /********************************
-     * THIS IS ALL WRONG
-     * and needs to be implemented and
-     * adopted for schnorr k-of-k sigs
-     */
 
     CSchnorrSig signature;
 
@@ -421,7 +711,18 @@ UniValue signchaindata(const UniValue& params, bool fHelp)
             return "error, could not create signature";
     }
 
-    return signature.ToString();
+    uint32_t dummy[1] = {0};
+
+    UniValue result(UniValue::VOBJ);
+    UniValue adminSigners(UniValue::VARR);
+    BOOST_FOREACH(const uint32_t& signerId, dummy)
+    {
+        adminSigners.push_back(strprintf("0x%08x", signerId));
+    }
+    result.push_back(Pair("signature", signature.ToString()));
+    result.push_back(Pair("adminSignerIds", adminSigners));
+
+    return result;
 }
 
 UniValue getcvninfo(const UniValue& params, bool fHelp)
@@ -582,6 +883,20 @@ UniValue getactiveadmins(const UniValue& params, bool fHelp)
         entry.push_back(Pair("pubKey", a.pubKey.ToString()));
         entry.push_back(Pair("heightAdded", (int)a.nHeightAdded));
 
+        string strCurrentNonce = "";
+        if (mapAdminNonces.count(a.nAdminId)) {
+            strCurrentNonce = mapAdminNonces[a.nAdminId].ToString();
+        }
+
+        entry.push_back(Pair("currentNonce", strCurrentNonce));
+
+        string strCurrentPartialSig = "";
+        if (mapAdminSigs.count(a.nAdminId)) {
+            strCurrentPartialSig = mapAdminSigs[a.nAdminId].signature.ToString();
+        }
+
+        entry.push_back(Pair("currentPartialSig", strCurrentPartialSig));
+
         admins.push_back(entry);
     }
 
@@ -610,14 +925,12 @@ void DynamicChainparametersToJSON(CDynamicChainParams& cp, UniValue& result)
 
 UniValue setchainparameters(const UniValue& params, bool fHelp)
 {
-    if (fHelp || params.size() < 1 || params.size() > 3)
+    if (fHelp || params.size() != 1)
         throw runtime_error(
             "setchainparameters {\"nParam1\":123,\"nParam2\":456} [\"n:sigs\",...]\n"
             "\nSet new dynamic chain parameters for FairCoin network\n"
             "\nArguments:\n"
             "1. \"{\"key\":\"val\"}]\" (string, required) The dynamic chain parameters to set\n"
-            "2. \"[nAdminIds,...]\"    (string, optional) The adminIds that created the multi signature\n"
-            "3. \"adminMultiSig\"      (string, optional) The combined admin signature\n"
             "\nResult:\n"
             "{\n"
                 "  \"prevBlockHash\":\"hash (hex)\",            (string) The timestamp of the block\n"
@@ -625,7 +938,7 @@ UniValue setchainparameters(const UniValue& params, bool fHelp)
              "}\n"
             "\nExamples:\n"
             "\nSet chain parameters\n"
-            + HelpExampleCli("setchainparameters", "\"{\\\"blockSpacing\\\":\\\"180\\\",\\\"blockSpacingGracePeriod\\\":\\\"60\\\"} [\"0xadminID01\",\"0xadminId02\"] \"44...55\"")
+            + HelpExampleCli("setchainparameters", "\"{\\\"blockSpacing\\\":\\\"180\\\",\\\"blockSpacingGracePeriod\\\":\\\"60\\\"}")
         );
 
     if (IsInitialBlockDownload())
@@ -637,14 +950,26 @@ UniValue setchainparameters(const UniValue& params, bool fHelp)
     msg.hashPrevBlock = chainActive.Tip()->GetBlockHash();
 
     if (!AddDynParamsToMsg(msg, params[0].get_obj()))
-        return "invlaid parameter detcted";
+        return "Invalid parameter detected";
+
+    if (!AddAdminIds(msg)) {
+        return "could not add admin ids";
+    }
+
+    // if no or not all signatures are available we print out the CChainDataMsg's hash to sign
+    if (mapAdminSigs.empty()) {
+        LogPrintf("no sigs\n");
+        return msg.GetHash().ToString();
+    } else {
+        CAdminPartialSignature sig = mapAdminSigs.begin()->second;
+        if (sig.vSignerIds.size() != mapAdminSigs.size()) {
+            LogPrintf("not enough sigs: %u:%u\n", sig.vSignerIds.size(), mapAdminSigs.size());
+            return msg.GetHash().ToString();
+        }
+    }
 
     UniValue result(UniValue::VOBJ);
-    // if no signatures are supplied we print out the CChainDataMsg's hash to sign
-    if (params[1].isNull() || params[2].isNull())
-        return msg.GetHash().ToString();
-
-    if (!AddAdminSignatures(msg, params[1].get_array(), params[2].get_str()))
+    if (!AddAdminSignatures(msg))
         return "error in signatures";
 
     LogPrintf("about to update dynamic chain parameters on the network\n   %s\n", msg.dynamicChainParams.ToString());
@@ -787,7 +1112,7 @@ UniValue submitblock(const UniValue& params, bool fHelp)
 #ifdef ENABLE_COINSUPPLY
 UniValue addcoinsupply(const UniValue& params, bool fHelp)
 {
-    if (fHelp || params.size() != 4)
+    if (fHelp || params.size() != 3)
         throw runtime_error(
             "addcoinsupply \"faircoinaddress\" \"amount\"  \"comment\" \"admin sigs\"\n"
             "\nAdd instructions to increase the coin supply to the FairCoin network\n"
@@ -795,7 +1120,6 @@ UniValue addcoinsupply(const UniValue& params, bool fHelp)
             "1. \"faircoinaddress\"  (string, required) The FairCoin address to send to.\n"
             "2. \"amount\"           (numeric or string, required) The amount in " + CURRENCY_UNIT + " to send. eg 0.1\n"
             "3. \"comment\"          (string, required) A comment used to store what this additional supply is for. \n"
-            "4. \"n:sigs\"           (string, required) The admin signatures prefixed by the signer ID (n)\n"
             "\nResult:\n"
             "{\n"
                 "  \"type\":\"type of added info\",             (string) The type of the added info (c=CVNInfo, a=ChainAdmin)\n"
@@ -807,7 +1131,7 @@ UniValue addcoinsupply(const UniValue& params, bool fHelp)
                 "  \"chainParams\":\"serialized params\"        (string) The serialized representation of CDynamicChainParams.\n"
              "}\n"
             "\nExamples:\n"
-            "\nAdd a new CVN\n"
+            "\nAdd a new coin supply\n"
             + HelpExampleCli("addcoinsupply", "fairVs8iHyLzgHQrdxb9j6hR4WGpdDbKN3 4000.777 \"thewaterproject.org\"")
         );
 
@@ -826,8 +1150,6 @@ UniValue addcoinsupply(const UniValue& params, bool fHelp)
     if (params[2].isNull() || params[2].get_str().empty())
         throw JSONRPCError(RPC_TYPE_ERROR, "The comment is mandatory");
 
-    const UniValue& sigs = params[3].get_array();
-
     CChainDataMsg msg;
     CCoinSupply& spl = msg.coinSupply;
 
@@ -838,11 +1160,21 @@ UniValue addcoinsupply(const UniValue& params, bool fHelp)
 
     UniValue result(UniValue::VOBJ);
 
-    // if no signatures are supplied we print out the CChainDataMsg's hash to sign
-    if (sigs.empty())
-        return msg.GetHash().ToString();
+    if (!AddAdminIds(msg)) {
+        return "could not add admin ids";
+    }
 
-    if (!AddAdminSignatures(msg, sigs))
+    // if no or not all signatures are available we print out the CChainDataMsg's hash to sign
+    if (mapAdminSigs.empty()) {
+        return msg.GetHash().ToString();
+    } else {
+        CAdminPartialSignature sig = mapAdminSigs.begin()->second;
+        if (sig.vSignerIds.size() != mapAdminSigs.size()) {
+            return msg.GetHash().ToString();
+        }
+    }
+
+    if (!AddAdminSignatures(msg))
         return "error in signatures";
 
     if (AddChainData(msg))

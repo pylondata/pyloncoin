@@ -602,14 +602,6 @@ public:
         SetNull();
     }
 
-    CNoncePoolUnsigned(const uint32_t nCvnId, const uint16_t nSize, const uint256 hashRootBlock, const uint32_t nCreationTime)
-    {
-        this->nCvnId        = nCvnId;
-        this->hashRootBlock = hashRootBlock;
-        this->nCreationTime = nCreationTime;
-        vPublicNonces.clear();
-    }
-
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
@@ -644,13 +636,6 @@ public:
         SetNull();
     }
 
-    CNoncePool(CNoncePoolUnsigned &pool, CSchnorrSig &msgSig) : CNoncePoolUnsigned(pool)
-    {
-        this->msgSig = msgSig;
-        nHeightAdded = 0;
-        fRecheck     = false;
-    }
-
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
@@ -665,6 +650,155 @@ public:
         msgSig.SetNull();
         nHeightAdded = 0;
         fRecheck     = false;
+    }
+};
+
+class CAdminNonceUnsigned
+{
+public:
+    uint32_t nAdminId;
+    uint256  hashRootBlock;
+    CSchnorrNonce publicNonce;
+    uint32_t nCreationTime;
+
+    CAdminNonceUnsigned()
+    {
+        SetNull();
+    }
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(nAdminId);
+        READWRITE(hashRootBlock);
+        READWRITE(nCreationTime);
+        READWRITE(publicNonce);
+    }
+
+    void SetNull()
+    {
+        nAdminId      = 0;
+        nCreationTime = 0;
+        hashRootBlock.SetNull();
+        publicNonce.SetNull();
+    }
+
+    uint256 GetHash() const;
+    string ToString() const;
+};
+
+class CAdminNonce : public CAdminNonceUnsigned
+{
+public:
+    CSchnorrSig msgSig;
+
+    CAdminNonce()
+    {
+        SetNull();
+    }
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(*(CAdminNonceUnsigned*)this);
+        READWRITE(msgSig);
+    }
+
+    void SetNull()
+    {
+        CAdminNonceUnsigned::SetNull();
+        msgSig.SetNull();
+    }
+};
+
+class CAdminPartialSignatureUnsinged
+{
+public:
+    uint32_t nAdminId;
+    uint256 hashRootBlock;
+    uint256 hashChainData;
+    CSchnorrSig signature;
+    uint32_t nCreationTime;
+
+    bool fValidated; // memory only
+
+    // contains the admin IDs that co-signed
+    vector<uint32_t> vSignerIds;
+
+    CAdminPartialSignatureUnsinged()
+    {
+        SetNull();
+    }
+
+    CAdminPartialSignatureUnsinged(const CAdminPartialSignatureUnsinged &sig)
+    {
+        this->nAdminId      = sig.nAdminId;
+        this->hashRootBlock = sig.hashRootBlock;
+        this->hashChainData = sig.hashChainData;
+        this->signature     = sig.signature;
+        this->fValidated    = sig.fValidated;
+        this->nCreationTime = sig.nCreationTime;
+        this->vSignerIds    = sig.vSignerIds;
+    }
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(nAdminId);
+        READWRITE(hashRootBlock);
+        READWRITE(hashChainData);
+        READWRITE(signature);
+        READWRITE(nCreationTime);
+        READWRITE(vSignerIds);
+    }
+
+    void SetNull()
+    {
+        nAdminId      = 0;
+        fValidated    = false;
+        nCreationTime = 0;
+        hashRootBlock.SetNull();
+        hashChainData.SetNull();
+        signature.SetNull();
+        vSignerIds.clear();
+    }
+
+    uint256 GetHash() const;
+
+    string ToString() const;
+};
+
+class CAdminPartialSignature : public CAdminPartialSignatureUnsinged
+{
+public:
+    CSchnorrSig msgSig;
+
+    CAdminPartialSignature()
+    {
+        SetNull();
+    }
+
+    CAdminPartialSignature(const CAdminPartialSignatureUnsinged& signature)
+        : CAdminPartialSignatureUnsinged(signature)
+    {
+        this->msgSig.SetNull();
+    }
+
+    void SetNull()
+    {
+        CAdminPartialSignatureUnsinged::SetNull();
+        this->msgSig.SetNull();
+    }
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(*(CAdminPartialSignatureUnsinged*)this);
+        READWRITE(msgSig);
     }
 };
 

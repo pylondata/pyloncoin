@@ -47,10 +47,13 @@
 typedef std::map<uint32_t, CCvnInfo> CvnMapType;
 typedef std::map<uint32_t, CChainAdmin> ChainAdminMapType;
 typedef std::map<uint32_t, CNoncePool> CNoncePoolType;
+typedef std::map<uint32_t, CSchnorrNonce> CNoncesMapType;
+
 typedef std::map<const uint256, CChainDataMsg> ChainDataMapType;
 
 typedef std::map<uint32_t, CCvnPartialSignature> MapSigSigner;
 typedef std::map<const CSchnorrRx, MapSigSigner> MapSigCommonR;
+typedef std::map<uint32_t, CAdminPartialSignature> MapSigAdmin;
 
 typedef boost::unordered_set<uint32_t> TimeWeightSetType;
 typedef std::vector<uint32_t>::reverse_iterator CandidateIterator;
@@ -100,6 +103,10 @@ extern BlockIndexByPrevHashType mapBlockIndexByPrevHash;
 extern CCriticalSection cs_mapBannedCVNs;
 extern BannedCVNMapType mapBannedCVNs;
 extern CachedCvnType mapChachedCVNInfoBlocks;
+extern CCriticalSection cs_mapAdminNonces;
+extern CNoncesMapType mapAdminNonces;
+extern CCriticalSection cs_mapAdminSigs;
+extern MapSigAdmin mapAdminSigs;
 
 enum POCState {
     INIT,
@@ -203,11 +210,14 @@ public:
 extern CSignatureHolder sigHolder;
 
 extern void CheckNoncePools(CBlockIndex *pindex);
+extern void ExpireChainAdminData();
 extern int32_t GetPoolAge(const CNoncePool &pool, CBlockIndex *pTip);
 extern bool AddToCvnInfoCache(const CBlock *pblock, const uint32_t nHeight);
 extern uint32_t GetNumChainSigs(const CBlockIndex *pindex);
 extern uint32_t GetNumChainSigs(const CBlock *pblock);
 extern bool CvnSignHash(const uint256 &hashToSign, CSchnorrSig& signature);
+extern bool AdminSignHash(const uint256 &hashToSign, CSchnorrSig& signature, bool fFasito);
+extern bool AdminSignPartial(const uint256 &hashToSign, CAdminPartialSignatureUnsinged &signature, const uint32_t &nAdminId, const CSchnorrPrivNonce *privNonce, const uint8_t nHandle);
 extern bool CvnSignPartial(const uint256 &hashPrevBlock, CCvnPartialSignatureUnsinged &signature, const uint32_t &nNextCreator, const uint32_t &nNodeId, const vector<uint32_t> &vMissingCvnIds);
 extern int CombinePartialSignatures(CSchnorrSig& allsig, uint8_t *sigs[], int nSignatures);
 extern bool CvnSignBlock(CBlock& block);
@@ -222,10 +232,17 @@ extern bool CheckForDuplicateMissingChainSigs(const CBlock& block);
 extern bool AddCvnSignature(CCvnPartialSignature& msg);
 extern bool AddChainData(const CChainDataMsg& msg);
 extern bool CvnVerifyPartialSignature(const CCvnPartialSignature &sig);
-extern bool CvnVerifyPartialSignature(const uint256 &hash, const CSchnorrSig &sig, const CSchnorrPubKey &pubKey, const CSchnorrPubKey &sumPublicNoncesOthers);
+extern bool VerifyPartialAdminSignature(const CAdminPartialSignature& sig, const uint256 hash2Sign);
+extern bool VerifyPartialSignature(const uint256 &hash, const CSchnorrSig &sig, const CSchnorrPubKey &pubKey, const CSchnorrPubKey &sumPublicNoncesOthers);
 extern bool CheckAdminSignature(const vector<uint32_t> &vAdminIds, const uint256 &hashAdmin, const CSchnorrSig &sig, const bool fCoinSupply);
 extern void RelayChainData(const CChainDataMsg& msg);
 extern void RelayCvnSignature(const CCvnPartialSignature& msg);
+extern bool CreateNoncePairForHash(CSchnorrNonce& noncePublic, unsigned char *pPrivateData, const uint256& hashData, const uint32_t& nNodeId, const bool fUseFasito, const bool fAdmin);
+
+extern bool AddNonceAdmin(const CAdminNonce& msg);
+extern void RelayNonceAdmin(const CAdminNonce& msg);
+extern bool AddAdminSignature(const CAdminPartialSignature& msg);
+extern void RelayAdminSignature(const CAdminPartialSignature& msg);
 
 extern bool AddNoncePool(CNoncePool& msg);
 extern void CreateNewNoncePool(const POCStateHolder& s);
@@ -233,6 +250,8 @@ extern void RelayNoncePool(const CNoncePool& msg);
 extern void RemoveCvnPubNonces(const uint256& hashPrevBlock);
 
 extern uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTimeToTest, CCvnStatus* state = NULL);
+
+extern const string CreateSignerIdList(const std::vector<uint32_t>& vNodeIds);
 
 /** Check whether a block hash satisfies the proof-of-cooperation requirements */
 extern bool CheckProofOfCooperation(const CBlock& block, const Consensus::Params&);

@@ -2401,7 +2401,7 @@ void CNode::AskFor(const CInv& inv)
 
     // Each retry is 2 minutes after the last
     int64_t nRetryInterval = 2 * 60;
-    if (inv.type == MSG_CVN_PUB_NONCE_POOL || inv.type == MSG_CVN_SIGNATURE || inv.type == MSG_POC_CHAIN_DATA)
+    if (inv.type == MSG_CVN_PUB_NONCE_POOL || inv.type == MSG_CVN_SIGNATURE || inv.type == MSG_CHAIN_ADMIN_NONCE || inv.type == MSG_CHAIN_ADMIN_SIGNATURE || inv.type == MSG_POC_CHAIN_DATA)
         nRetryInterval = 10;
     nRequestTime = std::max(nRequestTime + nRetryInterval * 1000000, nNow);
     if (it != mapAlreadyAskedFor.end())
