@@ -202,6 +202,7 @@ public:
     double dPingWait;
     double dPingMin;
     std::string addrLocal;
+    bool fRelayPoCMessages;
 };
 
 
