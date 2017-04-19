@@ -1504,7 +1504,7 @@ bool CheckProofOfCooperation(const CBlock& block, const Consensus::Params& param
             return true;
     }
 
-    CBlockIndex* pindexPrev = (*mi).second;
+    CBlockIndex * const pindexPrev = (*mi).second;
     /* during parallel blockchain download we might see only parts of the chain. These are put together at a later time.
      * In this case we do not have enough information to reliably process PoC checks. They only work on a continuous chain. */
     if ((pindexPrev->nStatus & BLOCK_VALID_MASK) < BLOCK_VALID_SCRIPTS) {
@@ -1520,7 +1520,7 @@ bool CheckProofOfCooperation(const CBlock& block, const Consensus::Params& param
         return error("%s : invalid chain signature", __func__);
 
     // check if creator ID matches consensus rules
-    uint32_t nBlockCreator = CheckNextBlockCreator(mapBlockIndex[block.hashPrevBlock], block.nTime);
+    uint32_t nBlockCreator = CheckNextBlockCreator(pindexPrev, block.nTime);
 
     if (!nBlockCreator)
         return error("%s : FATAL: can not determine block creator for %s", __func__, hashBlock.ToString());
@@ -1528,9 +1528,8 @@ bool CheckProofOfCooperation(const CBlock& block, const Consensus::Params& param
     if (nBlockCreator != block.nCreatorId)
         return error("%s : block %s can not be created by 0x%08x but by 0x%08x", __func__, hashBlock.ToString(), block.nCreatorId, nBlockCreator);
 
-
-    uint32_t nChainSigs = GetNumChainSigs(&block);
-    uint32_t nPrevChainSigs = GetNumChainSigs(pindexPrev);
+    const uint32_t nChainSigs = GetNumChainSigs(&block);
+    const uint32_t nPrevChainSigs = GetNumChainSigs(pindexPrev);
 
     if (!nChainSigs || !nPrevChainSigs) {
         LogPrintf("%s : could not determine number of signatures: %d|%d\n", __func__, nChainSigs, nPrevChainSigs);
