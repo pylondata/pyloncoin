@@ -5049,7 +5049,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         if (!AlreadyHave(inv)) {
             if (!mapBannedCVNs.count(msg.nSignerId)) {
                 if (msg.hashPrevBlock != chainActive.Tip()->GetBlockHash()) {
-                    LogPrintf("received outdated chain signature from peer %d for tip %s signed by 0x%08x\n", pfrom->id, msg.hashPrevBlock.ToString(), msg.nCreatorId);
+                    LogPrintf("received outdated chain signature for 0x%08x from peer %d for tip %s signed by 0x%08x\n", msg.nCreatorId, pfrom->id, msg.hashPrevBlock.ToString(), msg.nSignerId);
                 } else {
                     LogPrint("net", "received chain signature %s for tip %s\n", msg.GetHash().ToString(), msg.hashPrevBlock.ToString());
                     if (AddCvnSignature(msg)) {

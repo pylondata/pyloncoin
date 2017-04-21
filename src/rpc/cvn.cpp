@@ -29,6 +29,10 @@ static CSchnorrNonce adminPublicNonce;
 
 static bool AddAdminSignatures(CChainDataMsg &msg)
 {
+    if (mapAdminSigs.empty()) {
+        return false;
+    }
+
     CAdminPartialSignature sigFirst = mapAdminSigs.begin()->second;
     if (sigFirst.vSignerIds.size() != mapAdminSigs.size()) {
         return false;
@@ -415,6 +419,7 @@ UniValue chainadminnonce(const UniValue& params, bool fHelp)
         adminPrivNonce = pn;
     }
 
+    // sign the message
     CSchnorrSig msgSig;
     if (!AdminSignHash(msg.GetHash(), msgSig, fFasito)) {
         return strprintf("%s : could not sign signature message\n", __func__);
