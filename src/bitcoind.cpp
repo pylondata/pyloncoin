@@ -5,6 +5,7 @@
 
 #include "chainparams.h"
 #include "clientversion.h"
+#include "compat.h"
 #include "rpc/server.h"
 #include "init.h"
 #include "noui.h"
@@ -125,30 +126,21 @@ bool AppInit(int argc, char* argv[])
             fprintf(stderr, "Error: There is no RPC client functionality in faircoind anymore. Use the faircoin-cli utility instead.\n");
             exit(1);
         }
-#ifndef WIN32
-        fDaemon = GetBoolArg("-daemon", false);
-        if (fDaemon)
+        if (GetBoolArg("-daemon", false))
         {
-            fprintf(stdout, "FairCoin server starting\n");
+#if HAVE_DECL_DAEMON
+            fprintf(stdout, "Bitcoin server starting\n");
 
             // Daemonize
-            pid_t pid = fork();
-            if (pid < 0)
-            {
-                fprintf(stderr, "Error: fork() returned %d errno %d\n", pid, errno);
+            if (daemon(1, 0)) { // don't chdir (1), do close FDs (0)
+                fprintf(stderr, "Error: daemon() failed: %s\n", strerror(errno));
                 return false;
             }
-            if (pid > 0) // Parent process, pid is child process id
-            {
-                return true;
-            }
-            // Child process falls through to rest of initialization
-
-            pid_t sid = setsid();
-            if (sid < 0)
-                fprintf(stderr, "Error: setsid() returned %d errno %d\n", sid, errno);
+#else
+            fprintf(stderr, "Error: -daemon is not supported on this operating system\n");
+            return false;
+#endif // HAVE_DECL_DAEMON
         }
-#endif
         SoftSetBoolArg("-server", true);
 
         // Set this early so that parameter interactions go to console
