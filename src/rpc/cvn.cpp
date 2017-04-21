@@ -308,7 +308,6 @@ UniValue chainadminlogin(const UniValue& params, bool fHelp)
         throw JSONRPCError(RPC_MISC_ERROR, "already logged in");
 
     string method = params[0].get_str();
-    const uint32_t nKeyIndex = params.size() == 3 ? params[2].get_int() : 0;
     const string strPassword = params[1].get_str();
 
     if (method == "fasito") {
@@ -317,6 +316,7 @@ UniValue chainadminlogin(const UniValue& params, bool fHelp)
         }
 #ifdef USE_FASITO
         LogPrintf("Initializing fasito for chain adminstration\n");
+        const uint32_t nKeyIndex = params.size() == 3 ? params[2].get_int() : 0;
         nChainAdminId = InitChainAdminWithFasito(strPassword, nKeyIndex);
 #else
         return "ERROR: This wallet version was not compiled with fasito support\n";
@@ -361,7 +361,7 @@ UniValue chainadminlogout(const UniValue& params, bool fHelp)
             throw JSONRPCError(RPC_MISC_ERROR, "cannot log off because the node is configured as a CVN\n");
         }
 #else
-        return "ERROR: This wallet version was not compiled with fasito support\n");
+        return "ERROR: This wallet version was not compiled with fasito support\n";
 #endif
     }
 
