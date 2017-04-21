@@ -37,22 +37,6 @@ static string bin2hex(const uint8_t *buf, const size_t len)
     return res;
 }
 
-static void proptForPassword(const std::string &strPrompt, std::string &strPassword)
-{
-    cout << strPrompt;
-    termios t;
-    tcgetattr(STDIN_FILENO, &t);
-
-    t.c_lflag &= ~ECHO;
-    tcsetattr(STDIN_FILENO, TCSANOW, &t);
-
-    getline(cin, strPassword);
-
-    t.c_lflag |= ECHO;
-    tcsetattr(STDIN_FILENO, TCSANOW, &t);
-    cout << "\n";
-}
-
 bool CreateNonceWithFasito(const uint256& hashData, const uint8_t nKey, unsigned char *pPrivateData, CSchnorrNonce& noncePublic, const CSchnorrPubKey& pubKey)
 {
     if (!fasito.mapKeys.count(nKey) || fasito.mapKeys[nKey].pubKey != pubKey) {
@@ -382,11 +366,9 @@ static bool InitFasito(const string& strPassword)
         }
 
         size_t nPassLen = strPassword.length();
-        string strPromptedPassord;
         if (strPassword.empty()) {
-            while ((nPassLen = strPromptedPassord.length()) == 0 && !ShutdownRequested()) {
-                proptForPassword("Enter Fasito PIN: ", strPromptedPassord);
-            }
+            LogPrintf("ERROR: no Fasito PIN supplied\n");
+            return false;
         }
 
         if (nPassLen != 6) {
@@ -394,7 +376,7 @@ static bool InitFasito(const string& strPassword)
             return false;
         }
 
-        if (!fasito.login(strPassword.empty() ? strPromptedPassord : strPassword)) {
+        if (!fasito.login(strPassword)) {
             LogPrintf("ERROR: wrong Fasito PIN\n");
             return false;
         }
@@ -411,9 +393,9 @@ static bool InitFasito(const string& strPassword)
     return true;
 }
 
-uint32_t InitCVNWithFasito()
+uint32_t InitCVNWithFasito(const string &strFasitoPassword)
 {
-    if (!InitFasito(""))
+    if (!InitFasito(strFasitoPassword))
           return false;
 
     uint32_t nKeyIndex = GetArg("-fasitocvnkeyindex", 0);

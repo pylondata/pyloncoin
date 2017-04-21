@@ -216,6 +216,8 @@ std::string HelpMessageOpt(const std::string& option, const std::string& message
  */
 int GetNumCores();
 
+void promptForPassword(const std::string &strPrompt, std::string &strPassword);
+
 void SetThreadPriority(int nPriority);
 void RenameThread(const char* name);
 

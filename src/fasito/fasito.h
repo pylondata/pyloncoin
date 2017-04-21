@@ -88,7 +88,7 @@ public:
     bool logout();
 };
 
-extern uint32_t InitCVNWithFasito();
+extern uint32_t InitCVNWithFasito(const string &strFasitoPassword);
 extern bool CreateNonceWithFasito(const uint256& hashData, const uint8_t nKey, unsigned char *pPrivateData, CSchnorrNonce& noncePublic, const CSchnorrPubKey& pubKey);
 extern bool CvnSignWithFasito(const uint256 &hashToSign, const uint8_t nKey, CSchnorrSig& signaturee);
 extern bool CvnSignPartialWithFasito(const uint256& hashUnsignedBlock, const uint8_t nKey, const CSchnorrPubKey& sumPublicNoncesOthers, CSchnorrSig& signature, const int nCurrentHeight);

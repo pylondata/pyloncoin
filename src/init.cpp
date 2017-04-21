@@ -810,7 +810,7 @@ void InitLogging()
 /** Initialize bitcoin.
  *  @pre Parameters should be parsed and config file should be read.
  */
-bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
+bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const string &strFasitoPassword)
 {
     // ********************************************************* Step 1: setup
 #ifdef _MSC_VER
@@ -1120,12 +1120,12 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 #ifdef USE_FASITO
             LogPrintf("Initializing fasito\n");
             uiInterface.InitMessage(_("Initializing fasito..."));
-            nCvnNodeId = InitCVNWithFasito();
+            nCvnNodeId = InitCVNWithFasito(strFasitoPassword);
 #else
             LogPrintf("ERROR: invalid parameter -cvn=fasito. This wallet version was not compiled with fasito support\n");
 #endif
         } else if (GetArg("-cvn", "") == "file") {
-            nCvnNodeId = InitCVNWithCertificate();
+            nCvnNodeId = InitCVNWithCertificate(strFasitoPassword);
         } else
             return InitError("-cvn configuration invalid. Parameter must be 'fasito' or 'file'\n");
 
@@ -1134,30 +1134,30 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler)
 
         LogPrintf("Starting CVN node with ID 0x%08x\n", nCvnNodeId);
         uiInterface.InitMessage(_("Starting CVN node..."));
+    }
 
 #if 0
-        CBlock genesis = chainparams.GenesisBlock();
-        UpdateCvnInfo(&genesis, 0);
-        UpdateChainAdmins(&genesis);
+    CBlock genesis = chainparams.GenesisBlock();
+    UpdateCvnInfo(&genesis, 0);
+    UpdateChainAdmins(&genesis);
 
-        CSchnorrSig chainAdminSig;
-        if (!adminPrivKey.SchnorrSign(genesis.GetPayloadHash(true), chainAdminSig))
-            return InitError("could not create chain admin signature");
+    CSchnorrSig chainAdminSig;
+    if (!adminPrivKey.SchnorrSign(genesis.GetPayloadHash(true), chainAdminSig))
+        return InitError("could not create chain admin signature");
 
-        LogPrintf("Genesis admin data signature  : %s\n", chainAdminSig.ToString());
-        if (!CPubKey::VerifySchnorr(genesis.GetPayloadHash(true), chainAdminSig, adminPubKey)) {
-            return InitError("could not verify chain admin signature");
-        }
-
-        CCvnPartialSignature chainSig;
-        vector<uint32_t> vMissingSignatures;
-        CvnSignPartial(genesis.hashPrevBlock, chainSig, GENESIS_NODE_ID, GENESIS_NODE_ID, vMissingSignatures);
-        LogPrintf("Genesis chain signature       : %s\n", chainSig.signature.ToString());
-
-        CvnSignBlock(genesis);
-        LogPrintf("Genesis block signature       : %s\n", genesis.creatorSignature.ToString());
-#endif
+    LogPrintf("Genesis admin data signature  : %s\n", chainAdminSig.ToString());
+    if (!CPubKey::VerifySchnorr(genesis.GetPayloadHash(true), chainAdminSig, adminPubKey)) {
+        return InitError("could not verify chain admin signature");
     }
+
+    CCvnPartialSignature chainSig;
+    vector<uint32_t> vMissingSignatures;
+    CvnSignPartial(genesis.hashPrevBlock, chainSig, GENESIS_NODE_ID, GENESIS_NODE_ID, vMissingSignatures);
+    LogPrintf("Genesis chain signature       : %s\n", chainSig.signature.ToString());
+
+    CvnSignBlock(genesis);
+    LogPrintf("Genesis block signature       : %s\n", genesis.creatorSignature.ToString());
+#endif
 
     LogPrintf("Using %u threads for script verification\n", nScriptCheckThreads);
     if (nScriptCheckThreads) {

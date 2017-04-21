@@ -17,6 +17,7 @@
 #include "utiltime.h"
 
 #include <stdarg.h>
+#include <termios.h>
 
 #if (defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__DragonFly__))
 #include <pthread.h>
@@ -834,3 +835,18 @@ int GetNumCores()
 #endif
 }
 
+void promptForPassword(const std::string &strPrompt, std::string &strPassword)
+{
+    cout << strPrompt;
+    termios t;
+    tcgetattr(STDIN_FILENO, &t);
+
+    t.c_lflag &= ~ECHO;
+    tcsetattr(STDIN_FILENO, TCSANOW, &t);
+
+    getline(cin, strPassword);
+
+    t.c_lflag |= ECHO;
+    tcsetattr(STDIN_FILENO, TCSANOW, &t);
+    cout << "\n";
+}

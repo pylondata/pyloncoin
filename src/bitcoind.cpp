@@ -124,6 +124,14 @@ bool AppInit(int argc, char* argv[])
             fprintf(stderr, "Error: There is no RPC client functionality in faircoind anymore. Use the faircoin-cli utility instead.\n");
             exit(1);
         }
+
+        // we need to do this early, just before daemonsing...
+        string strFasitoPassword = "";
+        if (mapArgs.count("-cvn"))
+        {
+            promptForPassword("Enter Fasito PIN: ", strFasitoPassword);
+        }
+
         if (GetBoolArg("-daemon", false))
         {
 #if HAVE_DECL_DAEMON
@@ -144,7 +152,8 @@ bool AppInit(int argc, char* argv[])
         // Set this early so that parameter interactions go to console
         InitLogging();
         InitParameterInteraction();
-        fRet = AppInit2(threadGroup, scheduler);
+        fRet = AppInit2(threadGroup, scheduler, strFasitoPassword);
+        memset(&strFasitoPassword.begin()[0], 0, strFasitoPassword.length());
     }
     catch (const std::exception& e) {
         PrintExceptionContinue(&e, "AppInit()");
