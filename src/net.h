@@ -332,6 +332,9 @@ public:
     int64_t nLastRecv;
     int64_t nTimeConnected;
     int64_t nTimeOffset;
+    // used to determine if a peer finished IBD
+    uint64_t nTimeSinceLastBlockSent;
+
     CAddress addr;
     std::string addrName;
     CService addrLocal;

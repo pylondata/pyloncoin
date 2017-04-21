@@ -38,6 +38,7 @@
 #include "core_io.h"
 
 #include <sstream>
+#include <atomic>
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
@@ -78,6 +79,7 @@ size_t nCoinCacheUsage = 5000 * 300;
 uint64_t nPruneTarget = 0;
 bool fAlerts = DEFAULT_ALERTS;
 bool fEnableReplacement = DEFAULT_ENABLE_REPLACEMENT;
+int64_t nMaxTipAge = DEFAULT_MAX_TIP_AGE;
 
 /** Fees smaller than this (in satoshi) are considered zero fee (for relaying, mining and transaction creation) */
 CFeeRate minRelayTxFee = CFeeRate(DEFAULT_MIN_RELAY_TX_FEE);
@@ -1407,19 +1409,31 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
 bool IsInitialBlockDownload()
 {
     const CChainParams& chainParams = Params();
+
+    // Once this function has returned false, it must remain false.
+    static std::atomic<bool> latchToFalse{false};
+    // Optimization: pre-test latch before taking the lock.
+    if (latchToFalse.load(std::memory_order_relaxed))
+        return false;
+
     LOCK(cs_main);
+    if (latchToFalse.load(std::memory_order_relaxed))
+        return false;
+
+    if (chainActive.Tip() == NULL)
+        return true;
+
     if (fImporting || fReindex)
         return true;
+
     if (fCheckpointsEnabled && chainActive.Height() < Checkpoints::GetTotalBlocksEstimate(chainParams.Checkpoints()))
         return true;
-    static bool lockIBDState = false;
-    if (lockIBDState)
-        return false;
-    bool state = !GetBoolArg("-bumpstart", false) && (chainActive.Height() < pindexBestHeader->nHeight - 24 * 60 / (int)dynParams.nBlockSpacing ||
-            pindexBestHeader->GetBlockTime() < GetTime() - chainParams.MaxTipAge());
-    if (!state)
-        lockIBDState = true;
-    return state;
+
+    if (chainActive.Tip()->GetBlockTime() < (GetTime() - nMaxTipAge))
+        return true;
+
+    latchToFalse.store(true, std::memory_order_relaxed);
+    return false;
 }
 
 arith_uint256 GetBlockProof(const CBlockIndex& block)
@@ -4297,6 +4311,37 @@ bool static AlreadyHave(const CInv& inv) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
     return true;
 }
 
+void static AdvertiseNoncesAndSigs(CNode *pfrom)
+{
+    CBlockIndex *tip = chainActive.Tip();
+
+    {
+        LOCK(cs_mapNoncePool);
+        BOOST_FOREACH(const CNoncePoolType::value_type &p, mapNoncePool) {
+            if (GetPoolAge(p.second, tip) < 0) {
+                LogPrintf("AdvertiseSigsAndNonces : not sending expired nonce pool from height %d of CVN 0x%08x\n", p.second.nHeightAdded, p.second.nCvnId);
+                continue;
+            }
+            pfrom->PushInventory(CInv(MSG_CVN_PUB_NONCE_POOL, p.second.GetHash()));
+        }
+    }
+
+    const uint256 hashPrevBlock = tip->GetBlockHash();
+    const uint32_t nNextCreator = CheckNextBlockCreator(tip, GetAdjustedTime());
+
+    vector<CCvnPartialSignature> sigs;
+    if (sigHolder.GetSignatures(sigs)) {
+        BOOST_FOREACH(const CCvnPartialSignature &s, sigs) {
+            if (s.hashPrevBlock != hashPrevBlock || s.nCreatorId != nNextCreator) {
+                LogPrintf("AdvertiseSigsAndNonces : not sending outdated signature: 0x%08x vs 0x%08x, %s vs %s\n", s.nCreatorId, nNextCreator, s.hashPrevBlock.ToString(), hashPrevBlock.ToString());
+                continue;
+            }
+
+            pfrom->PushInventory(CInv(MSG_CVN_SIGNATURE, s.GetHash()));
+        }
+    }
+}
+
 void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParams)
 {
     std::deque<CInv>::iterator it = pfrom->vRecvGetData.begin();
@@ -4351,6 +4396,9 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
                     pfrom->fDisconnect = true;
                     send = false;
                 }
+
+                uint64_t nPreviousTimeSinceLastBlockSent = pfrom->nTimeSinceLastBlockSent;
+
                 // Pruned nodes may have deleted the block, so check whether
                 // it's available before trying to send.
                 if (send && (mi->second->nStatus & BLOCK_HAVE_DATA))
@@ -4359,10 +4407,13 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
                     CBlock block;
                     if (!ReadBlockFromDisk(block, (*mi).second, consensusParams))
                         assert(!"cannot load block from disk");
-                    if (inv.type == MSG_BLOCK)
+                    if (inv.type == MSG_BLOCK) {
                         pfrom->PushMessage(NetMsgType::BLOCK, block);
+                        pfrom->nTimeSinceLastBlockSent = GetTime();
+                    }
                     else // MSG_FILTERED_BLOCK)
                     {
+                        nPreviousTimeSinceLastBlockSent = 0;
                         LOCK(pfrom->cs_filter);
                         if (pfrom->pfilter)
                         {
@@ -4393,6 +4444,15 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
                         pfrom->PushMessage(NetMsgType::INV, vInv);
                         pfrom->hashContinue.SetNull();
                     }
+                }
+
+                // if a peer requested our chain tip and it was downloading earlier blocks just before
+                // we advertise our nonce pool and our chain signatures
+                if (send && pfrom->fRelayPoCMessages
+                         && chainActive.Tip()->GetBlockHash() == inv.hash
+                         && nPreviousTimeSinceLastBlockSent > (uint64_t) (GetTime() - dynParams.nBlockSpacing + dynParams.nBlockPropagationWaitTime)) {
+                    LogPrint("cvnsig", "peer %d requested chain tip, sending nonce pools and chain signatures\n", pfrom->id);
+                    AdvertiseNoncesAndSigs(pfrom);
                 }
             }
             else if (inv.type == MSG_CVN_PUB_NONCE_POOL) {
@@ -4505,33 +4565,6 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
         // risk analyze) the dependencies of transactions relevant to them, without
         // having to download the entire memory pool.
         pfrom->PushMessage(NetMsgType::NOTFOUND, vNotFound);
-    }
-}
-
-void static AdvertiseSigsAndNonces(CNode *pfrom)
-{
-    CBlockIndex *tip = chainActive.Tip();
-    const uint256 hashPrevBlock = tip->GetBlockHash();
-    uint32_t nNextCreator = CheckNextBlockCreator(tip, GetAdjustedTime());
-
-    vector<CCvnPartialSignature> sigs;
-    if (sigHolder.GetSignatures(sigs)) {
-        BOOST_FOREACH(const CCvnPartialSignature &s, sigs) {
-            if (s.hashPrevBlock != hashPrevBlock || s.nCreatorId != nNextCreator) {
-                LogPrintf("AdvertiseSigsAndNonces : not sending outdated signature: 0x%08x vs 0x%08x, %s vs %s\n", s.nCreatorId, nNextCreator, s.hashPrevBlock.ToString(), hashPrevBlock.ToString());
-                continue;
-            }
-
-            pfrom->PushInventory(CInv(MSG_CVN_SIGNATURE, s.GetHash()));
-        }
-    }
-
-    BOOST_FOREACH(const CNoncePoolType::value_type &p, mapNoncePool) {
-        if (GetPoolAge(p.second, tip) < 0) {
-            LogPrintf("AdvertiseSigsAndNonces : not sending expired nonce pool from height %d of CVN 0x%08x\n", p.second.nHeightAdded, p.second.nCvnId);
-            continue;
-        }
-        pfrom->PushInventory(CInv(MSG_CVN_PUB_NONCE_POOL, p.second.GetHash()));
     }
 }
 
@@ -4676,6 +4709,8 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         int64_t nTimeOffset = nTime - GetTime();
         pfrom->nTimeOffset = nTimeOffset;
         AddTimeData(pfrom->addr, nTimeOffset);
+
+        pfrom->nTimeSinceLastBlockSent = 0;
     }
 
 
@@ -4703,9 +4738,9 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         // nodes)
         pfrom->PushMessage(NetMsgType::SENDHEADERS);
 
-        // Advertise the partial signatures and public nonces we've got
-        if (pfrom->fRelayPoCMessages)
-            AdvertiseSigsAndNonces(pfrom);
+        // Advertise the chain signatures and public nonces we've got
+        if (pfrom->fRelayPoCMessages && !IsInitialBlockDownload() && pfrom->nStartingHeight == chainActive.Height())
+            AdvertiseNoncesAndSigs(pfrom);
     }
 
 

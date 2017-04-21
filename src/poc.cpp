@@ -267,6 +267,8 @@ CCvnPartialSignature* CSignatureHolder::GetSignature(const uint32_t nSignerId, c
 
 bool CSignatureHolder::GetSignatures(vector<CCvnPartialSignature> &vSigs)
 {
+    LOCK(cs_sigHolder);
+
     if (sigs.empty())
         return false;
 

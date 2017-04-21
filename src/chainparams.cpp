@@ -71,7 +71,6 @@ public:
         pchMessageStart[3] = 0xda;
         vAlertPubKey = ParseHex("04b06af4982ca3edc2c040cc2cde05fa5b33264af4a98712ceb29d196e7390b4753eb7264dc5f383f29a44d63e70dbbd8d9e46a0a60f80ef62fd1911291ec388e4");
         nDefaultPort = 40404;
-        nMaxTipAge = 30 * 60; // 30 min.
         nPruneAfterHeight = 100000;
 
         CDynamicChainParams dynParams;
@@ -157,7 +156,6 @@ public:
         pchMessageStart[3] = 0x08;
         vAlertPubKey = ParseHex("045894f38e9dd72b6f210c261d40003eb087030c42b102d3b238b396256d02f5a380ff3b7444d306d9e118fa1fc7b2b7594875f4eb64bbeaa31577391d85eb5a8a");
         nDefaultPort = 41404;
-        nMaxTipAge = 0x7fffffff;
         nPruneAfterHeight = 1000;
 
         CDynamicChainParams dynParams;
@@ -243,7 +241,6 @@ public:
         pchMessageStart[1] = 0xbf;
         pchMessageStart[2] = 0xb5;
         pchMessageStart[3] = 0xda;
-        nMaxTipAge = 60 * 60; // 1h
         nDefaultPort = 42404;
         nPruneAfterHeight = 1000;
 
