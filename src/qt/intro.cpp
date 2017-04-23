@@ -177,7 +177,7 @@ void Intro::pickDataDirectory()
         /* If current default data directory does not exist, let the user choose one */
         Intro intro;
         intro.setDataDirectory(dataDir);
-        intro.setWindowIcon(QIcon(":icons/bitcoin"));
+        intro.setWindowIcon(QIcon(":icons/faircoin"));
 
         while(true)
         {

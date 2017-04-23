@@ -422,7 +422,7 @@
           <string/>
          </property>
          <property name="pixmap">
-          <pixmap resource="../bitcoin.qrc">:/images/wallet_logo</pixmap>
+          <pixmap resource="../bitcoin.qrc">:/icons/wallet_logo</pixmap>
          </property>
          <property name="scaledContents">
           <bool>false</bool>
