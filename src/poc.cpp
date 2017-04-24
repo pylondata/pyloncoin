@@ -2217,12 +2217,25 @@ void CreateNewNoncePool(const POCStateHolder& s)
     }
 }
 
+static void FindSignerIDsWithMissingNonces(vector<uint32_t> &vMissingSingerIds)
+{
+    LOCK2(cs_mapNoncePool, cs_mapCVNs);
+
+    BOOST_FOREACH(const CvnMapType::value_type& cvn, mapCVNs) {
+        if (mapNoncePool.find(cvn.first) == mapNoncePool.end()) {
+            vMissingSingerIds.push_back(cvn.first);
+        }
+    }
+}
+
 static void handleCreateSignature(POCStateHolder& s)
 {
 
     if (s.commonRxs.empty()) {
-        vector<uint32_t> vMissingSignatures;
-        if (SendCVNSignature(s, vMissingSignatures)) {
+        vector<uint32_t> vMissingSignerIds;
+        FindSignerIDsWithMissingNonces(vMissingSignerIds);
+
+        if (SendCVNSignature(s, vMissingSignerIds)) {
             s.state  = WAITING_FOR_SIGNATURES;
         } else {
             s.nSleep = 5; // something went wrong, wait 5 sec. and try again
@@ -2262,6 +2275,7 @@ static void handleWaitingForSignatures(POCStateHolder& s)
          * Periodically (SEND_SIG_RETRY_INTERVAL) find the missing node IDs and try without them. */
 
         vector<uint32_t> vMissingSignerIds; // missing signer IDs from all commonRs we signed so far
+        FindSignerIDsWithMissingNonces(vMissingSignerIds);
         if (sigHolder.GetAllMissing(vMissingSignerIds, s.nNodeId, s.commonRxs, mapNoncePool, mapCVNs.size())) {
             if (HasEnoughSignatures(s.pindexPrev, mapCVNs.size() - vMissingSignerIds.size())) {
                 LogPrintf("Did not receive all signatures for set. Trying with smaller set of members. Missing: %s\n", CreateSignerIdList(vMissingSignerIds));
