@@ -285,7 +285,7 @@ bool CSignatureHolder::GetSignatures(vector<CCvnPartialSignature> &vSigs)
     return !vSigs.empty();
 }
 
-bool CSignatureHolder::HasSigSetsToContributeTo(vector<vector<uint32_t> > &vSigSetsToContributeTo, const uint32_t nNodeId, const uint32_t nMaxSignatures)
+bool CSignatureHolder::HasSigSetsToContributeTo(vector<vector<uint32_t> > &vSigSetsToContributeTo, const uint32_t nNodeId, const uint32_t nActiveCVNs)
 {
     LOCK(sigHolder.cs_sigHolder);
 
@@ -296,11 +296,10 @@ bool CSignatureHolder::HasSigSetsToContributeTo(vector<vector<uint32_t> > &vSigS
         const MapSigSigner &s = entry.second;
         const CCvnPartialSignature &sigFirst = s.begin()->second;
 
-        if (s.empty() || (nMaxSignatures - sigFirst.vMissingSignerIds.size()) == s.size())
+        if (s.empty() || (nActiveCVNs - sigFirst.vMissingSignerIds.size()) == s.size())
             continue;
 
-        MapSigSigner::const_iterator it = s.find(nNodeId);
-        if (it == s.end()) {
+        if (s.find(nNodeId) == s.end()) {
             vSigSetsToContributeTo.push_back(sigFirst.vMissingSignerIds);
         }
     }
