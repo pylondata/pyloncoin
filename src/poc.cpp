@@ -2471,11 +2471,6 @@ void static POCThread(const CChainParams& chainparams, const uint32_t& nNodeId)
         nNextCreator = CheckNextBlockCreator(chainActive.Tip(), GetAdjustedTime());
     }
 
-    // initialise random seed
-    CHashWriter hasher(SER_GETHASH, 0);
-    hasher << chainActive.Tip()->GetBlockHash() << nNodeId << chainActive.Tip()->nHeight;
-    srand((hasher.GetHash().GetCheapHash() >> 32) + GetTimeMillis());
-
     POCStateHolder s(INIT, nNextCreator, chainActive.Tip(), nNodeId, chainparams, feeScript);
 
     LogPrintf("POC thread started for node ID 0x%08x\n", nNodeId);
