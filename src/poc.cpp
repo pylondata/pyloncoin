@@ -330,7 +330,15 @@ bool CSignatureHolder::HasCompleteSigSets(const uint32_t nMaxSignatures) const
     return false;
 }
 
-bool CSignatureHolder::GetAllMissing(vector<uint32_t> &vMissingSignerIds, const uint32_t nNodeId, const vector<CSchnorrRx> &commonRxs, const CNoncePoolType &mapNoncePool, const uint32_t nMaxSignatures)
+/**
+ * Get all the missing CVN Ids that failed to co-sign any of the signature sets.
+ *
+ * Iterate over all commonRxs we've received so far and find out which CVN
+ * did not manage to create a signature for the set and sum it up.
+ *
+ * The node IDs in vMissingSignerIds are considered to be offline.
+ */
+bool CSignatureHolder::GetAllMissing(vector<uint32_t> &vMissingSignerIds, const uint32_t nNodeId, const vector<CSchnorrRx> &commonRxs, const CNoncePoolType &mapNoncePool, const uint32_t nActiveCVNs)
 {
     LOCK(sigHolder.cs_sigHolder);
 
@@ -340,7 +348,7 @@ bool CSignatureHolder::GetAllMissing(vector<uint32_t> &vMissingSignerIds, const 
     set<uint32_t> sMissing;
 
     BOOST_FOREACH(const CSchnorrRx &commonRx, commonRxs) {
-        if (!sigs.count(commonRx))
+        if (sigs.find(commonRx) == sigs.end())
             continue;
 
         const MapSigSigner &s = sigs[commonRx];
@@ -350,11 +358,11 @@ bool CSignatureHolder::GetAllMissing(vector<uint32_t> &vMissingSignerIds, const 
 
         const CCvnPartialSignature &sigFirst = s.begin()->second;
 
-        if (nMaxSignatures - sigFirst.vMissingSignerIds.size() == s.size())
+        if (nActiveCVNs - sigFirst.vMissingSignerIds.size() == s.size())
             continue; // no missing IDs for this commonR
 
         BOOST_FOREACH(const CNoncePoolType::value_type& p, mapNoncePool) {
-            if (s.count(p.first))
+            if (s.find(p.first) != s.end())
                 continue;
 
             sMissing.insert(p.first);
@@ -838,7 +846,7 @@ const CSchnorrNonce *GetCurrnetPublicNonce(const uint32_t nNodeId)
     return &pool.vPublicNonces[nPoolOffset];
 }
 
-bool CreateSumPublicNoncesOthers(CSchnorrPubKey &sumPublicNoncesOthers, const uint32_t& nNextCreator, const uint32_t& nNodeId, vector<uint32_t> &vMissingPubNonces, const vector<uint32_t> &vMissingSignerIds)
+bool CreateSumPublicNoncesOthers(CSchnorrPubKey &sumPublicNoncesOthers, const uint32_t& nNextCreator, const uint32_t& nNodeId, const vector<uint32_t> &vMissingSignerIds)
 {
     LOCK(cs_mapNoncePool);
     vector<secp256k1_pubkey *> allPubOtherNonces;
@@ -847,10 +855,13 @@ bool CreateSumPublicNoncesOthers(CSchnorrPubKey &sumPublicNoncesOthers, const ui
         if (cvn.first == nNodeId)
             continue;
 
-        if (!mapNoncePool.count(cvn.first) || find(vMissingSignerIds.begin(), vMissingSignerIds.end(), cvn.first) != vMissingSignerIds.end()) {
-            LogPrint("cvn", "%s : 0x%08x is missing\n", __func__, cvn.first);
-            vMissingPubNonces.push_back(cvn.first);
+        if (find(vMissingSignerIds.begin(), vMissingSignerIds.end(), cvn.first) != vMissingSignerIds.end()) {
             continue;
+        }
+
+        if (mapNoncePool.find(cvn.first) == mapNoncePool.end()) {
+            LogPrintf("%s : nonce pool unavailable for 0x%08x\n", __func__, cvn.first);
+            return false;;
         }
 
         const CSchnorrNonce *nonce = GetCurrnetPublicNonce(cvn.first);
@@ -859,6 +870,8 @@ bool CreateSumPublicNoncesOthers(CSchnorrPubKey &sumPublicNoncesOthers, const ui
 
         allPubOtherNonces.push_back((secp256k1_pubkey *)nonce);
     }
+
+    LogPrint("cvn", "%s : %s are missing\n", __func__, CreateSignerIdList(vMissingSignerIds));
 
     memset(&sumPublicNoncesOthers.begin()[0], 0, 64);
     if (allPubOtherNonces.size() > 1) {
@@ -906,14 +919,13 @@ bool CvnSignPartial(const uint256 &hashPrevBlock, CCvnPartialSignatureUnsinged &
         return CvnSignHash(hasher.GetHash(), signature.signature);
 
     CSchnorrPubKey sumPublicNoncesOthers;
-    vector<uint32_t> vMissingPubNonces;
-    if (!CreateSumPublicNoncesOthers(sumPublicNoncesOthers, nNextCreator, nNodeId, vMissingPubNonces, vMissingSignerIds))
+    if (!CreateSumPublicNoncesOthers(sumPublicNoncesOthers, nNextCreator, nNodeId, vMissingSignerIds))
         return false;
 
-    if (!vMissingPubNonces.empty()) {
+    if (!vMissingSignerIds.empty()) {
         /* if we have missing signers we modify the hashToSign to avoid that
          * that we sign the same message with a different set of nonces */
-        BOOST_FOREACH(const uint32_t& nMissingId, vMissingPubNonces) {
+        BOOST_FOREACH(const uint32_t& nMissingId, vMissingSignerIds) {
             hasher << nMissingId;
         }
     }
@@ -938,7 +950,7 @@ bool CvnSignPartial(const uint256 &hashPrevBlock, CCvnPartialSignatureUnsinged &
             return false;
     }
 
-    signature.vMissingSignerIds = vMissingPubNonces;
+    signature.vMissingSignerIds = vMissingSignerIds;
 
     return VerifyPartialSignature(hashToSign, signature.signature, mapCVNs[nNodeId].pubKey, sumPublicNoncesOthers);
 }
@@ -1257,19 +1269,13 @@ bool CvnVerifyPartialSignature(const CCvnPartialSignature& sig)
         return CvnVerifySignature(hasher.GetHash(), sig.signature, sig.nSignerId);
 
     CSchnorrPubKey sumPublicNoncesOthers;
-    vector<uint32_t> vMissingPubNonces;
-    if (!CreateSumPublicNoncesOthers(sumPublicNoncesOthers, sig.nCreatorId, sig.nSignerId, vMissingPubNonces, sig.vMissingSignerIds))
+    if (!CreateSumPublicNoncesOthers(sumPublicNoncesOthers, sig.nCreatorId, sig.nSignerId, sig.vMissingSignerIds))
         return false;
 
-    if (vMissingPubNonces != sig.vMissingSignerIds){
-        LogPrintf("%s : missingPubNonces mismatch: %s (%d != %d)\n", __func__, sig.ToString(), vMissingPubNonces.size(), sig.vMissingSignerIds.size());
-        return false;
-    }
-
-    if (!vMissingPubNonces.empty()) {
+    if (!sig.vMissingSignerIds.empty()) {
         /* if we have missing signers we modify the hashToSign to avoid that
          * that we sign the same message with a different set of nonces */
-        BOOST_FOREACH(const uint32_t& nMissingId, vMissingPubNonces) {
+        BOOST_FOREACH(const uint32_t& nMissingId, sig.vMissingSignerIds) {
             hasher << nMissingId;
         }
     }
@@ -2217,15 +2223,32 @@ void CreateNewNoncePool(const POCStateHolder& s)
     }
 }
 
-static void FindSignerIDsWithMissingNonces(vector<uint32_t> &vMissingSingerIds)
+static void FindSignerIDsWithMissingNonces(vector<uint32_t> &vSignerIdsWithMissingNonces)
 {
-    LOCK2(cs_mapNoncePool, cs_mapCVNs);
+    LOCK(cs_mapNoncePool);
 
     BOOST_FOREACH(const CvnMapType::value_type& cvn, mapCVNs) {
         if (mapNoncePool.find(cvn.first) == mapNoncePool.end()) {
-            vMissingSingerIds.push_back(cvn.first);
+            vSignerIdsWithMissingNonces.push_back(cvn.first);
         }
     }
+}
+
+static bool NoncePoolsAvailable(const vector<uint32_t> &vMissingSignerIds)
+{
+    LOCK(cs_mapNoncePool);
+
+    BOOST_FOREACH(const CvnMapType::value_type& cvn, mapCVNs) {
+        // ignore those that are expected to be missing
+        if (find(vMissingSignerIds.begin(), vMissingSignerIds.end(), cvn.first) != vMissingSignerIds.end())
+            continue;
+
+        if (mapNoncePool.find(cvn.first) == mapNoncePool.end()) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 static void handleCreateSignature(POCStateHolder& s)
@@ -2246,6 +2269,10 @@ static void handleCreateSignature(POCStateHolder& s)
     vector<vector<uint32_t> > vMissingSigsCandidates;
     if (sigHolder.HasSigSetsToContributeTo(vMissingSigsCandidates, s.nNodeId, mapCVNs.size())) {
         BOOST_FOREACH(const vector<uint32_t> &entry, vMissingSigsCandidates) {
+            // we only try to co-sign if we have all required nonce pools available
+            if (!NoncePoolsAvailable(entry))
+                continue;
+
             if (SendCVNSignature(s, entry)) {
                 s.state  = WAITING_FOR_SIGNATURES;
             } else {
@@ -2275,8 +2302,8 @@ static void handleWaitingForSignatures(POCStateHolder& s)
          * Periodically (SEND_SIG_RETRY_INTERVAL) find the missing node IDs and try without them. */
 
         vector<uint32_t> vMissingSignerIds; // missing signer IDs from all commonRs we signed so far
-        FindSignerIDsWithMissingNonces(vMissingSignerIds);
         if (sigHolder.GetAllMissing(vMissingSignerIds, s.nNodeId, s.commonRxs, mapNoncePool, mapCVNs.size())) {
+            FindSignerIDsWithMissingNonces(vMissingSignerIds);
             if (HasEnoughSignatures(s.pindexPrev, mapCVNs.size() - vMissingSignerIds.size())) {
                 LogPrintf("Did not receive all signatures for set. Trying with smaller set of members. Missing: %s\n", CreateSignerIdList(vMissingSignerIds));
 
