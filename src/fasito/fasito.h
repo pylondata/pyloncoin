@@ -49,6 +49,7 @@ public:
     string strFasitoVersion;
     string strSerialNumber;
     string strTokenStatus;
+    string strProtectionStatus;
     string strConfigVersion;
     string strConfigChecksum;
     uint32_t nNoncePoolSize;
@@ -72,6 +73,7 @@ public:
         strFasitoVersion.clear();
         strSerialNumber.clear();
         strTokenStatus.clear();
+        strProtectionStatus.clear();
         strConfigVersion.clear();
         strConfigChecksum.clear();
         nNoncePoolSize = 0;

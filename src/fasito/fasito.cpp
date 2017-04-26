@@ -241,22 +241,25 @@ bool CFasito::logout()
 }
 
 /*
-Serial number   : 012345678999
-Token status    : CONFIGURED
-Config version  : 1
-Config checksum : 1234
+Serial number     : 012345678999
+Token status      : CONFIGURED
+Protection status : 0x01100010
+Config version    : 1
+Config checksum   : 1234
 
-User PIN        : SET (tries left: 3)
+User PIN          : SET (tries left: 3)
 
-Key #0          : 0x70000001 (CONFIGURED)
-Key #1          : 0x70000002 (CONFIGURED)
-Key #2          : 0x00000000 (SEEDED)
-Key #3          : 0x00000000 (SEEDED)
-Key #4          : 0x00000000 (SEEDED)
-Key #5          : 0x00000000 (SEEDED)
-Key #6          : 0x00000000 (SEEDED)
-Key #7          : 0x00000000 (CONFIGURED, protected)
+Key #0            : 0x70000001 (CONFIGURED)
+Key #1            : 0x70000002 (CONFIGURED)
+Key #2            : 0x00000000 (SEEDED)
+Key #3            : 0x00000000 (SEEDED)
+Key #4            : 0x00000000 (SEEDED)
+Key #5            : 0x00000000 (SEEDED)
+Key #6            : 0x00000000 (SEEDED)
+Key #7            : 0x00000000 (CONFIGURED, protected)
  */
+
+#define VALUE_OFFSET 20
 
 void CFasito::open(const string &devname)
 {
@@ -269,15 +272,16 @@ void CFasito::open(const string &devname)
         fInitialized = false;
         return;
     }
-    strFasitoVersion   = res[i++].substr(18);
-    strSerialNumber    = res[i++].substr(18);
-    strTokenStatus     = res[i++].substr(18);
-    strConfigVersion   = res[i++].substr(18);
-    strConfigChecksum  = res[i++].substr(18);
-    nNoncePoolSize     = atoi(res[i++].substr(18).c_str());
-    i++;
-    strPinStatus       = res[i++].substr(18);
-    i++;
+    strFasitoVersion    = res[i++].substr(VALUE_OFFSET);
+    strSerialNumber     = res[i++].substr(VALUE_OFFSET);
+    strTokenStatus      = res[i++].substr(VALUE_OFFSET);
+    strProtectionStatus = res[i++].substr(VALUE_OFFSET);
+    strConfigVersion    = res[i++].substr(VALUE_OFFSET);
+    strConfigChecksum   = res[i++].substr(VALUE_OFFSET);
+    nNoncePoolSize      = atoi(res[i++].substr(VALUE_OFFSET).c_str());
+    ++i;
+    strPinStatus        = res[i++].substr(VALUE_OFFSET);
+    ++i;
 
     int nKey = 0;
     while (1) {
@@ -285,7 +289,7 @@ void CFasito::open(const string &devname)
         if (!boost::algorithm::starts_with(line, "Key #"))
             break;
 
-        string keyStatus = line.substr(18);
+        string keyStatus = line.substr(VALUE_OFFSET);
 
         CFasitoKey key;
         stringstream ss;
@@ -358,7 +362,8 @@ static bool InitFasito(const string& strPassword)
         fasito.open(strDevice);
         fasito.setTimeout(boost::posix_time::seconds(2));
 
-        LogPrintf("detected Fasito %s, serial number: %s, user-PIN status: %s\n", fasito.strFasitoVersion, fasito.strSerialNumber, fasito.strPinStatus);
+        LogPrintf("detected Fasito %s, serial number: %s, user-PIN status: %s, protection status: %s\n",
+                fasito.strFasitoVersion, fasito.strSerialNumber, fasito.strPinStatus, fasito.strProtectionStatus);
 
         if (fasito.strTokenStatus != "CONFIGURED") {
             LogPrintf("ERROR: Fasito not configured\n");
