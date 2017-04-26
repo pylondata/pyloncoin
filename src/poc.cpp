@@ -888,6 +888,26 @@ bool CreateSumPublicNoncesOthers(CSchnorrPubKey &sumPublicNoncesOthers, const ui
     return true;
 }
 
+static void UpdateHashWithMissingIDs(CHashWriter &hasher, const vector<uint32_t> &vMissingSignerIds)
+{
+    if (vMissingSignerIds.empty())
+        return;
+
+    /* if we have missing signers we modify the hashToSign to avoid that
+     * that we sign the same message with a different set of nonces
+     *
+     * We sum up (and overflow) all the nMisingIds in nSumNodeIds so the
+     * order of the IDs doesn't matter */
+
+    uint32_t nSumNodeIds = 0;
+
+    BOOST_FOREACH(const uint32_t& nMissingId, vMissingSignerIds) {
+        nSumNodeIds += nMissingId;
+    }
+
+    hasher << nSumNodeIds;
+}
+
 bool CvnSignPartial(const uint256 &hashPrevBlock, CCvnPartialSignatureUnsinged &signature, const uint32_t &nNextCreator, const uint32_t &nNodeId, const vector<uint32_t> &vMissingSignerIds)
 {
     CHashWriter hasher(SER_GETHASH, 0);
@@ -921,13 +941,7 @@ bool CvnSignPartial(const uint256 &hashPrevBlock, CCvnPartialSignatureUnsinged &
     if (!CreateSumPublicNoncesOthers(sumPublicNoncesOthers, nNextCreator, nNodeId, vMissingSignerIds))
         return false;
 
-    if (!vMissingSignerIds.empty()) {
-        /* if we have missing signers we modify the hashToSign to avoid that
-         * that we sign the same message with a different set of nonces */
-        BOOST_FOREACH(const uint32_t& nMissingId, vMissingSignerIds) {
-            hasher << nMissingId;
-        }
-    }
+    UpdateHashWithMissingIDs(hasher, vMissingSignerIds);
 
     uint256 hashToSign = hasher.GetHash();
 
@@ -1271,13 +1285,7 @@ bool CvnVerifyPartialSignature(const CCvnPartialSignature& sig)
     if (!CreateSumPublicNoncesOthers(sumPublicNoncesOthers, sig.nCreatorId, sig.nSignerId, sig.vMissingSignerIds))
         return false;
 
-    if (!sig.vMissingSignerIds.empty()) {
-        /* if we have missing signers we modify the hashToSign to avoid that
-         * that we sign the same message with a different set of nonces */
-        BOOST_FOREACH(const uint32_t& nMissingId, sig.vMissingSignerIds) {
-            hasher << nMissingId;
-        }
-    }
+    UpdateHashWithMissingIDs(hasher, sig.vMissingSignerIds);
 
     return VerifyPartialSignature(hasher.GetHash(), sig.signature, mapCVNs[sig.nSignerId].pubKey, sumPublicNoncesOthers);
 }
