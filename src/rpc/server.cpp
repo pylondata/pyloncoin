@@ -301,6 +301,7 @@ static const CRPCCommand vRPCCommands[] =
     { "cvn",                "bancvn",                 &bancvn,                 true  },
     { "cvn",                "setchainparameters",     &setchainparameters,     true  },
     { "cvn",                "getchainparameters",     &getchainparameters,     true  },
+    { "cvn",                "relaynoncepool",         &relaynoncepool,         true  },
     { "cvn",                "getactivecvns",          &getactivecvns,          true  },
     { "cvn",                "getactiveadmins",        &getactiveadmins,        true  },
     { "cvn",                "submitblock",            &submitblock,            true  },

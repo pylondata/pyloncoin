@@ -1016,6 +1016,42 @@ UniValue getchainparameters(const UniValue& params, bool fHelp)
     return result;
 }
 
+UniValue relaynoncepool(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() > 2)
+        throw runtime_error(
+            "relaynoncepool true|false\n"
+            "\nRelay local nonce pool(s)\n"
+            "\nArguments:\n"
+            "1. \"sendAll\" (bool, optional) Whether to send all available pools or only the locally created pool (default: true)\n"
+            "2. \"verbose\" (bool, optional) Whether to log all the contents of the nonce pools (default: false)\n"
+            "\nResult:\n"
+            "OK\n"
+            "\nExamples:\n"
+            "\nSet chain parameters\n"
+            + HelpExampleCli("relaynoncepool", "true")
+        );
+
+    LOCK(cs_mapNoncePool);
+    CBlockIndex *tip = chainActive.Tip();
+    const bool fSendAll = params.size() == 1 ? (params[0].get_bool()) : true;
+    const bool fVerbose = params.size() == 2 ? (params[1].get_bool()) : false;
+
+    BOOST_FOREACH(const CNoncePoolType::value_type &p, mapNoncePool) {
+        const CNoncePool& msg = p.second;
+        if (GetPoolAge(msg, tip) < 0) {
+            LogPrintf("%s : not sending expired nonce pool from height %d of CVN 0x%08x\n", __func__, msg.nHeightAdded, msg.nCvnId);
+            continue;
+        }
+        if (fSendAll || msg.nCvnId == nCvnNodeId) {
+            LogPrintf("relaying nonce pool: %s\n", msg.ToString(fVerbose));
+            RelayNoncePool(msg);
+        }
+    }
+
+    return "OK";
+}
+
 // NOTE: Assumes a conclusive result; if result is inconclusive, it must be handled by caller
 static UniValue BIP22ValidationResult(const CValidationState& state)
 {

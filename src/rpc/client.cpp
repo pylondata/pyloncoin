@@ -103,6 +103,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "setchainparameters", 0 },
     { "setchainparameters", 1 },
     { "chainadminlogin", 2 },
+    { "relaynoncepool", 0 },
+    { "relaynoncepool", 1 },
 };
 
 class CRPCConvertTable

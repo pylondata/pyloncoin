@@ -194,6 +194,7 @@ extern UniValue signchaindata(const UniValue& params, bool fHelp);
 extern UniValue getcvninfo(const UniValue& params, bool fHelp);
 extern UniValue bancvn(const UniValue& params, bool fHelp);
 extern UniValue getchainparameters(const UniValue& params, bool fHelp);
+extern UniValue relaynoncepool(const UniValue& params, bool fHelp);
 extern UniValue setchainparameters(const UniValue& params, bool fHelp);
 extern UniValue getactivecvns(const UniValue& params, bool fHelp);
 extern UniValue getactiveadmins(const UniValue& params, bool fHelp);
