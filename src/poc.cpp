@@ -75,6 +75,9 @@ const char *pocStateNames[] = {
         "WAITING_FOR_BLOCK",
         "WAITING_FOR_NEW_TIP",
         "WAITING_FOR_CVN_DATA",
+        "COMPLETE_SIGNATURE_SETS",
+        "CREATE_SIGNATURE_OVERDUE",
+        "WAITING_FOR_SIGNATURES_OVERDUE",
         "UNDEFINED",
 };
 
@@ -2260,19 +2263,25 @@ static bool NoncePoolsAvailable(const vector<uint32_t> &vMissingSignerIds)
 
 static void handleCreateSignature(POCStateHolder& s)
 {
+    const bool fIsOverdue = (s.state == CREATE_SIGNATURE_OVERDUE);
+
+    if (fIsOverdue)
+        MilliSleep(3000); //give some time for other nodes
 
     if (s.commonRxs.empty()) {
         vector<uint32_t> vMissingSignerIds;
         FindSignerIDsWithMissingNonces(vMissingSignerIds);
 
         if (SendCVNSignature(s, vMissingSignerIds)) {
-            s.state  = WAITING_FOR_SIGNATURES;
+            s.state = fIsOverdue ? WAITING_FOR_SIGNATURES_OVERDUE : WAITING_FOR_SIGNATURES;
         } else {
             s.nSleep = 5; // something went wrong, wait 5 sec. and try again
         }
-        return;
     }
+}
 
+static void handleCompleteSignatureSets(POCStateHolder& s)
+{
     vector<vector<uint32_t> > vMissingSigsCandidates;
     if (sigHolder.HasSigSetsToContributeTo(vMissingSigsCandidates, s.nNodeId, mapCVNs.size())) {
         BOOST_FOREACH(const vector<uint32_t> &entry, vMissingSigsCandidates) {
@@ -2280,53 +2289,73 @@ static void handleCreateSignature(POCStateHolder& s)
             if (!NoncePoolsAvailable(entry))
                 continue;
 
-            if (SendCVNSignature(s, entry)) {
-                s.state  = WAITING_FOR_SIGNATURES;
-            } else {
-                s.nSleep = 5; // something went wrong, wait 5 sec. and try again
+            if (!SendCVNSignature(s, entry)) {
+                continue;
             }
         }
-    } else {
-        s.state  = WAITING_FOR_SIGNATURES;
     }
+
+    s.state  = WAITING_FOR_SIGNATURES;
 }
 
 static void handleWaitingForSignatures(POCStateHolder& s)
 {
-
     if (sigHolder.HasCompleteSigSets(mapCVNs.size())) {
         s.state = WAITING_FOR_BLOCK;
         return;
     }
 
-    int32_t nLastBlockSeconds = GetAdjustedTime() - s.pindexPrev->nTime;
+    const bool fIsOverdue = (s.state == WAITING_FOR_SIGNATURES_OVERDUE);
+    int32_t nBaseTime = 0;
 
-    if (nLastBlockSeconds - (int32_t)dynParams.nBlockPropagationWaitTime < 0)
-        return;
+    if (fIsOverdue) {
+        nBaseTime = GetAdjustedTime() - s.pindexPrev->nTime - dynParams.nBlockSpacing;
 
-    if (!((nLastBlockSeconds - dynParams.nBlockPropagationWaitTime) % dynParams.nRetryNewSigSetInterval)) {
+        if (nBaseTime  < 0)
+            return;
+
+        nBaseTime %= dynParams.nBlockSpacingGracePeriod;
+    } else {
+        nBaseTime = GetAdjustedTime() - s.pindexPrev->nTime;
+
+        if (nBaseTime - (int32_t) dynParams.nBlockPropagationWaitTime < 0)
+            return;
+
+        nBaseTime -= dynParams.nBlockPropagationWaitTime;
+    }
+
+    if (!(nBaseTime % dynParams.nRetryNewSigSetInterval)) {
         /* We have not received all the expected partial signatures for any set.
-         * Periodically (SEND_SIG_RETRY_INTERVAL) find the missing node IDs and try without them. */
+         * Periodically (nRetryNewSigSetInterval) find the missing node IDs and try without them. */
 
+        LogPrint("cvnsig", "Did not receive all signatures for set.");
         vector<uint32_t> vMissingSignerIds; // missing signer IDs from all commonRs we signed so far
         if (sigHolder.GetAllMissing(vMissingSignerIds, s.nNodeId, s.commonRxs, mapNoncePool, mapCVNs.size())) {
             FindSignerIDsWithMissingNonces(vMissingSignerIds);
             if (HasEnoughSignatures(s.pindexPrev, mapCVNs.size() - vMissingSignerIds.size())) {
                 LogPrintf("Did not receive all signatures for set. Trying with smaller set of members. Missing: %s\n", CreateSignerIdList(vMissingSignerIds));
 
-                if (SendCVNSignature(s, vMissingSignerIds)) {
-                    s.nSleep = 5;
+                if (!SendCVNSignature(s, vMissingSignerIds)) {
+                    LogPrintf("%s : failed to create signature for set: %s\n", CreateSignerIdList(vMissingSignerIds));
                 }
+            } else {
+                LogPrint("cvnsig", "No set with enough signatures available\n");
             }
+        } else {
+            LogPrint("cvnsig", "Nothing to. This node has already contributed to all sets.\n");
         }
+
+        s.state  = COMPLETE_SIGNATURE_SETS;
+        s.nSleep = dynParams.nRetryNewSigSetInterval - 5;
     }
 }
 
 static void handleWaitingForBlock(POCStateHolder& s)
 {
     if (s.NewTip()) {
-        s.Reset(s.nNextCreator, chainActive.Tip());
+        s.Reset(s.nNextCreator, chainActive.Tip(), WAITING_FOR_BLOCK_PROPAGATION);
         sigHolder.clear(s.nNextCreator);
+        return;
     }
 
     if (s.nNextCreator == s.nNodeId) {
@@ -2344,14 +2373,8 @@ static void handleWaitingForBlock(POCStateHolder& s)
 
 static void handleWaitingForNewTip(POCStateHolder& s)
 {
-    if (s.NewTip()) {
-        s.Reset(s.nNextCreator, chainActive.Tip());
-        sigHolder.clear(s.nNextCreator);
-    }
-
     return;
 }
-
 
 void ExpireChainAdminData()
 {
@@ -2402,10 +2425,9 @@ static void handleWaitingForBlockPropagation(POCStateHolder& s)
 
     int64_t nLastBlockSeconds = GetAdjustedTime() - s.pindexPrev->nTime;
 
-    if (nLastBlockSeconds <= dynParams.nBlockPropagationWaitTime)
+    if (nLastBlockSeconds <= dynParams.nBlockPropagationWaitTime) {
         s.nSleep = dynParams.nBlockPropagationWaitTime - nLastBlockSeconds;
-    else
-        s.nSleep = 2;
+    }
 
     if (mapNoncePool.count(s.nNodeId)) {
         const CNoncePool &p = mapNoncePool[s.nNodeId];
@@ -2459,7 +2481,8 @@ static void handleInit(POCStateHolder& s)
         } else
             CreateNewNoncePool(s);
 
-        s.state = WAITING_FOR_BLOCK_PROPAGATION;
+        s.state = GetAdjustedTime() - s.pindexPrev->nTime > dynParams.nBlockSpacing + dynParams.nBlockSpacingGracePeriod ?
+                    CREATE_SIGNATURE_OVERDUE : WAITING_FOR_BLOCK_PROPAGATION;
         fNoncePoolInitialsed = true;
     } else {
         LogPrintf("Your node (0x%08x) has been removed from the network.\n", s.nNodeId);
@@ -2476,6 +2499,9 @@ static void (*stateHandlers[])(POCStateHolder& s) = {
         handleWaitingForBlock,
         handleWaitingForNewTip,
         handleWaitingForCvnData,
+        handleCompleteSignatureSets,
+        handleCreateSignature,
+        handleWaitingForSignatures,
 };
 
 void static POCThread(const CChainParams& chainparams, const uint32_t& nNodeId)
@@ -2533,10 +2559,18 @@ void static POCThread(const CChainParams& chainparams, const uint32_t& nNodeId)
             } else
                 MilliSleep(1000);
 
-            if ((s.NewTip() || s.BlockSpacingTimeout()) && s.state != WAITING_FOR_CVN_DATA) {
-                LogPrintf(s.NewTip() ? "new tip detected.\n" : "block spacing timeout detected.\n");
-                s.Reset(s.nNextCreator, s.pindexPrev);
-                sigHolder.clear(s.nNextCreator);
+            if (s.state != WAITING_FOR_CVN_DATA) {
+                if ((s.NewTip())) {
+                    LogPrintf("new tip detected.\n");
+                    s.Reset(s.nNextCreator, s.pindexPrev, WAITING_FOR_BLOCK_PROPAGATION);
+                    sigHolder.clear(s.nNextCreator);
+                    lastState = UNDEFINED; // force print the new state
+                } else if (s.BlockSpacingTimeout()) {
+                    LogPrintf("block spacing timeout detected.\n");
+                    s.Reset(s.nNextCreator, s.pindexPrev, CREATE_SIGNATURE_OVERDUE);
+                    sigHolder.clear(s.nNextCreator);
+                    lastState = UNDEFINED; // force print the new state
+                }
             }
 
             if (s.state != lastState) {

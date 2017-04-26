@@ -116,6 +116,9 @@ enum POCState {
     WAITING_FOR_BLOCK,
     WAITING_FOR_NEW_TIP,
     WAITING_FOR_CVN_DATA,
+    COMPLETE_SIGNATURE_SETS,
+    CREATE_SIGNATURE_OVERDUE,
+    WAITING_FOR_SIGNATURES_OVERDUE,
     UNDEFINED
 };
 
@@ -148,9 +151,9 @@ public:
         commonRxs.clear();
     }
 
-    void Reset(uint32_t nNextCreatorIn, CBlockIndex *pindexPrevIn)
+    void Reset(uint32_t nNextCreatorIn, CBlockIndex *pindexPrevIn, POCState stateIn)
     {
-        state         = WAITING_FOR_BLOCK_PROPAGATION;
+        state         = stateIn;
         nLastCreator  = nNextCreator;
         nNextCreator  = nNextCreatorIn;
         pindexLastTip = pindexPrev;
