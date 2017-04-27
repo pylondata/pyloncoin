@@ -2561,12 +2561,12 @@ void static POCThread(const CChainParams& chainparams, const uint32_t& nNodeId)
 
             if (s.state != WAITING_FOR_CVN_DATA) {
                 if ((s.NewTip())) {
-                    LogPrintf("new tip detected.\n");
+                    LogPrintf("POCThread new tip detected.\n");
                     s.Reset(s.nNextCreator, s.pindexPrev, WAITING_FOR_BLOCK_PROPAGATION);
                     sigHolder.clear(s.nNextCreator);
                     lastState = UNDEFINED; // force print the new state
                 } else if (s.BlockSpacingTimeout()) {
-                    LogPrintf("block spacing timeout detected.\n");
+                    LogPrintf("POCThread block spacing timeout detected.\n");
                     s.Reset(s.nNextCreator, s.pindexPrev, CREATE_SIGNATURE_OVERDUE);
                     sigHolder.clear(s.nNextCreator);
                     lastState = UNDEFINED; // force print the new state
