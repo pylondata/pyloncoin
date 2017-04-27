@@ -1137,26 +1137,29 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
     }
 
 #if 0
-    CBlock genesis = chainparams.GenesisBlock();
-    UpdateCvnInfo(&genesis, 0);
-    UpdateChainAdmins(&genesis);
+    CBlock genesisBlock = chainparams.GenesisBlock();
+    UpdateCvnInfo(&genesisBlock, 0);
+    UpdateChainAdmins(&genesisBlock);
+
+    nChainAdminId = InitChainAdminWithCertificate("123456");
+    LogPrintf("\n");
+    CCvnPartialSignature chainSig;
+    vector<uint32_t> vMissingSignatures;
+    CvnSignPartial(genesisBlock.hashPrevBlock, chainSig, GENESIS_NODE_ID, GENESIS_NODE_ID, vMissingSignatures);
+    LogPrintf("Genesis chainMultiSig    : %s\n", chainSig.signature.ToString());
 
     CSchnorrSig chainAdminSig;
-    if (!adminPrivKey.SchnorrSign(genesis.GetPayloadHash(true), chainAdminSig))
+    if (!adminPrivKey.SchnorrSign(genesisBlock.GetPayloadHash(true), chainAdminSig))
         return InitError("could not create chain admin signature");
 
-    LogPrintf("Genesis admin data signature  : %s\n", chainAdminSig.ToString());
-    if (!CPubKey::VerifySchnorr(genesis.GetPayloadHash(true), chainAdminSig, adminPubKey)) {
+    LogPrintf("Genesis adminMultiSig    : %s\n", chainAdminSig.ToString());
+    if (!CPubKey::VerifySchnorr(genesisBlock.GetPayloadHash(true), chainAdminSig, adminPubKey)) {
         return InitError("could not verify chain admin signature");
     }
 
-    CCvnPartialSignature chainSig;
-    vector<uint32_t> vMissingSignatures;
-    CvnSignPartial(genesis.hashPrevBlock, chainSig, GENESIS_NODE_ID, GENESIS_NODE_ID, vMissingSignatures);
-    LogPrintf("Genesis chain signature       : %s\n", chainSig.signature.ToString());
-
-    CvnSignBlock(genesis);
-    LogPrintf("Genesis block signature       : %s\n", genesis.creatorSignature.ToString());
+    CvnSignBlock(genesisBlock);
+    LogPrintf("Genesis creatorSignature : %s\n", genesisBlock.creatorSignature.ToString());
+    LogPrintf("\n");
 #endif
 
     LogPrintf("Using %u threads for script verification\n", nScriptCheckThreads);

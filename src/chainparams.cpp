@@ -22,6 +22,18 @@ CDynamicChainParams dynParams;
 
 #define SHOW_GENESIS_HASHES 0
 
+#if SHOW_GENESIS_HASHES
+#define PRINT_HASHES \
+    printf("%s parameters\n" \
+            "block hash   : %s\n" \
+            "merkle root  : %s\n" \
+            "payload hash : %s\n\n", \
+            strNetworkID.c_str(), \
+            consensus.hashGenesisBlock.ToString().c_str(), \
+            genesis.hashMerkleRoot.ToString().c_str(), \
+            genesis.hashPayload.ToString().c_str())
+#endif
+
 #define GENESIS_BLOCK_TIMESTAMP 1489588000
 const char* genesisMessage = "FairCoin - the currency for a fair economy.";
 
@@ -106,12 +118,11 @@ public:
 
         consensus.hashGenesisBlock = genesis.GetHash();
 #if SHOW_GENESIS_HASHES
-        printf("%s parameters\nhash: %s\nmerkle: %s\n",strNetworkID.c_str(),
-                consensus.hashGenesisBlock.ToString().c_str(),
-                genesis.hashMerkleRoot.ToString().c_str());
+        PRINT_HASHES;
 #else
         assert(consensus.hashGenesisBlock == uint256S("ca33d49e7839e50c96282fae0061656a512df510fff3e6da7303e9448bdcc55e"));
         assert(genesis.hashMerkleRoot == uint256S("7c27ade2c28e67ed3077f8f77b8ea6d36d4f5eba04c099be3c9faa9a4a04c046"));
+        assert(genesis.hashPayload == uint256S("1171a49db36313d2ee7ef8684a152a75f8913fb6b653bf42124046898d8b2713"));
 #endif
         vSeeds.push_back(CDNSSeedData("1.fair-coin.org", "faircoin2-seed1.fair-coin.org")); // Thomas König
         vSeeds.push_back(CDNSSeedData("2.fair-coin.org", "faircoin2-seed2.fair-coin.org")); // Thomas König
@@ -144,7 +155,7 @@ public:
 static CMainParams mainParams;
 
 /**
- * Testnet (v3)
+ * Testnet
  */
 class CTestNetParams : public CChainParams {
 public:
@@ -183,20 +194,19 @@ public:
 
         genesis.chainMultiSig = CSchnorrSigS("14dc4f77f9d59ece2b3aa02cc4df99954d47fa2719be207d1b5010745aec419e451f01a8749cd16f22a727d0deba5110d2ce7e44ff86f0efdea58db4efdb92cd");
         genesis.vAdminIds.push_back(GENESIS_ADMIN_ID);
-        genesis.adminMultiSig = CSchnorrSigS("8415d734ba773fd6afc78f6b3788966878fa7444d9290f89a517eb8ffc8f5ed3750d1af905c339c6a1b94421025ef661c93ab3542fb6ab60e2306743b55b039e");
-        genesis.creatorSignature = CSchnorrSigS("37f9b6ac082d5a577c26f8b74b8ebff8638052a5325455caa88bb5350c5819bab06dc31909d6e1c4f75a4a7ad65ea957528d4a8464cf87eb127d05f75c6efafd");
+        genesis.adminMultiSig = CSchnorrSigS("aae1f9defe51c90404fef404c140d3b87bef708693e861d6d125f54a8ab3022d771344bc52419f93c69027afcb7c2134d080928c8afc9e5e0dc2f34c423025c6");
+        genesis.creatorSignature = CSchnorrSigS("e9c1817cd5791f90b237c0d4bd03ed8b3d85e124892e512b52a1ffc2032523224f98c1b3f9fbb6396f3edca1b8b86dbb8609836d3e6f40413db8fa8953741c3d");
 
         genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
         genesis.hashPayload    = genesis.GetPayloadHash();
 
         consensus.hashGenesisBlock = genesis.GetHash();
 #if SHOW_GENESIS_HASHES
-        printf("%s parameters\nhash: %s\nmerkle: %s\n",strNetworkID.c_str(),
-                consensus.hashGenesisBlock.ToString().c_str(),
-                genesis.hashMerkleRoot.ToString().c_str());
+        PRINT_HASHES;
 #else
-        assert(consensus.hashGenesisBlock == uint256S("84132bdf7f2c1f8193c721967aa9056b1e7ee1a0b56bcaf6985e51777b0407f7"));
+        assert(consensus.hashGenesisBlock == uint256S("6f61280fb07bdc60d40520d44de77c9d32b7684afea796ee9b6c115bda2f242d"));
         assert(genesis.hashMerkleRoot == uint256S("7c27ade2c28e67ed3077f8f77b8ea6d36d4f5eba04c099be3c9faa9a4a04c046"));
+        assert(genesis.hashPayload == uint256S("332ef9fee6186c31d30599c832ed14820c584d843e962f60399c20e75690725f"));
 #endif
         vFixedSeeds.clear();
         vSeeds.clear();
@@ -268,20 +278,19 @@ public:
 
         genesis.chainMultiSig = CSchnorrSigS("14dc4f77f9d59ece2b3aa02cc4df99954d47fa2719be207d1b5010745aec419e451f01a8749cd16f22a727d0deba5110d2ce7e44ff86f0efdea58db4efdb92cd");
         genesis.vAdminIds.push_back(GENESIS_ADMIN_ID);
-        genesis.adminMultiSig = CSchnorrSigS("c5c227a76d7349f2b10a3dc6fe6624d1bb3c31c096f7ae8f1328d0e0cdbe4935cef804731fc380ece541cc7ed273177a4d933c174551605be6fc0509c062bdbd");
-        genesis.creatorSignature = CSchnorrSigS("dea1f537961adccfa447747310330399ac22b0da20db3a8f20fcedc5647026f06ba520fa3a1230ba6eb9dc7e7139d07650fa3b094816a30b956f36f8cca1c145");
+        genesis.adminMultiSig = CSchnorrSigS("5bfe4673f0dbe5d617e94cde778e8c6ccb7334afd69a40a218821152c51632ea4e69c22db0da14e8e67a58aa35c8a1e8a8102b028f2d97cdcd13b1c29e89c7bd");
+        genesis.creatorSignature = CSchnorrSigS("7a9580a324947214c0ba1b390076f0b5ba8e5a50d634782c805a91ff614e6a737d44f679f6ef5ac1f7f7d692d4a12d6973afd06a3866fa37cf2144f04afd9656");
 
         genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
         genesis.hashPayload    = genesis.GetPayloadHash();
 
         consensus.hashGenesisBlock = genesis.GetHash();
 #if SHOW_GENESIS_HASHES
-        printf("%s parameters\nhash: %s\nmerkle: %s\n",strNetworkID.c_str(),
-                consensus.hashGenesisBlock.ToString().c_str(),
-                genesis.hashMerkleRoot.ToString().c_str());
+        PRINT_HASHES;
 #else
-        assert(consensus.hashGenesisBlock == uint256S("07af656ad74d543c72251f8e46d26d7e61a24d79f5dc8128359705f1ff49ab0d"));
+        assert(consensus.hashGenesisBlock == uint256S("36707aac4a3c71a30e13334ba899203ad5405de50d733fb401ecc015ded69ce4"));
         assert(genesis.hashMerkleRoot == uint256S("7c27ade2c28e67ed3077f8f77b8ea6d36d4f5eba04c099be3c9faa9a4a04c046"));
+        assert(genesis.hashPayload == uint256S("3203d7470c41079cc9cc2ad2129dc008dfcdeb6ce11ba9536af6646c4249abce"));
 #endif
         vFixedSeeds.clear(); //! Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();  //! Regtest mode doesn't have any DNS seeds.
