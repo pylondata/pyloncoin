@@ -899,10 +899,10 @@ static void UpdateHashWithMissingIDs(CHashWriter &hasher, const vector<uint32_t>
     /* if we have missing signers we modify the hashToSign to avoid that
      * that we sign the same message with a different set of nonces
      *
-     * We sum up (and overflow) all the nMisingIds in nSumNodeIds so the
+     * We sum up all the nMisingIds in nSumNodeIds so the
      * order of the IDs doesn't matter */
 
-    uint32_t nSumNodeIds = 0;
+    uint64_t nSumNodeIds = 0;
 
     BOOST_FOREACH(const uint32_t& nMissingId, vMissingSignerIds) {
         nSumNodeIds += nMissingId;
@@ -2326,7 +2326,7 @@ static void handleWaitingForSignatures(POCStateHolder& s)
         /* We have not received all the expected partial signatures for any set.
          * Periodically (nRetryNewSigSetInterval) find the missing node IDs and try without them. */
 
-        LogPrint("cvnsig", "Did not receive all signatures for set.");
+        LogPrint("cvnsig", "Did not receive all signatures for set.\n");
         vector<uint32_t> vMissingSignerIds; // missing signer IDs from all commonRs we signed so far
         if (sigHolder.GetAllMissing(vMissingSignerIds, s.nNodeId, s.commonRxs, mapNoncePool, mapCVNs.size())) {
             FindSignerIDsWithMissingNonces(vMissingSignerIds);
