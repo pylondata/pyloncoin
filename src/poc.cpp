@@ -1057,16 +1057,14 @@ bool CvnVerifyChainSignature(const CBlock& block)
         if (!secp256k1_ec_pubkey_combine(secp256k1_context_none, &sumOfAllSignersPubkeys, allSignersPubkeys, count))
             return error("CvnVerifyChainSignature : could not combine signers public keys");
 
-        BOOST_FOREACH(const uint32_t& nMissingId, vMissingSignersIds) {
-            hasher << nMissingId;
-        }
+        UpdateHashWithMissingIDs(hasher, vMissingSignersIds);
     }
 
     uint256 hash = hasher.GetHash();
 
     CSchnorrPubKey pubKey(sumOfAllSignersPubkeys.data);
     if (!CvnVerifySignature(hash, block.chainMultiSig, pubKey))
-        return error("CvnVerifyChainSignature : could not verify chain signature for block %s: %s (missing: %d)", hash.ToString(), block.chainMultiSig.ToString(), block.vMissingSignerIds.size());
+        return error("CvnVerifyChainSignature : could not verify chain signature for block: %s sig: %s missing: %s)", hash.ToString(), block.chainMultiSig.ToString(), CreateSignerIdList(block.vMissingSignerIds));
 
     return true;
 }

@@ -413,7 +413,7 @@ bool DetermineBestSignatureSet(CBlockIndex * const pindexPrev, CBlock *pblock)
         }
 
         const CCvnPartialSignature &firstSig = commonR.second.begin()->second;
-        if (signatures->size() + firstSig.vMissingSignerIds.size() < mapNoncePool.size()) {
+        if (signatures->size() + firstSig.vMissingSignerIds.size() < mapCVNs.size()) {
             LogPrintf("Not enough signatures found. Trying next set.\n");
             continue;
         }
