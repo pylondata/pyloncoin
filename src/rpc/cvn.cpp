@@ -1044,7 +1044,7 @@ UniValue relaynoncepool(const UniValue& params, bool fHelp)
             continue;
         }
         if (fSendAll || msg.nCvnId == nCvnNodeId) {
-            LogPrintf("relaying nonce pool: %s\n", msg.ToString(fVerbose));
+            LogPrintf("relaying nonce pool: %s", msg.ToString(fVerbose));
             RelayNoncePool(msg);
         }
     }

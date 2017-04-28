@@ -2326,7 +2326,6 @@ static void handleWaitingForSignatures(POCStateHolder& s)
         /* We have not received all the expected partial signatures for any set.
          * Periodically (nRetryNewSigSetInterval) find the missing node IDs and try without them. */
 
-        LogPrint("cvnsig", "Did not receive all signatures for set.\n");
         vector<uint32_t> vMissingSignerIds; // missing signer IDs from all commonRs we signed so far
         if (sigHolder.GetAllMissing(vMissingSignerIds, s.nNodeId, s.commonRxs, mapNoncePool, mapCVNs.size())) {
             FindSignerIDsWithMissingNonces(vMissingSignerIds);
@@ -2337,10 +2336,10 @@ static void handleWaitingForSignatures(POCStateHolder& s)
                     LogPrintf("%s : failed to create signature for set: %s\n", CreateSignerIdList(vMissingSignerIds));
                 }
             } else {
-                LogPrint("cvnsig", "No set with enough signatures available\n");
+                LogPrintf("No set with enough signatures available\n");
             }
         } else {
-            LogPrint("cvnsig", "Nothing to. This node has already contributed to all sets.\n");
+            LogPrintf("Nothing to. This node has already contributed to all sets.\n");
         }
 
         s.state  = COMPLETE_SIGNATURE_SETS;
@@ -2350,12 +2349,6 @@ static void handleWaitingForSignatures(POCStateHolder& s)
 
 static void handleWaitingForBlock(POCStateHolder& s)
 {
-    if (s.NewTip()) {
-        s.Reset(s.nNextCreator, chainActive.Tip(), WAITING_FOR_BLOCK_PROPAGATION);
-        sigHolder.clear(s.nNextCreator);
-        return;
-    }
-
     if (s.nNextCreator == s.nNodeId) {
         int32_t nBlockTime = GetAdjustedTime() - s.pindexPrev->nTime;
         if (nBlockTime >= (int32_t)dynParams.nBlockSpacing) {
@@ -2543,6 +2536,20 @@ void static POCThread(const CChainParams& chainparams, const uint32_t& nNodeId)
                 continue;
             }
 
+            if (s.state != WAITING_FOR_CVN_DATA) {
+                if ((s.NewTip())) {
+                    LogPrintf("POCThread new tip detected. Next creator: 0x%08x\n", s.nNextCreator);
+                    s.Reset(s.nNextCreator, s.pindexPrev, WAITING_FOR_BLOCK_PROPAGATION);
+                    sigHolder.clear(s.nNextCreator);
+                    lastState = UNDEFINED; // force print the new state
+                } else if (s.BlockSpacingTimeout()) {
+                    LogPrintf("POCThread block spacing timeout detected. Next creator: 0x%08x\n", s.nNextCreator);
+                    s.Reset(s.nNextCreator, s.pindexPrev, CREATE_SIGNATURE_OVERDUE);
+                    sigHolder.clear(s.nNextCreator);
+                    lastState = UNDEFINED; // force print the new state
+                }
+            }
+
             if (s.state >= UNDEFINED) {
                 LogPrintf("invalid state detected. Exiting POC thread.");
                 break;
@@ -2556,20 +2563,6 @@ void static POCThread(const CChainParams& chainparams, const uint32_t& nNodeId)
                 s.nSleep = 0;
             } else
                 MilliSleep(1000);
-
-            if (s.state != WAITING_FOR_CVN_DATA) {
-                if ((s.NewTip())) {
-                    LogPrintf("POCThread new tip detected.\n");
-                    s.Reset(s.nNextCreator, s.pindexPrev, WAITING_FOR_BLOCK_PROPAGATION);
-                    sigHolder.clear(s.nNextCreator);
-                    lastState = UNDEFINED; // force print the new state
-                } else if (s.BlockSpacingTimeout()) {
-                    LogPrintf("POCThread block spacing timeout detected.\n");
-                    s.Reset(s.nNextCreator, s.pindexPrev, CREATE_SIGNATURE_OVERDUE);
-                    sigHolder.clear(s.nNextCreator);
-                    lastState = UNDEFINED; // force print the new state
-                }
-            }
 
             if (s.state != lastState) {
                 LogPrintf("POCThread state: %s\n", pocStateNames[s.state]);
