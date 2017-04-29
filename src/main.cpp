@@ -4748,7 +4748,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         pfrom->PushMessage(NetMsgType::SENDHEADERS);
 
         // Advertise the chain signatures and public nonces we've got
-        if (pfrom->fRelayPoCMessages && !IsInitialBlockDownload() && pfrom->nStartingHeight == chainActive.Height())
+        if (pfrom->fRelayPoCMessages && pfrom->nStartingHeight == chainActive.Height())
             AdvertiseNoncesAndSigs(pfrom);
     }
 
