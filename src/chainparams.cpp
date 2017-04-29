@@ -34,7 +34,7 @@ CDynamicChainParams dynParams;
             genesis.hashPayload.ToString().c_str())
 #endif
 
-#define GENESIS_BLOCK_TIMESTAMP 1489588000
+#define GENESIS_BLOCK_TIMESTAMP 1493456000
 const char* genesisMessage = "FairCoin - the currency for a fair economy.";
 
 static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nCreatorId, const CDynamicChainParams& dynamicChainParams)
@@ -111,7 +111,7 @@ public:
         genesis.chainMultiSig = CSchnorrSigS("14dc4f77f9d59ece2b3aa02cc4df99954d47fa2719be207d1b5010745aec419e451f01a8749cd16f22a727d0deba5110d2ce7e44ff86f0efdea58db4efdb92cd");
         genesis.vAdminIds.push_back(GENESIS_ADMIN_ID);
         genesis.adminMultiSig = CSchnorrSigS("23b0abfd31729436474a1e46662fa9c8fd76a7bb35ff1788beb2af1b5dc879de9aedf0c7f11757e23803d7b7b0ebdb1712f22b942dd13241dc9e16360aba0760");
-        genesis.creatorSignature = CSchnorrSigS("0e663650757bd8306ecca6a572067e5d8eddc3108f934e416362de0475c6cd713da16d3735d80754b6dfe74281421b3517d2c2f923bddc43306dab6563a17bd5");
+        genesis.creatorSignature = CSchnorrSigS("dc0781af888849fe24caa8c1e510f311cdcbb1d097fe1aadf2bed98e49a790a9f909201ec7bcf9e78612d820fd8448fac12854dc761282844fb219662edee972");
 
         genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
         genesis.hashPayload    = genesis.GetPayloadHash();
@@ -120,7 +120,7 @@ public:
 #if SHOW_GENESIS_HASHES
         PRINT_HASHES;
 #else
-        assert(consensus.hashGenesisBlock == uint256S("ca33d49e7839e50c96282fae0061656a512df510fff3e6da7303e9448bdcc55e"));
+        assert(consensus.hashGenesisBlock == uint256S("50631d09b850ebeb9fd6e6b047d5fb3063498651297272639ebf57b594c5d336"));
         assert(genesis.hashMerkleRoot == uint256S("7c27ade2c28e67ed3077f8f77b8ea6d36d4f5eba04c099be3c9faa9a4a04c046"));
         assert(genesis.hashPayload == uint256S("1171a49db36313d2ee7ef8684a152a75f8913fb6b653bf42124046898d8b2713"));
 #endif
@@ -195,7 +195,7 @@ public:
         genesis.chainMultiSig = CSchnorrSigS("14dc4f77f9d59ece2b3aa02cc4df99954d47fa2719be207d1b5010745aec419e451f01a8749cd16f22a727d0deba5110d2ce7e44ff86f0efdea58db4efdb92cd");
         genesis.vAdminIds.push_back(GENESIS_ADMIN_ID);
         genesis.adminMultiSig = CSchnorrSigS("aae1f9defe51c90404fef404c140d3b87bef708693e861d6d125f54a8ab3022d771344bc52419f93c69027afcb7c2134d080928c8afc9e5e0dc2f34c423025c6");
-        genesis.creatorSignature = CSchnorrSigS("e9c1817cd5791f90b237c0d4bd03ed8b3d85e124892e512b52a1ffc2032523224f98c1b3f9fbb6396f3edca1b8b86dbb8609836d3e6f40413db8fa8953741c3d");
+        genesis.creatorSignature = CSchnorrSigS("bbe18aea45eb5b2cb2f091655ddda6d6d439e6648ed1d50017f03254b4518279d8a30bf3d0be24513b0099d0c0b48d95086ffd382819b1364e1f821a83c74b97");
 
         genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
         genesis.hashPayload    = genesis.GetPayloadHash();
@@ -204,7 +204,7 @@ public:
 #if SHOW_GENESIS_HASHES
         PRINT_HASHES;
 #else
-        assert(consensus.hashGenesisBlock == uint256S("6f61280fb07bdc60d40520d44de77c9d32b7684afea796ee9b6c115bda2f242d"));
+        assert(consensus.hashGenesisBlock == uint256S("9eaf9d5e1b4c9e2b1f9908009f46394ce6ef9cae6ed0522a710cdc40b44e2b17"));
         assert(genesis.hashMerkleRoot == uint256S("7c27ade2c28e67ed3077f8f77b8ea6d36d4f5eba04c099be3c9faa9a4a04c046"));
         assert(genesis.hashPayload == uint256S("332ef9fee6186c31d30599c832ed14820c584d843e962f60399c20e75690725f"));
 #endif
@@ -279,7 +279,7 @@ public:
         genesis.chainMultiSig = CSchnorrSigS("14dc4f77f9d59ece2b3aa02cc4df99954d47fa2719be207d1b5010745aec419e451f01a8749cd16f22a727d0deba5110d2ce7e44ff86f0efdea58db4efdb92cd");
         genesis.vAdminIds.push_back(GENESIS_ADMIN_ID);
         genesis.adminMultiSig = CSchnorrSigS("5bfe4673f0dbe5d617e94cde778e8c6ccb7334afd69a40a218821152c51632ea4e69c22db0da14e8e67a58aa35c8a1e8a8102b028f2d97cdcd13b1c29e89c7bd");
-        genesis.creatorSignature = CSchnorrSigS("7a9580a324947214c0ba1b390076f0b5ba8e5a50d634782c805a91ff614e6a737d44f679f6ef5ac1f7f7d692d4a12d6973afd06a3866fa37cf2144f04afd9656");
+        genesis.creatorSignature = CSchnorrSigS("5b7f44528074f9409419aefb8b0248753086a9ee9616a8968127dedf5c7efbac5a08c1fd5f7dddabcecb891eced9819b3e756c6ebad8239ed2d4c11c314763dd");
 
         genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
         genesis.hashPayload    = genesis.GetPayloadHash();
@@ -288,7 +288,7 @@ public:
 #if SHOW_GENESIS_HASHES
         PRINT_HASHES;
 #else
-        assert(consensus.hashGenesisBlock == uint256S("36707aac4a3c71a30e13334ba899203ad5405de50d733fb401ecc015ded69ce4"));
+        assert(consensus.hashGenesisBlock == uint256S("073eb284b7c87ae162360bdd2032f4e1715579b7fc46c7e9c7b3f88491688efa"));
         assert(genesis.hashMerkleRoot == uint256S("7c27ade2c28e67ed3077f8f77b8ea6d36d4f5eba04c099be3c9faa9a4a04c046"));
         assert(genesis.hashPayload == uint256S("3203d7470c41079cc9cc2ad2129dc008dfcdeb6ce11ba9536af6646c4249abce"));
 #endif
