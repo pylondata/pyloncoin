@@ -88,6 +88,7 @@ public:
     void close();
     bool login(const string& strPassword);
     bool logout();
+    void emtpyInputBuffer();
 };
 
 extern uint32_t InitCVNWithFasito(const string &strFasitoPassword);

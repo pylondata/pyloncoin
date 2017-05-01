@@ -240,6 +240,20 @@ bool CFasito::logout()
     return false;
 }
 
+void CFasito::emtpyInputBuffer()
+{
+    setTimeout(boost::posix_time::millisec(200));
+    writeString("\r");
+
+    try {
+        while (true) {
+            readStringUntil("\r\n");
+        }
+    } catch(const std::exception &e) {
+
+    }
+}
+
 /*
 Serial number     : 012345678999
 Token status      : CONFIGURED
@@ -264,6 +278,8 @@ Key #7            : 0x00000000 (CONFIGURED, protected)
 void CFasito::open(const string &devname)
 {
     SerialConnection::open(devname, 230400);
+
+    emtpyInputBuffer();
 
     int i = 0;
     vector<string> res;
