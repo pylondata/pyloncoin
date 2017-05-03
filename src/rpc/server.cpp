@@ -292,7 +292,9 @@ static const CRPCCommand vRPCCommands[] =
     /* CVN functions */
     { "cvn",                "addcvn",                 &addcvn,                 false },
     { "cvn",                "removecvn",              &removecvn,              false },
-    { "cvn",                "signchaindata",          &signchaindata,          true  },
+    { "cvn",                "chainadminschnorr",      &chainadminschnorr,      true  },
+    { "cvn",                "chainadminschnorrverify",&chainadminschnorrverify,true  },
+    { "cvn",                "chainadminhash",         &chainadminhash,         true  },
     { "cvn",                "getcvninfo",             &getcvninfo,             true  },
     { "cvn",                "chainadminlogin",        &chainadminlogin,        true  },
     { "cvn",                "chainadminlogout",       &chainadminlogout,       true  },

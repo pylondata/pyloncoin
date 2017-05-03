@@ -449,12 +449,15 @@ UniValue chainadminsign(const UniValue& params, bool fHelp)
             + HelpExampleCli("chainadminlogin", "9afdc03617091ac720958a47dee67fea38c40396594996531564c445f2c7603a")
         );
 
+    bool fFasito = strMethod == "fasito";
+
+    if (!nChainAdminId || (!fFasito && !adminPrivKey.IsValid()))
+        return "ERROR: wallet not configured for chain administration";
+
     LOCK(cs_main);
     UniValue result(UniValue::VOBJ);
 
-    uint256 hashToSign = ParseHashV(params[0], "parameter 1");
-
-    bool fFasito = strMethod == "fasito";
+    uint256 hashToSign = ParseHashV(params[0], "chain data hash");
 
     CAdminPartialSignatureUnsinged signature;
     if (!AdminSignPartial(hashToSign, signature, nChainAdminId, fFasito ? NULL : &adminPrivNonce, nAdminNonceHandle)) {
@@ -686,18 +689,17 @@ UniValue removecvn(const UniValue& params, bool fHelp)
     return result;
 }
 
-UniValue signchaindata(const UniValue& params, bool fHelp)
+UniValue chainadminschnorr(const UniValue& params, bool fHelp)
 {
-    if (fHelp || params.size() < 1 || params.size() > 2)
+    if (fHelp || params.size() != 1)
         throw runtime_error(
-            "signchaindata \"signchaindata\"\n"
-            "\nCreates a signature of chain data\n"
+            "chainadminschnorr \"dataHash\"\n"
+            "\nCreates an EC Schnorr signature of the given hash\n"
             "\nArguments:\n"
-            "1. \"hashChainData\"   (string, required) The hash of the chain data.\n"
-            "2. \"PIN\"             (string, optional) The PIN for the fasito private admin key\n"
+            "1. \"data hash\"   (string, required) The hash of the data to sign.\n"
             "\nExamples:\n"
             "\nCreate a signature\n"
-            + HelpExampleCli("signchaindata", "a1b5..9093 123456")
+            + HelpExampleCli("chainadminschnorr", "a1b5..9093")
         );
 
     LOCK(cs_main);
@@ -705,29 +707,100 @@ UniValue signchaindata(const UniValue& params, bool fHelp)
     if (!nChainAdminId || !adminPrivKey.IsValid())
         return "ERROR: wallet not configured for chain administration";
 
-    uint256 hashChainData = uint256S(params[0].get_str());
+    vector<uint8_t> strDataHash = ParseHex(params[0].get_str());
+
+    if (strDataHash.size() != 32)
+        return "ERROR: invalid data hash";
+
+    uint256 dataHash = uint256(strDataHash);
 
     CSchnorrSig signature;
-
-    if (params.size() == 2)  {
-        // TODO: do fasito stuff
-    } else {
-        if (!adminPrivKey.SchnorrSign(hashChainData, signature))
-            return "error, could not create signature";
-    }
-
-    uint32_t dummy[1] = {0};
+    if (!adminPrivKey.SchnorrSign(dataHash, signature))
+        return "error, could not create signature";
 
     UniValue result(UniValue::VOBJ);
-    UniValue adminSigners(UniValue::VARR);
-    BOOST_FOREACH(const uint32_t& signerId, dummy)
-    {
-        adminSigners.push_back(strprintf("0x%08x", signerId));
-    }
+    result.push_back(Pair("dataHash", params[0]));
     result.push_back(Pair("signature", signature.ToString()));
-    result.push_back(Pair("adminSignerIds", adminSigners));
+    result.push_back(Pair("adminSignerId", strprintf("0x%08x", nChainAdminId)));
 
     return result;
+}
+
+UniValue chainadminschnorrverify(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() < 2 || params.size() > 3)
+        throw runtime_error(
+            "chainadminschnorrverify \"dataHash\" \"signature\"\n"
+            "\nVerifies an EC Schnorr signature for the given hash\n"
+            "\nArguments:\n"
+            "1. \"data hash\"   (string, required) The hash of the signed data.\n"
+            "2. \"signature\"   (string, required) The signature for the hash.\n"
+            "3. \"public key\"  (string, optional) An optional public key to use to verify the signature.\n"
+            "\nExamples:\n"
+            "\nCreate a signature\n"
+            + HelpExampleCli("chainadminschnorr", "a1b5..9093 99cafecafe55..33224457")
+        );
+
+    LOCK(cs_main);
+
+    if (!nChainAdminId || !adminPrivKey.IsValid())
+        return "ERROR: wallet not configured for chain administration";
+
+    vector<uint8_t> vDataHash = ParseHex(params[0].get_str());
+
+    if (vDataHash.size() != 32)
+        return "ERROR: invalid data hash";
+
+    uint256 dataHash = uint256(vDataHash);
+
+    CSchnorrPubKey pubKey;
+
+    if (params.size() == 3) {
+        pubKey = CSchnorrPubKeyDER(params[2].get_str());
+        if (pubKey == NULL)
+            return "ERROR: invalid public key";
+    } else {
+        pubKey = adminPubKey;
+    }
+
+    CSchnorrSig signature = CSchnorrSigS(params[1].get_str());
+    const bool fValid = CvnVerifySignature(dataHash, signature, pubKey);
+
+    UniValue result(UniValue::VOBJ);
+    result.push_back(Pair("result", fValid));
+    result.push_back(Pair("dataHash", params[0]));
+    result.push_back(Pair("signature", signature.ToString()));
+
+    return result;
+}
+
+UniValue chainadminhash(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1)
+        throw runtime_error(
+            "chainadminhash \"data\"\n"
+            "\nCreates a SHA256 (single) hash of the data\n"
+            "\nArguments:\n"
+            "1. \"data\"   (hex, required) The hash of the signed data.\n"
+            "\nExamples:\n"
+            "\nCreate a hash\n"
+            + HelpExampleCli("chainadminhash", "a1b5..9093")
+        );
+
+    vector<uint8_t> vData = ParseHex(params[0].get_str());
+
+    if (vData.empty())
+        return "ERROR: invalid data";
+
+    CHashWriter hasher(SER_GETHASH, 0);
+
+    hasher.write((char *)&vData.begin()[0], vData.size());
+
+    uint256 hash = hasher.GetHash();
+
+    reverse(hash.begin(), hash.end());
+
+    return hash.ToString();
 }
 
 UniValue getcvninfo(const UniValue& params, bool fHelp)
