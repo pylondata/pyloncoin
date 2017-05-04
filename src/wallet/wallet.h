@@ -409,6 +409,68 @@ public:
 };
 
 
+/*
+ * dummy class for de-serialisation of old CMerkleTx in FairCoin1 wallets
+ */
+class CMerkleTxFC1
+{
+public:
+    int32_t nVersion;
+    uint32_t nTime;
+    std::vector<CTxIn> vin;
+    std::vector<CTxOut> vout;
+    uint32_t nLockTime;
+
+    uint256 hashBlock;
+    int nIndex;
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        std::vector<uint256> vMerkleBranch; // For compatibility with older versions.
+
+        READWRITE(this->nVersion);
+        nVersion = this->nVersion;
+        READWRITE(nTime);
+        READWRITE(vin);
+        READWRITE(vout);
+        READWRITE(nLockTime);
+        READWRITE(hashBlock);
+        READWRITE(vMerkleBranch);
+        READWRITE(nIndex);
+    }
+};
+
+/*
+ * dummy class for de-serialisation of old CWalletTx in FairCoin1 wallets
+ */
+class CWalletTxFC1 : public CMerkleTxFC1
+{
+public:
+    mapValue_t mapValue;
+    std::vector<std::pair<std::string, std::string> > vOrderForm;
+    unsigned int fTimeReceivedIsTxTime;
+    unsigned int nTimeReceived; //! time received by this node
+    char fFromMe;
+    char fSpent = false;
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(*(CMerkleTxFC1*)this);
+        nVersion = this->nVersion;
+        std::vector<CMerkleTxFC1> vUnused; //! Used to be vtxPrev
+        READWRITE(vUnused);
+        READWRITE(mapValue);
+        READWRITE(vOrderForm);
+        READWRITE(fTimeReceivedIsTxTime);
+        READWRITE(nTimeReceived);
+        READWRITE(fFromMe);
+        READWRITE(fSpent);
+    }
+};
 
 
 class COutput

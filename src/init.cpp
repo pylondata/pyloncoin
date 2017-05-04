@@ -1186,7 +1186,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
 
     int64_t nStart;
 
-    // ********************************************************* Step 5: verify wallet database integrity and set up CVN
+    // ********************************************************* Step 5: verify wallet database integrity
 #ifdef ENABLE_WALLET
     if (!fDisableWallet) {
         LogPrintf("Using wallet %s\n", strWalletFile);
@@ -1530,6 +1530,25 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
         pwalletMain = NULL;
         LogPrintf("Wallet disabled!\n");
     } else {
+        if (chainparams.NetworkIDString() == CBaseChainParams::MAIN) {
+            try {
+                boost::filesystem::path fairCoin1WalletFile = GetDefaultDataDirFC1() / "wallet.dat";
+                boost::filesystem::path fairCoin2WalletFile = GetDataDir(false) / strWalletFile;
+                if (!boost::filesystem::exists(fairCoin2WalletFile) && boost::filesystem::exists(fairCoin1WalletFile)) {
+                    LogPrintf("FairCoin1 wallet found here: %s\n", fairCoin1WalletFile.string());
+                    try {
+                        boost::filesystem::copy_file(fairCoin1WalletFile, GetDataDir(false) / strWalletFile, boost::filesystem::copy_option::fail_if_exists);
+                        LogPrintf("copied FairCoin1 wallet.dat to %s\n", fairCoin2WalletFile.string());
+
+                        SoftSetArg("-zapwallettxes", "2");
+                    } catch (const boost::filesystem::filesystem_error& e) {
+                        LogPrintf("error copying FairCoin1 wallet.dat to %s - %s, cannot perform wallet migration.\n", fairCoin2WalletFile.string(), e.what());
+                    }
+                }
+            } catch (const std::exception &e) {
+                LogPrintf("could not check for wallet migration: %s\n", e.what());
+            }
+        }
 
         // needed to restore wallet transaction meta data after -zapwallettxes
         std::vector<CWalletTx> vWtx;

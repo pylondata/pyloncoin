@@ -480,6 +480,29 @@ boost::filesystem::path GetDefaultDataDir()
 #endif
 }
 
+boost::filesystem::path GetDefaultDataDirFC1()
+{
+    namespace fs = boost::filesystem;
+#ifdef WIN32
+    // Windows
+    return GetSpecialFolderPath(CSIDL_APPDATA) / "FairCoin";
+#else
+    fs::path pathRet;
+    char* pszHome = getenv("HOME");
+    if (pszHome == NULL || strlen(pszHome) == 0)
+        pathRet = fs::path("/");
+    else
+        pathRet = fs::path(pszHome);
+#ifdef MAC_OSX
+    // Mac
+    return pathRet / "Library/Application Support/FairCoin";
+#else
+    // Unix
+    return pathRet / ".FairCoin";
+#endif
+#endif
+}
+
 static boost::filesystem::path pathCached;
 static boost::filesystem::path pathCachedNetSpecific;
 static CCriticalSection csPathCached;
