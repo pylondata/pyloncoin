@@ -290,6 +290,11 @@ static const CRPCCommand vRPCCommands[] =
     { "blockchain",         "verifychain",            &verifychain,            true  },
 
     /* CVN functions */
+    { "cvn",                "getchainparameters",     &getchainparameters,     true  },
+    { "cvn",                "getactivecvns",          &getactivecvns,          true  },
+    { "cvn",                "getactiveadmins",        &getactiveadmins,        true  },
+    { "cvn",                "estimatefee",            &estimatefee,            true  },
+#ifdef USE_CVN
     { "cvn",                "addcvn",                 &addcvn,                 false },
     { "cvn",                "removecvn",              &removecvn,              false },
     { "cvn",                "chainadminschnorr",      &chainadminschnorr,      true  },
@@ -302,19 +307,16 @@ static const CRPCCommand vRPCCommands[] =
     { "cvn",                "chainadminsign",         &chainadminsign,         true  },
     { "cvn",                "bancvn",                 &bancvn,                 true  },
     { "cvn",                "setchainparameters",     &setchainparameters,     true  },
-    { "cvn",                "getchainparameters",     &getchainparameters,     true  },
     { "cvn",                "relaynoncepool",         &relaynoncepool,         true  },
-    { "cvn",                "getactivecvns",          &getactivecvns,          true  },
-    { "cvn",                "getactiveadmins",        &getactiveadmins,        true  },
     { "cvn",                "submitblock",            &submitblock,            true  },
 #ifdef ENABLE_COINSUPPLY
     { "cvn",                "addcoinsupply",          &addcoinsupply,          true  },
-#endif
-    { "cvn",                "estimatefee",            &estimatefee,            true  },
+#endif // ENABLE_COINSUPPLY
 
     /* Coin generation */
     { "generating",         "getgenerate",            &getgenerate,            true  },
     { "generating",         "setgenerate",            &setgenerate,            true  },
+#endif // USE_CVN
 
     /* Raw transactions */
     { "rawtransactions",    "createrawtransaction",   &createrawtransaction,   true  },

@@ -6,10 +6,10 @@
 #include <openssl/ec.h>
 #include <openssl/bn.h>
 
-#include "poc.h"
 #include "util.h"
 #include "utilstrencodings.h"
 #include "base58.h"
+#include "poc.h"
 
 using namespace std;
 

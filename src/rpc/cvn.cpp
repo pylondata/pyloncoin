@@ -23,10 +23,193 @@
 using namespace std;
 
 static string strMethod;
-static uint8_t nAdminNonceHandle = 0;
 static CSchnorrPrivNonce adminPrivNonce;
 static CSchnorrNonce adminPublicNonce;
 
+#ifdef USE_CVN
+static uint8_t nAdminNonceHandle = 0;
+#endif // USE_CVN
+
+UniValue getactivecvns(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() > 1)
+        throw runtime_error(
+            "getactivecvns\n"
+            "\nDisplay a list of all currently active CVN\n"
+            "\nArguments: none\n"
+            "\nResult:\n"
+            "{\n"
+            "  \"count\" : \"n\",                (numeric) The number currently activated CNVs\n"
+            "  \"currentHeight\" : \"n\",        (numberc) The current block height the result relates to\n"
+            "  \"cvns\" : [                    (array of json objects)\n"
+            "     {\n"
+            "       \"nodeId\": \"id\",          (string) The transaction id\n"
+            "       \"pubKey\": \"public key\",  (string) The public key of the CVN\n"
+            "       \"heightAdded\": n,        (numeric) The height when the CVN was added to the network\n"
+            "       \"predictedNextBlock\": n, (numeric) The height of the next block this CVNs most probably will create\n"
+            "       \"lastBlocksSigned\": n    (numeric) The number of blocks signed within the last " + strprintf("%d", (int)dynParams.nMinSuccessiveSignatures) + " blocks\n"
+            "     }\n"
+            "     ,...\n"
+            "  ],\n"
+            "}\n"
+            "\nExamples:\n"
+            "\nDisplay CVN list\n"
+            + HelpExampleCli("getactivecvns","")
+        );
+
+    LOCK(cs_mapCVNs);
+
+    UniValue result(UniValue::VOBJ);
+    result.push_back(Pair("count", (int)mapCVNs.size()));
+    result.push_back(Pair("currentHeight", chainActive.Tip()->nHeight));
+    UniValue cvns(UniValue::VARR);
+
+    BOOST_FOREACH(const CvnMapType::value_type& cvn, mapCVNs)
+    {
+        const CCvnInfo& c = cvn.second;
+
+        UniValue entry(UniValue::VOBJ);
+        entry.push_back(Pair("nodeId", strprintf("0x%08x", c.nNodeId)));
+        entry.push_back(Pair("pubKey", c.pubKey.ToString()));
+        entry.push_back(Pair("heightAdded", (int)c.nHeightAdded));
+
+        CCvnStatus status(c.nNodeId);
+        CheckNextBlockCreator(chainActive.Tip(), GetAdjustedTime(), &status);
+        entry.push_back(Pair("predictedNextBlock", (int)status.nPredictedNextBlock));
+        entry.push_back(Pair("lastBlocksSigned", (int)status.nBlockSigned));
+
+        cvns.push_back(entry);
+    }
+
+    result.push_back(Pair("cvns", cvns));
+
+    return result;
+}
+
+UniValue getactiveadmins(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() > 1)
+        throw runtime_error(
+            "getactiveadmins\n"
+            "\nDisplay a list of all currently active chain administrators\n"
+            "\nArguments: none\n"
+            "\nResult:\n"
+            "{\n"
+            "  \"count\" : \"n\",               (numeric) The number currently activated CNVs\n"
+            "  \"currentHeight\" : \"n\",       (numberc) The current block height the result relates to\n"
+            "  \"admins\" : [                 (array of json objects)\n"
+            "     {\n"
+            "       \"adminId\": \"id\",        (string) The transaction id\n"
+            "       \"pubKey\": \"public key\", (string) The public key of the CVN\n"
+            "       \"heightAdded\": n        (numeric) The height when the CVN was added to the network\n"
+            "     }\n"
+            "     ,...\n"
+            "  ],\n"
+            "}\n"
+            "\nExamples:\n"
+            "\nDisplay Chain Admins list\n"
+            + HelpExampleCli("getactiveadmins","")
+        );
+
+    LOCK(cs_mapChainAdmins);
+
+    UniValue result(UniValue::VOBJ);
+    result.push_back(Pair("count", (int)mapChainAdmins.size()));
+    result.push_back(Pair("currentHeight", chainActive.Tip()->nHeight));
+    UniValue admins(UniValue::VARR);
+
+    BOOST_FOREACH(const ChainAdminMapType::value_type& admin, mapChainAdmins)
+    {
+        const CChainAdmin& a = admin.second;
+
+        UniValue entry(UniValue::VOBJ);
+        entry.push_back(Pair("adminId", strprintf("0x%08x", a.nAdminId)));
+        entry.push_back(Pair("pubKey", a.pubKey.ToString()));
+        entry.push_back(Pair("heightAdded", (int)a.nHeightAdded));
+
+        string strCurrentNonce = "";
+        if (mapAdminNonces.count(a.nAdminId)) {
+            strCurrentNonce = mapAdminNonces[a.nAdminId].ToString();
+        }
+
+        entry.push_back(Pair("currentNonce", strCurrentNonce));
+
+        string strCurrentPartialSig = "";
+        if (mapAdminSigs.count(a.nAdminId)) {
+            strCurrentPartialSig = mapAdminSigs[a.nAdminId].signature.ToString();
+        }
+
+        entry.push_back(Pair("currentPartialSig", strCurrentPartialSig));
+
+        admins.push_back(entry);
+    }
+
+    result.push_back(Pair("admins", admins));
+
+    return result;
+}
+
+void DynamicChainparametersToJSON(CDynamicChainParams& cp, UniValue& result)
+{
+    result.push_back(Pair("version", (int)cp.nVersion));
+    result.push_back(Pair("minAdminSigs", (int)cp.nMinAdminSigs));
+    result.push_back(Pair("maxAdminSigs", (int)cp.nMaxAdminSigs));
+    result.push_back(Pair("blockSpacing", (int)cp.nBlockSpacing));
+    result.push_back(Pair("blockSpacingGracePeriod", (int)cp.nBlockSpacingGracePeriod));
+    result.push_back(Pair("transactionFee", ValueFromAmount(cp.nTransactionFee)));
+    result.push_back(Pair("dustThreshold", ValueFromAmount(cp.nDustThreshold)));
+    result.push_back(Pair("minSuccessiveSignatures", (int)cp.nMinSuccessiveSignatures));
+    result.push_back(Pair("blocksToConsiderForSigCheck", (int)cp.nBlocksToConsiderForSigCheck));
+    result.push_back(Pair("percentageOfSignaturesMean", (int)cp.nPercentageOfSignaturesMean));
+    result.push_back(Pair("maxBlockSize", (int)cp.nMaxBlockSize));
+    result.push_back(Pair("blockPropagationWaitTime", (int)cp.nBlockPropagationWaitTime));
+    result.push_back(Pair("retryNewSigSetInterval", (int)cp.nRetryNewSigSetInterval));
+    result.push_back(Pair("description", cp.strDescription));
+}
+
+UniValue getchainparameters(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "getchainparameters\n"
+            "\nDisplay the current values of the dynamic chain parameters\n"
+            "\nArguments:\n"
+            "none\n"
+            "\nResult:\n"
+            "{\n"
+                "  \"nextBlockToCreate\":height     ,           (int) The estimated next block to create\n"
+                "  \"reserved\":\"reserved\",                   (string) reserved\n"
+             "}\n"
+            "\nExamples:\n"
+            "\nDisplay dynamic chain parameters\n"
+            + HelpExampleCli("getchainparameters","")
+        );
+
+    UniValue result(UniValue::VOBJ);
+    DynamicChainparametersToJSON(dynParams, result);
+
+    return result;
+}
+
+UniValue estimatefee(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1)
+        throw std::runtime_error(
+            "estimatefee nblocks\n"
+            "\nReturns the current mandatory fee per kilobyte needed for a transaction to be accepted.\n"
+            "\nArguments:\n"
+            "1. nblocks     (numeric, required) - dummy value for API compatibility\n"
+            "\nResult:\n"
+            "n              (numeric) mandatory fee-per-kilobyte\n"
+            "\n"
+            "\nExample:\n"
+            + HelpExampleCli("estimatefee", "123")
+            );
+
+    return ValueFromAmount(dynParams.nTransactionFee);
+}
+
+#ifdef USE_CVN
 static bool AddAdminSignatures(CChainDataMsg &msg)
 {
     if (mapAdminSigs.empty()) {
@@ -864,143 +1047,6 @@ UniValue bancvn(const UniValue& params, bool fHelp)
     return "OK";
 }
 
-UniValue getactivecvns(const UniValue& params, bool fHelp)
-{
-    if (fHelp || params.size() > 1)
-        throw runtime_error(
-            "getactivecvns\n"
-            "\nDisplay a list of all currently active CVN\n"
-            "\nArguments: none\n"
-            "\nResult:\n"
-            "{\n"
-            "  \"count\" : \"n\",                (numeric) The number currently activated CNVs\n"
-            "  \"currentHeight\" : \"n\",        (numberc) The current block height the result relates to\n"
-            "  \"cvns\" : [                    (array of json objects)\n"
-            "     {\n"
-            "       \"nodeId\": \"id\",          (string) The transaction id\n"
-            "       \"pubKey\": \"public key\",  (string) The public key of the CVN\n"
-            "       \"heightAdded\": n,        (numeric) The height when the CVN was added to the network\n"
-            "       \"predictedNextBlock\": n, (numeric) The height of the next block this CVNs most probably will create\n"
-            "       \"lastBlocksSigned\": n    (numeric) The number of blocks signed within the last " + strprintf("%d", (int)dynParams.nMinSuccessiveSignatures) + " blocks\n"
-            "     }\n"
-            "     ,...\n"
-            "  ],\n"
-            "}\n"
-            "\nExamples:\n"
-            "\nDisplay CVN list\n"
-            + HelpExampleCli("getactivecvns","")
-        );
-
-    LOCK(cs_mapCVNs);
-
-    UniValue result(UniValue::VOBJ);
-    result.push_back(Pair("count", (int)mapCVNs.size()));
-    result.push_back(Pair("currentHeight", chainActive.Tip()->nHeight));
-    UniValue cvns(UniValue::VARR);
-
-    BOOST_FOREACH(const CvnMapType::value_type& cvn, mapCVNs)
-    {
-        const CCvnInfo& c = cvn.second;
-
-        UniValue entry(UniValue::VOBJ);
-        entry.push_back(Pair("nodeId", strprintf("0x%08x", c.nNodeId)));
-        entry.push_back(Pair("pubKey", c.pubKey.ToString()));
-        entry.push_back(Pair("heightAdded", (int)c.nHeightAdded));
-
-        CCvnStatus status(c.nNodeId);
-        CheckNextBlockCreator(chainActive.Tip(), GetAdjustedTime(), &status);
-        entry.push_back(Pair("predictedNextBlock", (int)status.nPredictedNextBlock));
-        entry.push_back(Pair("lastBlocksSigned", (int)status.nBlockSigned));
-
-        cvns.push_back(entry);
-    }
-
-    result.push_back(Pair("cvns", cvns));
-
-    return result;
-}
-
-UniValue getactiveadmins(const UniValue& params, bool fHelp)
-{
-    if (fHelp || params.size() > 1)
-        throw runtime_error(
-            "getactiveadmins\n"
-            "\nDisplay a list of all currently active chain administrators\n"
-            "\nArguments: none\n"
-            "\nResult:\n"
-            "{\n"
-            "  \"count\" : \"n\",               (numeric) The number currently activated CNVs\n"
-            "  \"currentHeight\" : \"n\",       (numberc) The current block height the result relates to\n"
-            "  \"admins\" : [                 (array of json objects)\n"
-            "     {\n"
-            "       \"adminId\": \"id\",        (string) The transaction id\n"
-            "       \"pubKey\": \"public key\", (string) The public key of the CVN\n"
-            "       \"heightAdded\": n        (numeric) The height when the CVN was added to the network\n"
-            "     }\n"
-            "     ,...\n"
-            "  ],\n"
-            "}\n"
-            "\nExamples:\n"
-            "\nDisplay Chain Admins list\n"
-            + HelpExampleCli("getactiveadmins","")
-        );
-
-    LOCK(cs_mapChainAdmins);
-
-    UniValue result(UniValue::VOBJ);
-    result.push_back(Pair("count", (int)mapChainAdmins.size()));
-    result.push_back(Pair("currentHeight", chainActive.Tip()->nHeight));
-    UniValue admins(UniValue::VARR);
-
-    BOOST_FOREACH(const ChainAdminMapType::value_type& admin, mapChainAdmins)
-    {
-        const CChainAdmin& a = admin.second;
-
-        UniValue entry(UniValue::VOBJ);
-        entry.push_back(Pair("adminId", strprintf("0x%08x", a.nAdminId)));
-        entry.push_back(Pair("pubKey", a.pubKey.ToString()));
-        entry.push_back(Pair("heightAdded", (int)a.nHeightAdded));
-
-        string strCurrentNonce = "";
-        if (mapAdminNonces.count(a.nAdminId)) {
-            strCurrentNonce = mapAdminNonces[a.nAdminId].ToString();
-        }
-
-        entry.push_back(Pair("currentNonce", strCurrentNonce));
-
-        string strCurrentPartialSig = "";
-        if (mapAdminSigs.count(a.nAdminId)) {
-            strCurrentPartialSig = mapAdminSigs[a.nAdminId].signature.ToString();
-        }
-
-        entry.push_back(Pair("currentPartialSig", strCurrentPartialSig));
-
-        admins.push_back(entry);
-    }
-
-    result.push_back(Pair("admins", admins));
-
-    return result;
-}
-
-void DynamicChainparametersToJSON(CDynamicChainParams& cp, UniValue& result)
-{
-    result.push_back(Pair("version", (int)cp.nVersion));
-    result.push_back(Pair("minAdminSigs", (int)cp.nMinAdminSigs));
-    result.push_back(Pair("maxAdminSigs", (int)cp.nMaxAdminSigs));
-    result.push_back(Pair("blockSpacing", (int)cp.nBlockSpacing));
-    result.push_back(Pair("blockSpacingGracePeriod", (int)cp.nBlockSpacingGracePeriod));
-    result.push_back(Pair("transactionFee", ValueFromAmount(cp.nTransactionFee)));
-    result.push_back(Pair("dustThreshold", ValueFromAmount(cp.nDustThreshold)));
-    result.push_back(Pair("minSuccessiveSignatures", (int)cp.nMinSuccessiveSignatures));
-    result.push_back(Pair("blocksToConsiderForSigCheck", (int)cp.nBlocksToConsiderForSigCheck));
-    result.push_back(Pair("percentageOfSignaturesMean", (int)cp.nPercentageOfSignaturesMean));
-    result.push_back(Pair("maxBlockSize", (int)cp.nMaxBlockSize));
-    result.push_back(Pair("blockPropagationWaitTime", (int)cp.nBlockPropagationWaitTime));
-    result.push_back(Pair("retryNewSigSetInterval", (int)cp.nRetryNewSigSetInterval));
-    result.push_back(Pair("description", cp.strDescription));
-}
-
 UniValue setchainparameters(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() != 1)
@@ -1061,30 +1107,6 @@ UniValue setchainparameters(const UniValue& params, bool fHelp)
         LogPrintf("ERROR\n%s\n", msg.ToString());
         return "could not add chain data, see error log";
     }
-
-    return result;
-}
-
-UniValue getchainparameters(const UniValue& params, bool fHelp)
-{
-    if (fHelp || params.size() != 0)
-        throw runtime_error(
-            "getchainparameters\n"
-            "\nDisplay the current values of the dynamic chain parameters\n"
-            "\nArguments:\n"
-            "none\n"
-            "\nResult:\n"
-            "{\n"
-                "  \"nextBlockToCreate\":height     ,           (int) The estimated next block to create\n"
-                "  \"reserved\":\"reserved\",                   (string) reserved\n"
-             "}\n"
-            "\nExamples:\n"
-            "\nDisplay dynamic chain parameters\n"
-            + HelpExampleCli("getchainparameters","")
-        );
-
-    UniValue result(UniValue::VOBJ);
-    DynamicChainparametersToJSON(dynParams, result);
 
     return result;
 }
@@ -1303,22 +1325,6 @@ UniValue addcoinsupply(const UniValue& params, bool fHelp)
     result.push_back(Pair("script", ScriptToAsmStr(msg.coinSupply.scriptDestination, true)));
     return result;
 }
-#endif
+#endif // ENABLE_COINSUPPLY
 
-UniValue estimatefee(const UniValue& params, bool fHelp)
-{
-    if (fHelp || params.size() != 1)
-        throw std::runtime_error(
-            "estimatefee nblocks\n"
-            "\nReturns the current mandatory fee per kilobyte needed for a transaction to be accepted.\n"
-            "\nArguments:\n"
-            "1. nblocks     (numeric, required) - dummy value for API compatibility\n"
-            "\nResult:\n"
-            "n              (numeric) mandatory fee-per-kilobyte\n"
-            "\n"
-            "\nExample:\n"
-            + HelpExampleCli("estimatefee", "123")
-            );
-
-    return ValueFromAmount(dynParams.nTransactionFee);
-}
+#endif // USE_CVN

@@ -208,7 +208,6 @@ libbitcoin_server_a_SOURCES = \
   txdb.cpp \
   txmempool.cpp \
   validationinterface.cpp \
-  fasito/cert.cpp \
   $(BITCOIN_CORE_H)
 
 if ENABLE_ZMQ
@@ -243,7 +242,8 @@ libbitcoin_fasito_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libbitcoin_fasito_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_fasito_a_SOURCES = \
   fasito/fasito.cpp \
-  fasito/SerialConnection.cpp
+  fasito/SerialConnection.cpp \
+  fasito/cert.cpp
 endif
 
 # crypto primitives library

@@ -98,6 +98,11 @@ AC_ARG_ENABLE([coinsupply],
   [enable_coinsupply=$enableval],
   [enable_coinsupply=no])
 
+AC_ARG_WITH([cvn],
+  [AS_HELP_STRING([--with-cvn], [enable CVN functionality - (default is no)])],
+  [use_cvn=$withval],
+  [use_cvn=no])
+
 AC_ARG_WITH([fasito],
   [AS_HELP_STRING([--with-fasito], [enable use of Fasito (FairCoin signature token) - (default is yes)])],
   [use_fasito=$withval],
@@ -1000,6 +1005,16 @@ else
   fi
 fi
 
+dnl enable CVN
+AC_MSG_CHECKING([whether to build with CVN support])
+if test x$use_cvn != xno; then
+  AC_MSG_RESULT(yes ($use_cvn))
+  AC_DEFINE_UNQUOTED([USE_CVN],[$use_cvn],[CVN support])
+else
+  AC_MSG_RESULT(no)
+  use_fasito=no
+fi
+
 dnl enable Fasito
 AC_MSG_CHECKING([whether to build with Fasito support])
 if test x$use_fasito != xno; then
@@ -1080,6 +1095,7 @@ AM_CONDITIONAL([ENABLE_QT],[test x$bitcoin_enable_qt = xyes])
 AM_CONDITIONAL([ENABLE_QT_TESTS],[test x$use_tests$bitcoin_enable_qt_test = xyesyes])
 AM_CONDITIONAL([ENABLE_BENCH],[test x$use_bench = xyes])
 AM_CONDITIONAL([USE_QRCODE], [test x$use_qr = xyes])
+AM_CONDITIONAL([USE_CVN], [test x$use_cvn = xyes])
 AM_CONDITIONAL([USE_FASITO], [test x$use_fasito != xno])
 AM_CONDITIONAL([USE_LCOV],[test x$use_lcov = xyes])
 AM_CONDITIONAL([USE_COMPARISON_TOOL],[test x$use_comparison_tool != xno])
@@ -1087,6 +1103,7 @@ AM_CONDITIONAL([USE_COMPARISON_TOOL_REORG_TESTS],[test x$use_comparison_tool_reo
 AM_CONDITIONAL([GLIBC_BACK_COMPAT],[test x$use_glibc_compat = xyes])
 AM_CONDITIONAL([HARDEN],[test x$use_hardening = xyes])
 
+AC_SUBST(USE_CVN,$use_cvn)
 AC_SUBST(USE_FASITO,$use_fasito)
 
 AC_DEFINE(CLIENT_VERSION_MAJOR, _CLIENT_VERSION_MAJOR, [Major version])
@@ -1181,6 +1198,7 @@ if test x$bitcoin_enable_qt != xno; then
     echo "    qt version    = $bitcoin_qt_got_major_vers"
     echo "    with qr       = $use_qr"
 fi
+echo "  with CVN        = $use_cvn"
 echo "  with fasito     = $use_fasito"
 echo "  with coinsupply = $enable_coinsupply"
 echo "  with zmq        = $use_zmq"

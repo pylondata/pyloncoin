@@ -127,11 +127,12 @@ bool AppInit(int argc, char* argv[])
 
         // we need to do this early, just before daemonsing...
         string strFasitoPassword = "";
+#ifdef USE_CVN
         if (mapArgs.count("-cvn"))
         {
             promptForPassword("Enter Fasito PIN: ", strFasitoPassword);
         }
-
+#endif
         if (GetBoolArg("-daemon", false))
         {
 #if HAVE_DECL_DAEMON

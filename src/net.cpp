@@ -1995,8 +1995,9 @@ bool StopNode()
         fAddressesInitialized = false;
     }
 
+#ifdef USE_CVN
     SaveNoncesPool();
-
+#endif
     return true;
 }
 

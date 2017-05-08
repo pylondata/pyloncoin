@@ -680,6 +680,7 @@ int main(int argc, char *argv[])
     // Subscribe to global signals from core
     uiInterface.InitMessage.connect(InitMessage);
 
+#ifdef USE_CVN
     if (mapArgs.count("-cvn")) {
         std::string secret;
         //TODO: we should prompt for a password using a QT dialog
@@ -688,6 +689,7 @@ int main(int argc, char *argv[])
         if (secret.length())
             memset(&secret.begin()[0], 0 , secret.length());
     }
+#endif // USE_CVN
 
     if (GetBoolArg("-splash", DEFAULT_SPLASHSCREEN) && !GetBoolArg("-min", false))
         app.createSplashScreen(networkStyle.data());

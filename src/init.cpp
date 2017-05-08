@@ -202,7 +202,9 @@ void Shutdown()
     if (pwalletMain)
         pwalletMain->Flush(false);
 #endif
+#ifdef USE_CVN
     RunPOCThread(false, Params(), 0);
+#endif // USE_CVN
     StopNode();
     StopTorControl();
     UnregisterNodeSignals(GetNodeSignals());
@@ -1116,6 +1118,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
     std::ostringstream strErrors;
 
     if (mapArgs.count("-cvn")) {
+#ifdef USE_CVN
         if (GetArg("-cvn", "") == "fasito") {
 #ifdef USE_FASITO
             LogPrintf("Initializing fasito\n");
@@ -1123,7 +1126,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
             nCvnNodeId = InitCVNWithFasito(strFasitoPassword);
 #else
             LogPrintf("ERROR: invalid parameter -cvn=fasito. This wallet version was not compiled with fasito support\n");
-#endif
+#endif // USE_FASITO
         } else if (GetArg("-cvn", "") == "file") {
             nCvnNodeId = InitCVNWithCertificate(strFasitoPassword);
         } else
@@ -1134,6 +1137,9 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
 
         LogPrintf("Starting CVN node with ID 0x%08x\n", nCvnNodeId);
         uiInterface.InitMessage(_("Starting CVN node..."));
+#else
+        return InitError("This wallet was compiled without support for CVN functionality'\n");
+#endif // USE_CVN
     }
 
 #if 0
@@ -1759,9 +1765,10 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
 
     StartNode(threadGroup, scheduler);
 
+#ifdef USE_CVN
     // Start up a CVN (generate blocks)
     RunPOCThread(GetBoolArg("-gen", DEFAULT_GENERATE), chainparams, nCvnNodeId);
-
+#endif // USE_CVN
     // ********************************************************* Step 12: finished
 
     SetRPCWarmupFinished();

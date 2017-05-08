@@ -118,17 +118,6 @@ static bool ParseHashStr(const string& strReq, uint256& v)
     return true;
 }
 
-static bool ParseHexStr(const string& strReq, uint32_t& v)
-{
-    if (!IsHex(strReq) || (strReq.size() != 8))
-        return false;
-
-    stringstream ss;
-    ss << hex << strReq;
-    ss >> v;
-    return true;
-}
-
 static bool CheckWarmup(HTTPRequest* req)
 {
     std::string statusmessage;
@@ -328,66 +317,6 @@ static bool rest_chainparameters(HTTPRequest* req, const std::string& strURIPart
         string strJSON = chainParamsObject.write() + "\n";
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, strJSON);
-        return true;
-    }
-    default: {
-        return RESTERR(req, HTTP_NOT_FOUND, "output format not found (available: json)");
-    }
-    }
-
-    // not reached
-    return true; // continue to process further HTTP reqs on this cxn
-}
-
-static bool rest_getcvninfo(HTTPRequest* req, const std::string& strURIPart)
-{
-    if (!CheckWarmup(req))
-        return false;
-    std::string param;
-    const RetFormat rf = ParseDataFormat(param, strURIPart);
-
-    uint32_t nNode;
-    if (!ParseHexStr(param, nNode))
-        return RESTERR(req, HTTP_BAD_REQUEST, "Invalid cvn ID: " + param);
-
-    switch (rf) {
-    case RF_JSON: {
-        UniValue rpcParams(UniValue::VOBJ);
-        rpcParams.push_back(param);
-        UniValue cvnInfoObject = getcvninfo(rpcParams, false);
-        string strJSON = cvnInfoObject.write() + "\n";
-        req->WriteHeader("Content-Type", "application/json");
-        req->WriteReply(HTTP_OK, strJSON);
-        return true;
-    }
-    default: {
-        return RESTERR(req, HTTP_NOT_FOUND, "output format not found (available: json)");
-    }
-    }
-
-    // not reached
-    return true; // continue to process further HTTP reqs on this cxn
-}
-
-static bool rest_bancvn(HTTPRequest* req, const std::string& strURIPart)
-{
-    if (!CheckWarmup(req))
-        return false;
-    std::string param;
-    const RetFormat rf = ParseDataFormat(param, strURIPart);
-
-    uint32_t nNode;
-    if (!ParseHexStr(param, nNode))
-        return RESTERR(req, HTTP_BAD_REQUEST, "Invalid cvn ID: " + param);
-
-    switch (rf) {
-    case RF_JSON: {
-        UniValue rpcParams(UniValue::VOBJ);
-        rpcParams.push_back(param);
-        UniValue cvnInfoObject = bancvn(rpcParams, false);
-        string str = cvnInfoObject.getValStr() + "\n";
-        req->WriteHeader("Content-Type", "text/plain");
-        req->WriteReply(HTTP_OK, str);
         return true;
     }
     default: {
@@ -786,8 +715,6 @@ static const struct {
       {"/rest/mempool/contents", rest_mempool_contents},
       {"/rest/headers/", rest_headers},
       {"/rest/getutxos", rest_getutxos},
-      {"/rest/cvninfo/", rest_getcvninfo},
-      {"/rest/bancvn/", rest_bancvn},
       {"/rest/activecvns", rest_getactivecvns},
       {"/rest/activeadmins", rest_getactiveadmins},
 };
