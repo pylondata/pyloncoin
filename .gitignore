@@ -6,6 +6,7 @@ src/faircoind
 src/faircoin-cli
 src/faircoin-tx
 src/test/test_bitcoin
+src/test/test_bitcoin_fuzzy
 src/qt/test/test_bitcoin-qt
 
 # autoreconf
@@ -110,6 +111,7 @@ test/cache/*
 
 libbitcoinconsensus.pc
 contrib/devtools/split-debug.sh
+test/functional/config.ini
 
 #eclipse
 .cproject
