@@ -55,7 +55,6 @@ src/qt/test/moc*.cpp
 *.o
 *.o-*
 *.patch
-.bitcoin
 *.a
 *.pb.cc
 *.pb.h
@@ -75,7 +74,7 @@ src/qt/test/moc*.cpp
 *.qm
 Makefile
 faircoin-qt
-FairCoin.app
+FairCoin-Qt.app
 
 # Unit-tests
 Makefile.test
@@ -101,19 +100,16 @@ coverage_percent.txt
 linux-coverage-build
 linux-build
 win32-build
-qa/pull-tester/run-bitcoind-for-test.sh
-qa/pull-tester/tests_config.py
-qa/pull-tester/cache/*
-qa/pull-tester/test.*/*
-qa/tmp
-cache/
-share/BitcoindComparisonTool.jar
+test/functional/config.ini
+test/util/buildenv.py
+test/cache/*
 
 !src/leveldb*/Makefile
 
 /doc/doxygen/
 
 libbitcoinconsensus.pc
+contrib/devtools/split-debug.sh
 
 #eclipse
 .cproject
