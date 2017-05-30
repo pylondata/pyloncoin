@@ -1378,7 +1378,7 @@ bool AddNonceAdmin(const CAdminNonce& msg)
 
     mapAdminNonces[msg.nAdminId] = msg.publicNonce;
 
-    LogPrint("cvnsig", "%s : add sig by 0x%08x, hash %s\n", __func__, msg.nAdminId,
+    LogPrint("cvnsig", "%s : add admin nonce from admin ID 0x%08x, hash %s\n", __func__, msg.nAdminId,
             msg.hashRootBlock.ToString());
 
     return true;
