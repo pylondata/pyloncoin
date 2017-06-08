@@ -1062,7 +1062,7 @@ UniValue setchainparameters(const UniValue& params, bool fHelp)
              "}\n"
             "\nExamples:\n"
             "\nSet chain parameters\n"
-            + HelpExampleCli("setchainparameters", "\"{\\\"blockSpacing\\\":\\\"180\\\",\\\"blockSpacingGracePeriod\\\":\\\"60\\\"}")
+            + HelpExampleCli("setchainparameters", "\"{\\\"blockSpacing\\\":\\\"180\\\",\\\"blockSpacingGracePeriod\\\":\\\"60\\\"}\"")
         );
 
     if (IsInitialBlockDownload())
