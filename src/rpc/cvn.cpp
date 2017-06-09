@@ -505,7 +505,21 @@ UniValue chainadminlogin(const UniValue& params, bool fHelp)
         return "ERROR: This wallet version was not compiled with fasito support\n";
 #endif
     } else if (method == "file") {
+        string strOldAdminKeyFile;
+        string strOldAdminCertFile;
+        if (params.size() == 3) {
+            strOldAdminKeyFile = GetArg("-adminkeyfile", "admin.pem");
+            strOldAdminCertFile = GetArg("-admincertfile", "admin.pem");
+            mapArgs["-adminkeyfile"] = mapArgs["-admincertfile"] = params[2].get_str();
+            LogPrintf("using key file: %s\n", mapArgs["-adminkeyfile"]);
+        }
+
         nChainAdminId = InitChainAdminWithCertificate(strPassword);
+
+        if (params.size() == 3) {
+            mapArgs["-adminkeyfile"] = strOldAdminKeyFile;
+            mapArgs["-admincertfile"] = strOldAdminCertFile;
+        }
     } else {
         throw JSONRPCError(RPC_INVALID_PARAMS, "invalid signing method. Must be one of 'fasito' or 'file'\n");
     }
@@ -940,7 +954,7 @@ UniValue chainadminschnorrverify(const UniValue& params, bool fHelp)
 
     if (params.size() == 3) {
         pubKey = CSchnorrPubKeyDER(params[2].get_str());
-        if (pubKey == NULL)
+        if (pubKey.IsNull())
             return "ERROR: invalid public key";
     } else {
         pubKey = adminPubKey;
@@ -953,6 +967,7 @@ UniValue chainadminschnorrverify(const UniValue& params, bool fHelp)
     result.push_back(Pair("result", fValid));
     result.push_back(Pair("dataHash", params[0]));
     result.push_back(Pair("signature", signature.ToString()));
+    result.push_back(Pair("pubKey", pubKey.ToString()));
 
     return result;
 }

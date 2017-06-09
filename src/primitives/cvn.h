@@ -167,8 +167,10 @@ inline CSchnorrPubKey CSchnorrPubKeyDER(const std::string& str)
     CSchnorrPubKey rv;
 
     if (str.length() != 65 * 2 || (str[0] != '0' && str[1] != '4'))
-        return NULL;
-    rv.SetHexDER(str);
+        rv.SetNull();
+    else
+        rv.SetHexDER(str);
+
     return rv;
 }
 
