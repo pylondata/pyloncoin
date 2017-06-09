@@ -386,6 +386,11 @@ static bool InitFasito(const string& strPassword)
             return false;
         }
 
+        if (boost::algorithm::starts_with(fasito.strPinStatus, "LOCKED")) {
+            LogPrintf("ERROR: Fasito is locked\n");
+            return false;
+        }
+
         size_t nPassLen = strPassword.length();
         if (strPassword.empty()) {
             LogPrintf("ERROR: no Fasito PIN supplied\n");
