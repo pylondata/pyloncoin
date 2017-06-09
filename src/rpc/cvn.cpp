@@ -1245,7 +1245,6 @@ UniValue submitblock(const UniValue& params, bool fHelp)
     return BIP22ValidationResult(state);
 }
 
-#ifdef ENABLE_COINSUPPLY
 UniValue addcoinsupply(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() != 3)
@@ -1325,6 +1324,5 @@ UniValue addcoinsupply(const UniValue& params, bool fHelp)
     result.push_back(Pair("script", ScriptToAsmStr(msg.coinSupply.scriptDestination, true)));
     return result;
 }
-#endif // ENABLE_COINSUPPLY
 
 #endif // USE_CVN

@@ -100,7 +100,7 @@ public:
 
 class CSchnorrRx : public poc_storage<32> {
 public:
-    CSchnorrRx() {}
+    CSchnorrRx() { }
     CSchnorrRx(const poc_storage<32>& b) : poc_storage<32>(b) {}
     explicit CSchnorrRx(const std::vector<unsigned char>& vch) : poc_storage<32>(vch) {}
 };

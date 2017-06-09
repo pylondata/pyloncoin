@@ -143,10 +143,8 @@ uint256 CChainDataMsg::GetHash() const
         hasher << dynamicChainParams;
     if (HasChainAdmins())
         hasher << vChainAdmins;
-#ifdef ENABLE_COINSUPPLY
     if (HasCoinSupplyPayload())
         hasher << coinSupply;
-#endif
     return hasher.GetHash();
 }
 

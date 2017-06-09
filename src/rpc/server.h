@@ -201,9 +201,7 @@ extern UniValue setchainparameters(const UniValue& params, bool fHelp);
 extern UniValue getactivecvns(const UniValue& params, bool fHelp);
 extern UniValue getactiveadmins(const UniValue& params, bool fHelp);
 extern UniValue submitblock(const UniValue& params, bool fHelp);
-#ifdef ENABLE_COINSUPPLY
 extern UniValue addcoinsupply(const UniValue& params, bool fHelp);
-#endif
 extern UniValue estimatefee(const UniValue& params, bool fHelp);
 
 extern UniValue getnewaddress(const UniValue& params, bool fHelp); // in rpcwallet.cpp

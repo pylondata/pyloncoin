@@ -2082,7 +2082,6 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
         nFees += GetBoolArg("-testnet", false) ? 10000000 * COIN : MAX_MONEY;
     }
 
-#ifdef ENABLE_COINSUPPLY
     if (block.HasCoinSupplyPayload()) {
         if (block.vtx[0].vout.size() != 2)
             return state.DoS(100, error("ConnectBlock(): invalid coinbase transaction for new supply. Not enough outputs"),
@@ -2102,14 +2101,6 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
 
         nFees += block.coinSupply.nValue;
     }
-#else
-    if (block.HasCoinSupplyPayload()) {
-        if (block.vtx[0].vout[1].scriptPubKey != block.coinSupply.scriptDestination)
-            return state.DoS(100,
-                    error("ConnectBlock(): received coin supply payload but this wallet is not compiled with coin supply enabled"),
-                            REJECT_INVALID, "bad-cb-supply");
-    }
-#endif
 
     if (block.HasTx() && block.vtx[0].GetValueOut() > nFees)
         return state.DoS(100,

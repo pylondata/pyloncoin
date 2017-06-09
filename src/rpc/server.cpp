@@ -309,11 +309,9 @@ static const CRPCCommand vRPCCommands[] =
     { "cvn",                "setchainparameters",     &setchainparameters,     true  },
     { "cvn",                "relaynoncepool",         &relaynoncepool,         true  },
     { "cvn",                "submitblock",            &submitblock,            true  },
-#ifdef ENABLE_COINSUPPLY
     { "cvn",                "addcoinsupply",          &addcoinsupply,          true  },
-#endif // ENABLE_COINSUPPLY
 
-    /* Coin generation */
+    /* Block generation */
     { "generating",         "getgenerate",            &getgenerate,            true  },
     { "generating",         "setgenerate",            &setgenerate,            true  },
 #endif // USE_CVN

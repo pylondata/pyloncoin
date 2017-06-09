@@ -38,10 +38,8 @@ uint256 CBlock::GetPayloadHash(const bool fAdminDataOnly) const
         hasher << dynamicChainParams;
     if (HasChainAdmins())
         hasher << vChainAdmins;
-#ifdef ENABLE_COINSUPPLY
     if (HasCoinSupplyPayload())
         hasher << coinSupply;
-#endif
     return hasher.GetHash();
 }
 
