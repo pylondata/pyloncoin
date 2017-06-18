@@ -26,7 +26,9 @@
 using namespace std;
 
 extern void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry);
-extern void DynamicChainparametersToJSON(CDynamicChainParams& cp, UniValue& result);
+extern void DynamicChainparametersToJSON(const CDynamicChainParams& cp, UniValue& result);
+extern void CoinSupplyToJSON(const CCoinSupply& cs, UniValue& result);
+
 void ScriptPubKeyToJSON(const CScript& scriptPubKey, UniValue& out, bool fIncludeHex);
 
 UniValue blockheaderToJSON(const CBlockIndex* blockindex)
@@ -136,8 +138,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const u
     ///////// DYNAMIC CHAIN PARAMETERS
     UniValue dParams(UniValue::VOBJ);
     if (block.HasChainParameters()) {
-        CDynamicChainParams p = block.dynamicChainParams;
-        DynamicChainparametersToJSON(p, dParams);
+        DynamicChainparametersToJSON(block.dynamicChainParams, dParams);
     }
 
     result.push_back(Pair("chainParameters", dParams));
@@ -156,8 +157,13 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const u
     }
     result.push_back(Pair("chainAdmins", admins));
 
-    if (nMode < 4)
-        return result;
+    ///////// COINS SUPPLY
+    UniValue coinSupply(UniValue::VOBJ);
+    if (block.HasCoinSupplyPayload()) {
+        CoinSupplyToJSON(block.coinSupply, coinSupply);
+    }
+
+    result.push_back(Pair("coinSupply", coinSupply));
 
     return result;
 }

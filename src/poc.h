@@ -88,6 +88,8 @@ extern CvnInfoCacheType mapCVNInfoCache;
 extern uint32_t nCvnNodeId;
 extern uint32_t nChainAdminId;
 
+extern bool fCoinSupplyFinal;
+
 extern const char *pocStateNames[];
 
 extern CCriticalSection cs_mapCVNs;
@@ -262,6 +264,7 @@ extern bool CheckProofOfCooperation(const CBlock& block, const Consensus::Params
 extern void UpdateCvnInfo(const CBlock* pblock, const uint32_t nHeight);
 extern void UpdateChainParameters(const CBlock* pblock);
 extern void UpdateChainAdmins(const CBlock* pblock);
+extern void SetCoinSupplyStatus(const CBlock* pblock);
 
 extern bool CheckDynamicChainParameters(const CDynamicChainParams& params);
 

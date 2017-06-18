@@ -459,6 +459,7 @@ public:
     static const uint32_t CURRENT_VERSION = 1;
     uint32_t nVersion;
     CAmount nValue;
+    bool fFinalCoinsSupply;
     CScript scriptDestination;
 
     CCoinSupply()
@@ -473,6 +474,7 @@ public:
         READWRITE(this->nVersion);
         nVersion = this->nVersion;
         READWRITE(nValue);
+        READWRITE(fFinalCoinsSupply);
         READWRITE(*(CScriptBase*)(&scriptDestination));
     }
 
@@ -480,6 +482,7 @@ public:
     {
         nVersion = CDynamicChainParams::CURRENT_VERSION;
         nValue = -1;
+        fFinalCoinsSupply = false;
         scriptDestination.clear();
     }
 

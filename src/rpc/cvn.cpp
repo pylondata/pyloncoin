@@ -149,7 +149,7 @@ UniValue getactiveadmins(const UniValue& params, bool fHelp)
     return result;
 }
 
-void DynamicChainparametersToJSON(CDynamicChainParams& cp, UniValue& result)
+void DynamicChainparametersToJSON(const CDynamicChainParams& cp, UniValue& result)
 {
     result.push_back(Pair("version", (int)cp.nVersion));
     result.push_back(Pair("minAdminSigs", (int)cp.nMinAdminSigs));
@@ -165,6 +165,15 @@ void DynamicChainparametersToJSON(CDynamicChainParams& cp, UniValue& result)
     result.push_back(Pair("blockPropagationWaitTime", (int)cp.nBlockPropagationWaitTime));
     result.push_back(Pair("retryNewSigSetInterval", (int)cp.nRetryNewSigSetInterval));
     result.push_back(Pair("description", cp.strDescription));
+}
+
+void CoinSupplyToJSON(const CCoinSupply& cs, UniValue& result)
+{
+    result.push_back(Pair("version", (int)cs.nVersion));
+    result.push_back(Pair("value", ValueFromAmount(cs.nValue)));
+    result.push_back(Pair("isFinal", cs.fFinalCoinsSupply));
+    result.push_back(Pair("destinationAsm", ScriptToAsmStr(cs.scriptDestination)));
+    result.push_back(Pair("destinationHex", HexStr(cs.scriptDestination)));
 }
 
 UniValue getchainparameters(const UniValue& params, bool fHelp)
@@ -228,16 +237,16 @@ static bool AddAdminSignatures(CChainDataMsg &msg)
         throw runtime_error(
             strprintf("not enough signatures supplied "
                       "(got %u signatures, but need at least %u to sign)", nSigs, dynParams.nMinAdminSigs));
-    if (nSigs > dynParams.nMaxAdminSigs || nSigs > MAX_NUMBER_OF_CHAIN_ADMINS)
+    if (nSigs > dynParams.nMaxAdminSigs || nSigs > MAX_NUMBER_OF_CHAIN_ADMINS || nSigs > mapChainAdmins.size())
         throw runtime_error(
-            strprintf("too many signatures supplied %u (%u max)\nReduce the number", nSigs, dynParams.nMaxAdminSigs));
+            strprintf("too many signatures supplied %u (%u/%u max)\nReduce the number", nSigs, mapChainAdmins.size(), dynParams.nMaxAdminSigs));
 
     if (msg.HasCoinSupplyPayload() && nSigs < dynParams.nMaxAdminSigs)
         throw runtime_error(
                 strprintf("not enough signatures supplied "
                        "(got %u signatures, but need at least %u to sign for coin supply)", nSigs, dynParams.nMaxAdminSigs));
 
-    if (mapChainAdmins.size() == 1 || (dynParams.nMinAdminSigs && mapAdminNonces.size() == 1)) {
+    if (mapChainAdmins.size() == 1 || (dynParams.nMinAdminSigs == 1 && mapAdminNonces.size() == 1)) {
         msg.vAdminIds     = sigFirst.vSignerIds;
         msg.adminMultiSig = sigFirst.signature;
         return CheckAdminSignature(msg.vAdminIds, msg.GetHash(), msg.adminMultiSig, msg.HasCoinSupplyPayload());
@@ -1377,31 +1386,34 @@ UniValue submitblock(const UniValue& params, bool fHelp)
 
 UniValue addcoinsupply(const UniValue& params, bool fHelp)
 {
-    if (fHelp || params.size() != 3)
+    if (fHelp || params.size() != 4)
         throw runtime_error(
-            "addcoinsupply \"faircoinaddress\" \"amount\"  \"comment\" \"admin sigs\"\n"
+            "addcoinsupply \"faircoinaddress\" \"amount\" \"isFinal\" \"comment\"\n"
             "\nAdd instructions to increase the coin supply to the FairCoin network\n"
             "\nArguments:\n"
             "1. \"faircoinaddress\"  (string, required) The FairCoin address to send to.\n"
-            "2. \"amount\"           (numeric or string, required) The amount in " + CURRENCY_UNIT + " to send. eg 0.1\n"
-            "3. \"comment\"          (string, required) A comment used to store what this additional supply is for. \n"
+            "2. \"amount\"           (numeric or string, required) The amount in " + CURRENCY_UNIT + " to send. E.g. 33.1234 " + CURRENCY_UNIT + ".\n"
+            "3. \"isFinal\"          (bool, required) Whether this is the last coin supply that can be added to the blockchain.\n"
+            "4. \"comment\"          (string, required) A comment used to store what this additional supply is for.\n"
             "\nResult:\n"
             "{\n"
-                "  \"type\":\"type of added info\",             (string) The type of the added info (c=CVNInfo, a=ChainAdmin)\n"
-                "  \"Id\":\"ID in hex\",                        (hex) The ID of the new CVN (or admin) in hexadecimal form\n"
-                "  \"prevBlockHash\":\"hash (hex)\",            (string) The timestamp of the block\n"
-                "  \"address\":\"faircoin address\",            (string) The FairCoin address of the new CVN.\n"
-                "  \"pubKey\":\"public key\",                   (string) The public key of the new CVN (in hex).\n"
-                "  \"signatures\":\"number of signatures\"      (string) The number of admin signatures that signed the CvnInfo.\n"
-                "  \"chainParams\":\"serialized params\"        (string) The serialized representation of CDynamicChainParams.\n"
+                "  \"msghash\":\"the hash of the message\",     (string) The message hash\n"
+                "  \"address\":\"the destination address\",     (string) The address of the supply's output\n"
+                "  \"amount\":amount of coins to add,         (numeric) The number of coins to add\n"
+                "  \"isFinal\":\"is this the final supply\",    (string) Is it the last coins supply in the blockchain\n"
+                "  \"comment\":\"description of this supply\",  (string) Description\n"
+                "  \"script\":\"the destination script\"        (string) The output script\n"
              "}\n"
             "\nExamples:\n"
             "\nAdd a new coin supply\n"
-            + HelpExampleCli("addcoinsupply", "fairVs8iHyLzgHQrdxb9j6hR4WGpdDbKN3 4000.777 \"thewaterproject.org\"")
+            + HelpExampleCli("addcoinsupply", "fairVs8iHyLzgHQrdxb9j6hR4WGpdDbKN3 4000.777 false \"thewaterproject.org\"")
         );
 
     if (IsInitialBlockDownload())
         throw JSONRPCError(RPC_IN_WARMUP, "wait for block chain download to finish");
+
+    if (fCoinSupplyFinal)
+        throw JSONRPCError(RPC_MISC_ERROR, "coins supply is already final");
 
     CBitcoinAddress address(params[0].get_str());
     if (!address.IsValid())
@@ -1412,16 +1424,18 @@ UniValue addcoinsupply(const UniValue& params, bool fHelp)
     if (nAmount <= 0)
         throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount");
 
-    if (params[2].isNull() || params[2].get_str().empty())
-        throw JSONRPCError(RPC_TYPE_ERROR, "The comment is mandatory");
+    if (params[3].isNull() || params[3].get_str().empty())
+        throw JSONRPCError(RPC_TYPE_ERROR, "Missing mandatory comment string");
 
     CChainDataMsg msg;
     CCoinSupply& spl = msg.coinSupply;
 
     msg.nPayload             = CChainDataMsg::COIN_SUPPLY_PAYLOAD;
     msg.hashPrevBlock        = chainActive.Tip()->GetBlockHash();
+    msg.strComment           = params[3].get_str();
     spl.nValue               = nAmount;
     spl.scriptDestination    = GetScriptForDestination(address.Get());
+    spl.fFinalCoinsSupply    = params[2].get_bool();
 
     UniValue result(UniValue::VOBJ);
 
@@ -1450,6 +1464,7 @@ UniValue addcoinsupply(const UniValue& params, bool fHelp)
     result.push_back(Pair("msghash", msg.GetHash().ToString()));
     result.push_back(Pair("address", address.ToString()));
     result.push_back(Pair("amount", ValueFromAmount(nAmount)));
+    result.push_back(Pair("isFinal", spl.fFinalCoinsSupply));
     result.push_back(Pair("comment", msg.strComment));
     result.push_back(Pair("script", ScriptToAsmStr(msg.coinSupply.scriptDestination, true)));
     return result;

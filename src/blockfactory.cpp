@@ -271,11 +271,6 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
 
         // Compute final coinbase transaction.
         txNew.vout[0].nValue = nFees;
-
-        if (nHeight == 1 && pindexPrev->GetBlockHash() == blocktemplate.chainparams.GetConsensus().hashGenesisBlock) {
-            txNew.vout[0].nValue += GetBoolArg("-testnet", false) ? 10000000 * COIN : MAX_MONEY;
-        }
-
         txNew.vin[0].scriptSig = (CScript() << nHeight << CScriptNum(blocktemplate.nExtraNonce)) + COINBASE_FLAGS;
         assert(txNew.vin[0].scriptSig.size() <= 100);
 
@@ -344,50 +339,35 @@ static bool AddChainDataToBlock(CBlock *pblock, const CChainDataMsg& msg)
         pblock->nVersion |= CBlock::CVN_PAYLOAD;
         pblock->vCvns = msg.vCvns;
     }
+
     if (msg.HasChainAdmins()) {
         pblock->nVersion |= CBlock::CHAIN_ADMINS_PAYLOAD;
         pblock->vChainAdmins = msg.vChainAdmins;
     }
+
     if (msg.HasChainParameters()) {
         if (CheckDynamicChainParameters(msg.dynamicChainParams)) {
             pblock->nVersion |= CBlock::CHAIN_PARAMETERS_PAYLOAD;
             pblock->dynamicChainParams = msg.dynamicChainParams;
         } else
-            LogPrintf("received invalid chain params, ignoring it\n%s\n%s", msg.ToString(), msg.dynamicChainParams.ToString());
+            LogPrintf("received invalid chain parameter, ignoring it\n%s\n%s\n", msg.ToString(), msg.dynamicChainParams.ToString());
     }
+
     if (msg.HasCoinSupplyPayload()) {
-        pblock->nVersion |= CBlock::COIN_SUPPLY_PAYLOAD;
-        pblock->coinSupply = msg.coinSupply;
+        if (fCoinSupplyFinal) {
+            LogPrintf("coin supply already final. Ignoring coin supply chain data\n%s\n%s\n", msg.ToString(), msg.coinSupply.ToString());
+        } else {
+            pblock->nVersion |= CBlock::COIN_SUPPLY_PAYLOAD;
+            pblock->coinSupply = msg.coinSupply;
 
-        CMutableTransaction tx(pblock->vtx[0]);
-        tx.vout.push_back(CTxOut(msg.coinSupply.nValue, msg.coinSupply.scriptDestination));
+            CMutableTransaction tx(pblock->vtx[0]);
+            tx.vout.push_back(CTxOut(msg.coinSupply.nValue, msg.coinSupply.scriptDestination));
 
-        pblock->vtx[0] = tx;
+            pblock->vtx[0] = tx;
+        }
     }
 
     return true;
-}
-
-static string bin2hex(const uint8_t *buf, const size_t len)
-{
-    size_t i;
-    char c[3];
-    string res;
-
-    for (i = 0; i < len; i++) {
-        sprintf(c, "%02x", buf[i]);
-        res.append(c);
-    }
-
-    return res;
-}
-
-void printHex(const uint8_t *buf, const size_t len, const bool addLF = false)
-{
-    cout << bin2hex(buf, len);
-
-    if (addLF)
-        cout << endl;
 }
 
 typedef vector<vector<uint32_t> > MissingIdsCandidates;

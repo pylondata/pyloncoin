@@ -1432,6 +1432,7 @@ bool IsInitialBlockDownload()
     if (chainActive.Tip()->GetBlockTime() < (GetTime() - nMaxTipAge))
         return true;
 
+    LogPrintf("Initial blockchain download completed.\n");
     latchToFalse.store(true, std::memory_order_relaxed);
     return false;
 }
@@ -2078,10 +2079,6 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
     LogPrint("bench", "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs]\n", (unsigned)block.vtx.size(), 0.001 * (nTime3 - nTime2), 0.001 * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : 0.001 * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * 0.000001);
 
-    if (pindex->nHeight == 1 && hashPrevBlock == chainparams.GetConsensus().hashGenesisBlock) {
-        nFees += GetBoolArg("-testnet", false) ? 10000000 * COIN : MAX_MONEY;
-    }
-
     if (block.HasCoinSupplyPayload()) {
         if (block.vtx[0].vout.size() != 2)
             return state.DoS(100, error("ConnectBlock(): invalid coinbase transaction for new supply. Not enough outputs"),
@@ -2098,6 +2095,10 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
                     error("ConnectBlock(): invalid amount in coinbase script for new supply. (actual=%s vs expected=%s)",
                             ScriptToAsmStr(block.vtx[0].vout[1].scriptPubKey), ScriptToAsmStr(block.coinSupply.scriptDestination)),
                             REJECT_INVALID, "bad-cb-script");
+
+        if (fCoinSupplyFinal)
+            return state.DoS(100, error("ConnectBlock(): coin supply is already final"),
+                            REJECT_INVALID, "coins-supply-final");
 
         nFees += block.coinSupply.nValue;
     }
@@ -2447,6 +2448,10 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
 
     if (pblock->HasChainAdmins())
         UpdateChainAdmins(pblock);
+
+    if (pblock->HasCoinSupplyPayload()) {
+        SetCoinSupplyStatus(pblock);
+    }
 
     if (!IsInitialBlockDownload()) {
         const uint32_t nNextCreator = CheckNextBlockCreator(pindexNew, block.nTime + 1);
@@ -3686,8 +3691,7 @@ bool CVerifyDB::SetMostRecentCVNData(const CChainParams& chainparams, CBlockInde
 {
     bool fFoundCvnInfoPayload = false, fFoundDynamicChainParamsPayload = false, fFoundChainAdminsPayload = false;
 
-    for (CBlockIndex* pindex = pindexStart; pindex; pindex = pindex->pprev)
-    {
+    for (CBlockIndex* pindex = pindexStart; pindex; pindex = pindex->pprev) {
         if (pindex->nVersion & (CBlock::CVN_PAYLOAD | CBlock::CHAIN_PARAMETERS_PAYLOAD | CBlock::CHAIN_ADMINS_PAYLOAD)) {
             CBlock block;
             if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus()))
@@ -3710,7 +3714,7 @@ bool CVerifyDB::SetMostRecentCVNData(const CChainParams& chainparams, CBlockInde
         }
 
         if (fFoundCvnInfoPayload && fFoundDynamicChainParamsPayload && fFoundChainAdminsPayload)
-            return true;
+            break;
     }
 
     if (!fFoundCvnInfoPayload)
@@ -3722,7 +3726,17 @@ bool CVerifyDB::SetMostRecentCVNData(const CChainParams& chainparams, CBlockInde
     if (!fFoundChainAdminsPayload)
         LogPrintf("SetMostRecentCVNData(): *** could not find a block with chain admins payload. Can not continue.\n");
 
-    return false;
+    for (CBlockIndex* pindex = pindexStart; pindex; pindex = pindex->pprev) {
+        if (pindex->nVersion & CBlock::COIN_SUPPLY_PAYLOAD) {
+            CBlock block;
+            if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus()))
+                return error("SetMostrecentCVNData(): *** ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
+
+            SetCoinSupplyStatus(&block);
+        }
+    }
+
+    return (fFoundCvnInfoPayload && fFoundDynamicChainParamsPayload && fFoundChainAdminsPayload);
 }
 
 bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview, int nCheckLevel, int nCheckDepth)
@@ -3757,10 +3771,16 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
         // check level 0: read from disk
         if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus()))
             return error("VerifyDB(): *** ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
-        // find the most recent CVN and ChainParams block
-        if (pindex->pprev && block.HasAdminPayload() && !block.HasCoinSupplyPayload())
-            if (!SetMostRecentCVNData(chainparams, pindex->pprev))
-                return error("VerifyDB(): *** SetMostRecentCVNData failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
+        // find the most recent CVN, chain admins, and ChainParams block
+        if (pindex->pprev && block.HasAdminPayload()) {
+            if (block.HasCoinSupplyPayload()) {
+                if (block.coinSupply.fFinalCoinsSupply)
+                    fCoinSupplyFinal = false;
+            } else {
+                if (!SetMostRecentCVNData(chainparams, pindex->pprev))
+                    return error("VerifyDB(): *** SetMostRecentCVNData failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
+            }
+        }
         // check level 1: verify block validity
         if (nCheckLevel >= 1 && !CheckBlock(block, state))
             return error("VerifyDB(): *** found bad block at %d, hash=%s\n", pindex->nHeight, pindex->GetBlockHash().ToString());
@@ -3816,6 +3836,9 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
 
             if (block.HasChainAdmins())
                 UpdateChainAdmins(&block);
+
+            if (block.HasCoinSupplyPayload())
+                SetCoinSupplyStatus(&block);
         }
     }
 
@@ -5029,6 +5052,7 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
                 RelayChainData(msg);
             } else {
                 LogPrintf("received invalid chain data %s\n", msg.ToString());
+                Misbehaving(pfrom->GetId(), 50);
             }
         } else {
             LogPrint("net", "AlreadyHave chain data %s\n", hashData.ToString());
