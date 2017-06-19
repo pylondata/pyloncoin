@@ -25,6 +25,8 @@
 #include <boost/bind.hpp>
 #include <boost/algorithm/string/predicate.hpp> // for startswith() and endswith()
 
+#include "sync.h"
+
 using namespace std;
 using namespace boost;
 
@@ -129,7 +131,7 @@ void SerialConnection::read(char *data, size_t size)
                 throw(boost::system::system_error(boost::system::error_code(),
                         "Error while reading"));
             default:
-            	break;
+                break;
                 //if resultInProgress remain in the loop
         }
     }
@@ -191,7 +193,7 @@ std::string SerialConnection::readStringUntil(const std::string& delim)
                 throw(boost::system::system_error(boost::system::error_code(),
                         "Error while reading"));
             default:
-            	break;
+                break;
                 //if resultInProgress remain in the loop
         }
     }
@@ -250,31 +252,33 @@ void SerialConnection::readCompleted(const boost::system::error_code& error,
 
 bool SerialConnection::sendAndReceive(const std::string line, vector<string> &vLines)
 {
-	writeString(line + "\r");
+    LOCK(cs_connection);
+    writeString(line + "\r");
 
-	string s = readStringUntil("\r\n");
+    string s = readStringUntil("\r\n");
 
-	vLines.push_back(s);
-	while (1) {
-	    if (s == "OK")
-	        return true;
+    vLines.push_back(s);
+    while (1) {
+        if (s == "OK")
+            return true;
 
-	    if (boost::algorithm::starts_with(s, "ERROR"))
-	        return false;
+        if (boost::algorithm::starts_with(s, "ERROR"))
+            return false;
 
-		s = readStringUntil("\r\n");
-		vLines.push_back(s);
-	}
+        s = readStringUntil("\r\n");
+        vLines.push_back(s);
+    }
 
-	return false; // never reached
+    return false; // never reached
 }
 
 bool SerialConnection::sendCommand(const std::string command) {
-	writeString(command + "\r");
-	string s = readStringUntil("\r\n");
-	while (s != "OK" && !boost::algorithm::starts_with(s, "ERROR")) {
-		s = readStringUntil("\r\n");
-	}
+    LOCK(cs_connection);
+    writeString(command + "\r");
+    string s = readStringUntil("\r\n");
+    while (s != "OK" && !boost::algorithm::starts_with(s, "ERROR")) {
+        s = readStringUntil("\r\n");
+    }
 
-	return s == "OK";
+    return s == "OK";
 }

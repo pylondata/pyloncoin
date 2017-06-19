@@ -205,7 +205,7 @@ bool CFasito::login(const string& strPassword)
     vector<string> res;
     try {
         if (!fasito.sendAndReceive("LOGIN " + strPassword, res)) {
-            LogPrintf("CreateNonceWithFasito : could not login: %s\n", (!res.empty() ? res[0] : "error not available"));
+            LogPrintf("%s : could not login: %s\n", __func__, (!res.empty() ? res[0] : "error not available"));
             return false;
         }
     } catch(const std::exception &e) {
@@ -277,6 +277,7 @@ Key #7            : 0x00000000 (CONFIGURED, protected)
 
 void CFasito::open(const string &devname)
 {
+    LOCK(cs_connection);
     SerialConnection::open(devname, 230400);
 
     emtpyInputBuffer();
@@ -335,6 +336,8 @@ void CFasito::open(const string &devname)
 
 void CFasito::close()
 {
+    LOCK(cs_connection);
+
     if (fLoggedIn)
         logout();
 
@@ -370,7 +373,7 @@ static void RetrievePubKeys()
     }
 }
 
-static bool InitFasito(const string& strPassword)
+bool InitFasito(const string& strPassword)
 {
     const string strDevice = GetArg("-fasitodevice", "/dev/ttyACM0");
 
@@ -493,4 +496,18 @@ uint32_t InitChainAdminWithFasito(const string& strPassword, const uint32_t nKey
 
     LogPrintf("Using Fasito for ADMIN ID 0x%08x with public key %s\n", fKey.nCvnId, HexStr(vPubKey));
     return fKey.nCvnId;
+}
+
+bool FasitoInitPrivKey(const CKey& privKey, const uint32_t nKeyIndex, const uint32_t nId)
+{
+    std::stringstream strInitKeyCmd;
+    strInitKeyCmd << strprintf("INITKEY %d 0x%08x %s", nKeyIndex, nId, bin2hex(&privKey.begin()[0], 32));
+
+    vector<string> res;
+    if (!fasito.sendAndReceive(strInitKeyCmd.str(), res)) {
+        LogPrintf("FasitoInitPrivKey : could not initialise private key: %s\n", (!res.empty() ? res[0] : "error not available"));
+        return false;
+    }
+
+    return true;
 }

@@ -8,11 +8,13 @@
  */
 
 #ifndef TIMEOUTSERIAL_H
-#define	TIMEOUTSERIAL_H
+#define TIMEOUTSERIAL_H
 
 #include <stdexcept>
 #include <boost/utility.hpp>
 #include <boost/asio.hpp>
+
+#include "sync.h"
 
 /**
  * Thrown if timeout occurs
@@ -30,6 +32,8 @@ class SerialConnection: private boost::noncopyable
 {
 
 public:
+    CCriticalSection cs_connection;
+
     SerialConnection();
 
     /**

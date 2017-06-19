@@ -467,11 +467,11 @@ UniValue setgenerate(const UniValue& params, bool fHelp)
     return NullUniValue;
 }
 
-UniValue chainadminlogin(const UniValue& params, bool fHelp)
+UniValue fasitologin(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() < 2 || params.size() > 3)
         throw runtime_error(
-            "chainadminlogin type PIN\n"
+            "fasitologin type PIN\n"
             "\nLogin to Fasito or read the admin certificate file.\n"
             "\nArguments:\n"
             "1. method      (string, required) Signing method: 'fasito' or 'file'.\n"
@@ -479,8 +479,8 @@ UniValue chainadminlogin(const UniValue& params, bool fHelp)
             "3. key index   (numeric, optinal) The index of the key on Fasito. (default is 0)\n"
             "\nExamples:\n"
             "\nLogin to Fasito\n"
-            + HelpExampleCli("chainadminlogin", "fasito 123456 0")
-            + HelpExampleCli("chainadminlogin", "file mySecretPassword")
+            + HelpExampleCli("fasitologin", "fasito 123456 0")
+            + HelpExampleCli("fasitologin", "file mySecretPassword")
         );
 
     LOCK(cs_main);
@@ -535,17 +535,17 @@ UniValue chainadminlogin(const UniValue& params, bool fHelp)
     return "OK";
 }
 
-UniValue chainadminlogout(const UniValue& params, bool fHelp)
+UniValue fasitologout(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size())
         throw runtime_error(
-            "chainadminlogout\n"
+            "fasitologout\n"
             "\nLogout from Fasito.\n"
             "\nArguments:\n"
             "none\n"
             "\nExample:\n"
             "\nLogout from Fasito\n"
-            "chainadminlogout"
+            "fasitologout"
         );
 
     LOCK(cs_main);
@@ -572,17 +572,95 @@ UniValue chainadminlogout(const UniValue& params, bool fHelp)
     return "OK";
 }
 
-UniValue chainadminnonce(const UniValue& params, bool fHelp)
+UniValue fasitoinitkey(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() != 3)
+        throw runtime_error(
+            "fasitoinitkey PIN slot\n"
+            "\nInitialise a private key slot on Fasito.\n"
+            "\nArguments:\n"
+            "1. PIN            (string, required) The PIN to log on to the Fasito\n"
+            "2. slot number    (numberic, required) The number of the key slot to initialise (0-6)\n"
+            "3. CVN/Admin ID   (string, required) The CVN or Admin ID in hex notation. E.g. 0x12345678\n"
+            "\nExample:\n"
+            "\nInit key slot 0\n"
+            "fasitoinitkey 123456 0 0x12345678"
+        );
+
+    const string strPIN = params[0].get_str();
+    const int nSlotNumber = params[1].get_int();
+
+    CKey secret;
+
+    if (strPIN.empty())
+        return error("please provide a vaild PIN");
+
+    if (nSlotNumber < 0 || nSlotNumber > 6)
+        return error("please provide a vaild slot number. (0-6)");
+
+    uint32_t nId;
+    stringstream ss;
+    ss << hex << params[2].get_str();
+    ss >> nId;
+
+#ifndef USE_FASITO
+    return error("This wallet version was not compiled with Fasito support\n");
+#else
+
+    bool fWasInitialised = true;
+    if (!fasito.fInitialized) {
+        if (!InitFasito(strPIN)) {
+            fasito.close();
+            return error("invalid PIN or Fasito not connected");
+        }
+
+        fWasInitialised = false;
+    } else
+        LogPrintf("Fasito was already initialised\n");
+
+    if (fasito.mapKeys[nSlotNumber].status == CONFIGURED) {
+        if (!fWasInitialised)
+            fasito.close();
+        return error("slot #%u already configured", nSlotNumber);
+    }
+
+    if (fasito.mapKeys[nSlotNumber].status != SEEDED) {
+        if (!fWasInitialised)
+            fasito.close();
+        return error("slot #%u not seeded", nSlotNumber);
+    }
+
+    secret.MakeNewKey(false);
+
+    if (!FasitoInitPrivKey(secret, nSlotNumber, nId)) {
+        if (!fWasInitialised)
+            fasito.close();
+        return error("could not initialise private key #%u", nSlotNumber);
+    }
+
+    if (!fWasInitialised)
+        fasito.close();
+
+    UniValue result(UniValue::VOBJ);
+    result.push_back(Pair("slot", nSlotNumber));
+    result.push_back(Pair("id", strprintf("0x%08x", nId)));
+    result.push_back(Pair("recoveryHash", HexStr(secret.begin(), secret.end())));
+
+    return result;
+#endif // USE_FASITO
+}
+
+UniValue fasitononce(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size())
         throw runtime_error(
-            "chainadminnonce\n"
+            "fasitononce\n"
             "\nCreates a nonce pair and publishes the public part on the network.\n"
             "\nArguments:\n"
             "none\n"
             "\nExample:\n"
             "\nCreate a nonce pair\n"
-            "chainadminlogin"
+            "fasitononce"
         );
 
     bool fFasito = strMethod == "fasito";
@@ -627,29 +705,29 @@ UniValue chainadminnonce(const UniValue& params, bool fHelp)
     if (AddNonceAdmin(msg)) {
         RelayNonceAdmin(msg);
     } else {
-        return "ERROR: could not create nonce pair";
+        return error("could not create nonce pair");
     }
 
     return msg.ToString();
 }
 
-UniValue chainadminsign(const UniValue& params, bool fHelp)
+UniValue fasitosign(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() != 1)
         throw runtime_error(
-            "chainadminsign\n"
+            "fasitosign\n"
             "\nCreate a partial signature using the received nonces.\n"
             "\nArguments:\n"
             "1. chain data hash      (string, required) The hash of the chain data to be signed\n"
             "\nExample:\n"
             "\nCreate a partial signature for the hash\n"
-            + HelpExampleCli("chainadminlogin", "9afdc03617091ac720958a47dee67fea38c40396594996531564c445f2c7603a")
+            + HelpExampleCli("fasitosign", "9afdc03617091ac720958a47dee67fea38c40396594996531564c445f2c7603a")
         );
 
     bool fFasito = strMethod == "fasito";
 
     if (!nChainAdminId || (!fFasito && !adminPrivKey.IsValid()))
-        return "ERROR: wallet not configured for chain administration";
+        return error("wallet not configured for chain administration");
 
     LOCK(cs_main);
     UniValue result(UniValue::VOBJ);
@@ -747,7 +825,7 @@ UniValue addcvn(const UniValue& params, bool fHelp)
     }
 
     if (!AddAdminIds(msg)) {
-        return "could not add admin ids";
+        return error("could not add admin ids");
     }
 
     // if no or not all signatures are available we print out the CChainDataMsg's hash to sign
@@ -761,7 +839,7 @@ UniValue addcvn(const UniValue& params, bool fHelp)
     }
 
     if (!AddAdminSignatures(msg))
-        return "error in signatures";
+        return error("invalid signatures");
 
     result.push_back(Pair("nodeId", strprintf("0x%08x", nNodeId)));
 
@@ -781,7 +859,7 @@ UniValue addcvn(const UniValue& params, bool fHelp)
     }
 
     if (IsInitialBlockDownload())
-        return "wait for block chain download to finish";
+        return error("wait for block chain download to finish");
 
     if (AddChainData(msg)) {
         RelayChainData(msg);
@@ -886,17 +964,17 @@ UniValue removecvn(const UniValue& params, bool fHelp)
     return result;
 }
 
-UniValue chainadminschnorr(const UniValue& params, bool fHelp)
+UniValue fasitoschnorr(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() != 1)
         throw runtime_error(
-            "chainadminschnorr \"dataHash\"\n"
+            "fasitoschnorr \"dataHash\"\n"
             "\nCreates an EC Schnorr signature of the given hash\n"
             "\nArguments:\n"
             "1. \"data hash\"   (string, required) The hash of the data to sign.\n"
             "\nExamples:\n"
             "\nCreate a signature\n"
-            + HelpExampleCli("chainadminschnorr", "a1b5..9093")
+            + HelpExampleCli("fasitoschnorr", "a1b5..9093")
         );
 
     LOCK(cs_main);
@@ -923,11 +1001,11 @@ UniValue chainadminschnorr(const UniValue& params, bool fHelp)
     return result;
 }
 
-UniValue chainadminschnorrverify(const UniValue& params, bool fHelp)
+UniValue fasitoschnorrverify(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() < 2 || params.size() > 3)
         throw runtime_error(
-            "chainadminschnorrverify \"dataHash\" \"signature\"\n"
+            "fasitoschnorrverify \"dataHash\" \"signature\"\n"
             "\nVerifies an EC Schnorr signature for the given hash\n"
             "\nArguments:\n"
             "1. \"data hash\"   (string, required) The hash of the signed data.\n"
@@ -935,13 +1013,10 @@ UniValue chainadminschnorrverify(const UniValue& params, bool fHelp)
             "3. \"public key\"  (string, optional) An optional public key to use to verify the signature.\n"
             "\nExamples:\n"
             "\nCreate a signature\n"
-            + HelpExampleCli("chainadminschnorr", "a1b5..9093 99cafecafe55..33224457")
+            + HelpExampleCli("fasitoschnorrverify", "a1b5..9093 99cafecafe55..33224457")
         );
 
     LOCK(cs_main);
-
-    if (!nChainAdminId || !adminPrivKey.IsValid())
-        return "ERROR: wallet not configured for chain administration";
 
     vector<uint8_t> vDataHash = ParseHex(params[0].get_str());
 
@@ -957,7 +1032,10 @@ UniValue chainadminschnorrverify(const UniValue& params, bool fHelp)
         if (pubKey.IsNull())
             return "ERROR: invalid public key";
     } else {
-        pubKey = adminPubKey;
+        if (!nChainAdminId || !adminPrivKey.IsValid())
+            return "ERROR: wallet not configured for chain administration";
+
+       pubKey = adminPubKey;
     }
 
     CSchnorrSig signature = CSchnorrSigS(params[1].get_str());
@@ -972,17 +1050,17 @@ UniValue chainadminschnorrverify(const UniValue& params, bool fHelp)
     return result;
 }
 
-UniValue chainadminhash(const UniValue& params, bool fHelp)
+UniValue fasitohash(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() != 1)
         throw runtime_error(
-            "chainadminhash \"data\"\n"
+            "fasitohash \"data\"\n"
             "\nCreates a SHA256 (single) hash of the data\n"
             "\nArguments:\n"
             "1. \"data\"   (hex, required) The hash of the signed data.\n"
             "\nExamples:\n"
             "\nCreate a hash\n"
-            + HelpExampleCli("chainadminhash", "a1b5..9093")
+            + HelpExampleCli("fasitohash", "a1b5..9093")
         );
 
     vector<uint8_t> vData = ParseHex(params[0].get_str());
@@ -999,6 +1077,42 @@ UniValue chainadminhash(const UniValue& params, bool fHelp)
     reverse(hash.begin(), hash.end());
 
     return hash.ToString();
+}
+
+UniValue fasitocmd(const UniValue& params, bool fHelp)
+{
+    if (fHelp || params.size() != 1)
+        throw runtime_error(
+            "fasitocmd \"command string\"\n"
+            "\nExecute a generic command on Fasito\n"
+            "\nArguments:\n"
+            "1. \"command\"   (string, required) The command string.\n"
+            "\nExamples:\n"
+            "\nShow Fasito information\n"
+            + HelpExampleCli("fasito", "INFO")
+        );
+
+    bool fWasInitialised = false;
+    if (!fasito.fInitialized) {
+        const string strDevice = GetArg("-fasitodevice", "/dev/ttyACM0");
+
+        fasito.open(strDevice);
+        fasito.setTimeout(boost::posix_time::seconds(2));
+        fWasInitialised = true;
+    }
+
+    vector<string> res;
+    fasito.sendAndReceive(params[0].get_str(), res);
+
+    string result;
+    for (const string & line : res) {
+        result += line + "\n";
+    }
+
+    if (!fWasInitialised)
+        fasito.close();
+
+    return result;
 }
 
 UniValue getcvninfo(const UniValue& params, bool fHelp)
