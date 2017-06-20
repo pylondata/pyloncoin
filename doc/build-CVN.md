@@ -11,7 +11,7 @@ cd /opt/faircoin
 git clone https://github.com/faircoin/faircoin2
 cd faircoin2
 ./autogen.sh
-./configure --disable-tests --disable-bench --with-incompatible-bdb --with-gui=qt4 --with-fasito
+./configure --disable-tests --disable-bench --with-incompatible-bdb --with-gui=qt4 --with-cvn
 make -j`nproc`
 ```
 
