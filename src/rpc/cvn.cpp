@@ -1092,14 +1092,15 @@ UniValue fasitocmd(const UniValue& params, bool fHelp)
             + HelpExampleCli("fasito", "INFO")
         );
 
-    bool fWasInitialised = false;
+    bool fWasInitialised = true;
     if (!fasito.fInitialized) {
         const string strDevice = GetArg("-fasitodevice", "/dev/ttyACM0");
 
         fasito.open(strDevice);
         fasito.setTimeout(boost::posix_time::seconds(2));
-        fWasInitialised = true;
-    }
+        fWasInitialised = false;
+    } else
+        LogPrintf("Fasito was alreday initialised.\n");
 
     vector<string> res;
     fasito.sendAndReceive(params[0].get_str(), res);
