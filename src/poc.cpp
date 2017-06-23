@@ -1877,7 +1877,7 @@ bool AdminSignHash(const uint256 &hashToSign, CSchnorrSig& signature, bool fFasi
             LogPrintf("%s : Fasito is not ready.\n", __func__);
             return false;
         }
-        return CvnSignWithFasito(hashToSign, fasito.nCVNKeyIndex, signature);
+        return CvnSignWithFasito(hashToSign, fasito.nADMINKeyIndex, signature);
 #else
         LogPrintf("%s : this wallet was not compiled with Fasito support.\n", __func__);
         return false;
