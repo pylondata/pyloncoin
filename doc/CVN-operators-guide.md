@@ -1,6 +1,6 @@
 # CVN operators guide
 
-This document describes the requirements for setting up and operating a CVN (certified validation node) for the FairCoin network.
+This document describes the requirements for setting up and operating a CVN (cooperatively validated node) for the FairCoin network.
 
 For online discussion and support please join the FairCoin CVN Operators telegram group here: https://telegram.me/joinchat/Bumu8gbZmAhnXoxCBr3WHg
 
