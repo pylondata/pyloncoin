@@ -46,9 +46,10 @@ uint256 CCoinSupply::GetHash() const
 std::string CCoinSupply::ToString() const
 {
     std::stringstream s;
-        s << strprintf("CCoinSupply(ver=%d, nValue=%d.%08d, rawScriptDestination=%s, asm=%s)",
+        s << strprintf("CCoinSupply(ver=%d, nValue=%d.%08d, isFinal=%s, rawScriptDestination=%s, asm=%s)",
             nVersion,
             nValue / COIN, nValue % COIN,
+            fFinalCoinsSupply ? "true" : "false",
             HexStr(scriptDestination),
             ScriptToAsmStr(scriptDestination)
         );

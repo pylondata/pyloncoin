@@ -34,6 +34,7 @@
 uint32_t nCvnNodeId = 0;
 uint32_t nChainAdminId = 0;
 bool fNoncePoolInitialsed = false;
+bool fCoinSupplyFinal = false;
 
 CvnInfoCacheType mapCVNInfoCache;
 CachedCvnType mapChachedCVNInfoBlocks;
@@ -706,9 +707,9 @@ bool CheckAdminSignature(const vector<uint32_t> &vAdminIds, const uint256 &hashA
         return false;
     }
 
-    if (fCoinSupply && nSigs < dynParams.nMaxAdminSigs) {
+    if (fCoinSupply && nSigs < mapChainAdmins.size()) {
         LogPrintf("%s : not enough admin signatures supplied (got %u signatures, but need at least %u to sign for coin supply)\n", __func__,
-            nSigs, dynParams.nMaxAdminSigs);
+            nSigs, mapChainAdmins.size());
         return false;
     }
 
@@ -720,7 +721,12 @@ bool AddChainData(const CChainDataMsg& msg)
     if (!CheckAdminSignature(msg.vAdminIds, msg.GetHash(), msg.adminMultiSig, msg.HasCoinSupplyPayload()))
         return false;
 
-    uint256 hashBlock = msg.hashPrevBlock;
+    if (msg.HasCoinSupplyPayload() && fCoinSupplyFinal) {
+        LogPrintf("%s : coin supply is already final. Ignoring chain data message.", __func__);
+        return false;
+    }
+
+    const uint256 &hashBlock = msg.hashPrevBlock;
 
     if (!msg.HasFlushSigholderPayload()) {
         LOCK(cs_mapChainData);
@@ -731,8 +737,8 @@ bool AddChainData(const CChainDataMsg& msg)
 
         mapChainData.insert(std::make_pair(hashBlock, msg));
 
-        LogPrintf("%s : signed by %u (minimum %u) admins of %u to be added after blockHash %s\n", __func__,
-                msg.vAdminIds.size(), dynParams.nMinAdminSigs, dynParams.nMaxAdminSigs, hashBlock.ToString());
+        LogPrintf("%s : signed by %u (minimum %u) admins of %u/%u to be added after blockHash %s\n", __func__,
+                msg.vAdminIds.size(), dynParams.nMinAdminSigs, mapChainAdmins.size(), dynParams.nMaxAdminSigs, hashBlock.ToString());
     } else if(msg.nPayload & CChainDataMsg::BLOCK_PAYLOAD_MASK) {
         LogPrintf("%s : cannot mix FLUSH payload with any other payload, ignoring...\n", __func__);
         return false;
@@ -889,6 +895,19 @@ void UpdateChainAdmins(const CBlock* pblock)
     }
 
     PrintAllChainAdmins();
+}
+
+void SetCoinSupplyStatus(const CBlock* pblock)
+{
+    if (fCoinSupplyFinal)
+        return;
+
+    if (pblock->coinSupply.fFinalCoinsSupply) {
+        fCoinSupplyFinal = true;
+        LogPrintf("Setting coins supply status to FINAL. No more coin supply chain data is accepted in the future.\n");
+    } else {
+        LogPrint("cvn", "found non final coins supply: %s\n", pblock->coinSupply.ToString());
+    }
 }
 
 bool CheckDynamicChainParameters(const CDynamicChainParams& params)
@@ -1259,7 +1278,7 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
     uint32_t nNextCreatorId = FindNewlyAddedCVN(pindexStart);
 
     if (nNextCreatorId) {
-        LogPrint("cvn", "%s : CVN 0x%08x needs to be bootstrapped\n", __func__, nNextCreatorId);
+        LogPrint("cvnnext", "%s : CVN 0x%08x needs to be bootstrapped\n", __func__, nNextCreatorId);
         vCreatorCandidates.push_back(nNextCreatorId);
     } else if (vCreatorCandidates.size() < nRegisteredCVNs) {
         nNextCreatorId = FindDormantNode(pindexStart, mapLastSignatures, setCreatorCandidates, dynParams.nMinSuccessiveSignatures);
@@ -1280,9 +1299,9 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
 
     uint32_t nCandidateOffset = GetCandidateOffset(pindexStart->nTime, nTimeToTest);
     if (nCandidateOffset >= vCreatorCandidates.size()) {
-        //LogPrintf("CheckNextBlockCreator : WARN, CandidateOffset exceeds limits: %u >= %u\n", nCandidateOffset, vCreatorCandidates.size());
+        LogPrint("cvnnext", "%s : WARN, CandidateOffset exceeds limits: %u >= %u\n", __func__, nCandidateOffset, vCreatorCandidates.size());
         nCandidateOffset %= vCreatorCandidates.size();
-        //LogPrintf("CheckNextBlockCreator : reducing offset to %u\n", nCandidateOffset);
+        LogPrint("cvnnext", "%s : reducing offset to %u\n", __func__, nCandidateOffset);
     }
 
     itCandidates += nCandidateOffset;
@@ -1309,7 +1328,7 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
     if (!nNextCreatorId)
         LogPrintf("%s : could not find any node ID that should create the next block #%u\n", __func__, pindexStart->nHeight + 1);
 
-    LogPrint("cvn", "%s : NODE ID 0x%08x should create the next block #%u\n", __func__, nNextCreatorId, pindexStart->nHeight + 1);
+    LogPrint("cvnnext", "%s : NODE ID 0x%08x should create the next block #%u\n", __func__, nNextCreatorId, pindexStart->nHeight + 1);
 
     if (state) { // in case the CVNs status is requested
         state->nBlockSigned = mapLastSignatures[state->nNodeId];

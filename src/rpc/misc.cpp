@@ -62,6 +62,7 @@ UniValue getinfo(const UniValue& params, bool fHelp)
             "  \"paytxfee\": x.xxxx,         (numeric) the transaction fee set in " + CURRENCY_UNIT + "/kB\n"
             "  \"relayfee\": x.xxxx,         (numeric) minimum relay fee for non-free transactions in " + CURRENCY_UNIT + "/kB\n"
             "  \"errors\": \"...\"           (string) any error messages\n"
+            "  \"coinsupply\": \"...\"       (string) final or possible\n"
             "}\n"
             "\nExamples:\n"
             + HelpExampleCli("getinfo", "")
@@ -102,6 +103,7 @@ UniValue getinfo(const UniValue& params, bool fHelp)
 #endif
     obj.push_back(Pair("relayfee",      ValueFromAmount(::minRelayTxFee.GetFeePerK())));
     obj.push_back(Pair("errors",        GetWarnings("statusbar")));
+    obj.push_back(Pair("coinsupply",    fCoinSupplyFinal ? "final" : "possible"));
     return obj;
 }
 
