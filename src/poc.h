@@ -17,7 +17,7 @@
 #include <secp256k1.h>
 
 #define GENESIS_NODE_ID  0xc001d00d
-#define GENESIS_ADMIN_ID 0xad3aee01
+#define GENESIS_ADMIN_ID 0xad000001
 
 /** dynamic chain parameters range checks */
 #define MAX_BLOCK_SPACING 3600
