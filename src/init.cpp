@@ -1219,14 +1219,6 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
     // sanitize comments per BIP-0014, format user agent and check total size
     std::vector<string> uacomments;
     std::string strClientName = CLIENT_NAME;
-#if 1
-    //TODO: remove this; for development only
-    if (nCvnNodeId) {
-        strClientName += strprintf("-0x%08x-%s", nCvnNodeId, GitCommit());
-    } else {
-        strClientName += strprintf("-%s", GitCommit());
-    }
-#endif
     BOOST_FOREACH(string cmt, mapMultiArgs["-uacomment"])
     {
         if (cmt != SanitizeString(cmt, SAFE_CHARS_UA_COMMENT))
