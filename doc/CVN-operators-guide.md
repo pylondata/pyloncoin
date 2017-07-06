@@ -54,7 +54,7 @@ EOF
 In order to connect to Fasito the wallet opens the device located here: /dev/ttyACM0. If this path is already assigned to a different device on your system you can change the default value using the following option in the config file. E.g.:
 ```
 ...
-fasitodevice=/dev/ttyACS1
+fasitodevice=/dev/ttyACM1
 ...
 ```
 
