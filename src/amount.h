@@ -29,7 +29,7 @@ extern const std::string CURRENCY_UNIT;
  *
  * In FairCoin2 this is the exact amount of balances from the FairCoin1 block chain
  * */
-static const CAmount MAX_MONEY = 5293522734653800; // FairCoin1 block #342010 (subtract 0.001, block explorer displays to much)
+static const CAmount MAX_MONEY = 54000000 * COIN; // Maximum number of coins from the FairCoin1 blockchain
 inline bool MoneyRange(const CAmount& nValue) { return (nValue >= 0 && nValue <= MAX_MONEY); }
 
 /** Type-safe wrapper class for fee rates

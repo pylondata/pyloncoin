@@ -2082,19 +2082,26 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
     if (block.HasCoinSupplyPayload()) {
         if (block.vtx[0].vout.size() != 2)
             return state.DoS(100, error("ConnectBlock(): invalid coinbase transaction for new supply. Not enough outputs"),
-                            REJECT_INVALID, "bad-cb-size");
+                            REJECT_INVALID, "bad-cs-size");
 
         if (block.vtx[0].vout[1].nValue != block.coinSupply.nValue)
             return state.DoS(100,
                     error("ConnectBlock(): invalid amount in coinbase transaction for new supply. (actual=%d vs expected=%d)",
                             block.vtx[0].vout[1].nValue, block.coinSupply.nValue),
-                            REJECT_INVALID, "bad-cb-amount");
+                            REJECT_INVALID, "bad-cs-amount");
 
         if (block.vtx[0].vout[1].scriptPubKey != block.coinSupply.scriptDestination)
             return state.DoS(100,
                     error("ConnectBlock(): invalid amount in coinbase script for new supply. (actual=%s vs expected=%s)",
                             ScriptToAsmStr(block.vtx[0].vout[1].scriptPubKey), ScriptToAsmStr(block.coinSupply.scriptDestination)),
-                            REJECT_INVALID, "bad-cb-script");
+                            REJECT_INVALID, "bad-cs-script");
+
+        if (!MoneyRange(block.coinSupply.nValue)) {
+            return state.DoS(100,
+                    error("ConnectBlock(): amount of coin supply out of range:  %u",
+                            block.coinSupply.nValue),
+                            REJECT_INVALID, "bad-cs-amountoutofrange");
+        }
 
         if (fCoinSupplyFinal)
             return state.DoS(100, error("ConnectBlock(): coin supply is already final"),
