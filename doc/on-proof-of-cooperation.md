@@ -69,7 +69,7 @@ This document outlines the concepts and techniques used to implement the proof-o
 Notes
 -----
 [1] https://fair-coin.org/faircoin2.html  
-[2] https://github.com/faircoin/faircoin2.git  
+[2] https://github.com/faircoin/faircoin.git  
 [3] https://www.pjrc.com/teensy/  
 [4] https://github.com/faircoin/Fasito.git  
 [5] https://github.com/faircoin/secp256k1-mc-arm.git  

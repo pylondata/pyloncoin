@@ -8,7 +8,7 @@ sudo chown <insertYourUserName>.<insertYourUserName> /opt/faircoin
 This document assumes that you have all the required development packages already installed on your system.
 ```
 cd /opt/faircoin
-git clone https://github.com/faircoin/faircoin2
+git clone https://github.com/faircoin/faircoin.git
 cd faircoin2
 ./autogen.sh
 ./configure --disable-tests --disable-bench --with-incompatible-bdb --with-gui=qt4 --with-cvn
@@ -23,8 +23,11 @@ make
 ## 2 Run the FairCoin2 wallet in CVN mode
 Please make sure to start your FairCoin wallet in normal mode first and let it download the complete block chain before restaring it as a CVN.
 
-This is how to start the wallet software:  
-```/opt/faircoin/faircoin2/src/qt/faircoin-qt ```
+This is how to start the wallet software as a daemon:  
+```/opt/faircoin/faircoin/src/faircoind -daemon ```
+
+This is how to start the wallet software with GUI:  
+```/opt/faircoin/faircoin/src/qt/faircoin-qt ```
 
 There are two ways to run a CVN.  
 1. By using Fasito (FairCoin signature token) which contains all the information required  

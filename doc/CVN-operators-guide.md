@@ -28,7 +28,7 @@ To build the FairCoin wallet software you need to install some software packages
 
 Please note that the package names and/or versions can differ depending on your operating system. E. g. your system might provide a different version of libdb. If it doesn't find version 5.3 try version 5.1.
 After package installation has completed successfully proceed by following the instructions provided here:
-https://github.com/faircoin/faircoin2/blob/faircoin2/doc/build-CVN.md
+https://github.com/faircoin/faircoin/blob/master/doc/build-CVN.md
 
 Make sure your Fasito is connected to your system and is working properly. You can test it by execute the following commands:
 ```
@@ -58,18 +58,31 @@ fasitodevice=/dev/ttyACM1
 ...
 ```
 
-Now start the FairCoin wallet with:
+Now start the FairCoin wallet as a daemon:
 ```
-/opt/faircoin/faircoin2/src/qt/faircoin-qt -gen=0
+/opt/faircoin/faircoin/src/faircoind -gen=0 -printtoconsole
+```
+The Daemon process can be stop by pressing `Ctrl-C`.
+
+Or you can start the GUI wallet like this:
+```
+/opt/faircoin/faircoin/src/qt/faircoin-qt -gen=0
 ```
 
 It will then start to download the block chain, which will take some time. The progress bar at the lower left corner of the wallet software displays the download status.
 When it is finished, quit the wallet software.  
 
 ### 2.4 Normal start-up of a CVN
-You start your CVN with the following command. In terminal or by pressing Alt+F2 on your desktop:
+You can start your CVN with the following command from a terminal or by pressing Alt+F2 on your desktop:
+
+DAEMON version:
 ```
-/opt/faircoin/faircoin2/src/qt/faircoin-qt
+/opt/faircoin/faircoin/src/faircoind -daemon
+```
+
+GUI version:
+```
+/opt/faircoin/faircoin/src/qt/faircoin-qt
 ```
 
 Now your CVN is up and running and ready to be activated by the chain administrators.
