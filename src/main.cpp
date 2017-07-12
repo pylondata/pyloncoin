@@ -2096,6 +2096,16 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
                             ScriptToAsmStr(block.vtx[0].vout[1].scriptPubKey), ScriptToAsmStr(block.coinSupply.scriptDestination)),
                             REJECT_INVALID, "bad-cs-script");
 
+        if (block.vAdminIds.empty())
+            return state.DoS(100,
+                    error("ConnectBlock(): no admin signatures available"),
+                            REJECT_INVALID, "bad-cs-nosig");
+
+        if (block.vAdminIds.size() != mapChainAdmins.size())
+                    return state.DoS(100,
+                            error("ConnectBlock(): not all admins signed the coins supply message"),
+                                    REJECT_INVALID, "bad-cs-nosigall");
+
         if (!MoneyRange(block.coinSupply.nValue)) {
             return state.DoS(100,
                     error("ConnectBlock(): amount of coin supply out of range:  %u",

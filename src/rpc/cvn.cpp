@@ -241,10 +241,10 @@ static bool AddAdminSignatures(CChainDataMsg &msg)
         throw runtime_error(
             strprintf("too many signatures supplied %u (%u/%u max)\nReduce the number", nSigs, mapChainAdmins.size(), dynParams.nMaxAdminSigs));
 
-    if (msg.HasCoinSupplyPayload() && nSigs < dynParams.nMaxAdminSigs)
+    if (msg.HasCoinSupplyPayload() && nSigs != mapChainAdmins.size())
         throw runtime_error(
                 strprintf("not enough signatures supplied "
-                       "(got %u signatures, but need at least %u to sign for coin supply)", nSigs, dynParams.nMaxAdminSigs));
+                       "(got %u signatures, but need at least %u to sign for coin supply)", nSigs, mapChainAdmins.size()));
 
     if (mapChainAdmins.size() == 1 || (dynParams.nMinAdminSigs == 1 && mapAdminNonces.size() == 1)) {
         msg.vAdminIds     = sigFirst.vSignerIds;
