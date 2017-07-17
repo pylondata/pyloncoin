@@ -164,6 +164,7 @@ void DynamicChainparametersToJSON(const CDynamicChainParams& cp, UniValue& resul
     result.push_back(Pair("maxBlockSize", (int)cp.nMaxBlockSize));
     result.push_back(Pair("blockPropagationWaitTime", (int)cp.nBlockPropagationWaitTime));
     result.push_back(Pair("retryNewSigSetInterval", (int)cp.nRetryNewSigSetInterval));
+    result.push_back(Pair("coinbaseMaturity", (int)cp.nCoinbaseMaturity));
     result.push_back(Pair("description", cp.strDescription));
 }
 
@@ -172,6 +173,7 @@ void CoinSupplyToJSON(const CCoinSupply& cs, UniValue& result)
     result.push_back(Pair("version", (int)cs.nVersion));
     result.push_back(Pair("value", ValueFromAmount(cs.nValue)));
     result.push_back(Pair("isFinal", cs.fFinalCoinsSupply));
+    result.push_back(Pair("description", cs.strDescription));
     result.push_back(Pair("destinationAsm", ScriptToAsmStr(cs.scriptDestination)));
     result.push_back(Pair("destinationHex", HexStr(cs.scriptDestination)));
 }
@@ -377,6 +379,7 @@ static bool AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
     params.nPercentageOfSignaturesMean  = dynParams.nPercentageOfSignaturesMean;
     params.nMaxBlockSize                = dynParams.nMaxBlockSize;
     params.nBlockPropagationWaitTime    = dynParams.nBlockPropagationWaitTime;
+    params.nCoinbaseMaturity            = dynParams.nCoinbaseMaturity;
     params.nRetryNewSigSetInterval      = dynParams.nRetryNewSigSetInterval;
 
     bool fAllGood = true;
@@ -407,6 +410,8 @@ static bool AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
             params.nBlockPropagationWaitTime = jsonParams[key].get_int();
         } else if (key == "retryNewSigSetInterval") {
             params.nRetryNewSigSetInterval = jsonParams[key].get_int();
+        } else if (key == "coinbaseMaturity") {
+            params.nCoinbaseMaturity = jsonParams[key].get_int();
         } else if (key == "description") {
             params.strDescription = jsonParams[key].get_str();
         } else {
@@ -1394,14 +1399,14 @@ UniValue addcoinsupply(const UniValue& params, bool fHelp)
             "1. \"faircoinaddress\"  (string, required) The FairCoin address to send to.\n"
             "2. \"amount\"           (numeric or string, required) The amount in " + CURRENCY_UNIT + " to send. E.g. 33.1234 " + CURRENCY_UNIT + ".\n"
             "3. \"isFinal\"          (bool, required) Whether this is the last coin supply that can be added to the blockchain.\n"
-            "4. \"comment\"          (string, required) A comment used to store what this additional supply is for.\n"
+            "4. \"description\"      (string, required) A description of the coin supply.\n"
             "\nResult:\n"
             "{\n"
                 "  \"msghash\":\"the hash of the message\",     (string) The message hash\n"
                 "  \"address\":\"the destination address\",     (string) The address of the supply's output\n"
                 "  \"amount\":amount of coins to add,         (numeric) The number of coins to add\n"
                 "  \"isFinal\":\"is this the final supply\",    (string) Is it the last coins supply in the blockchain\n"
-                "  \"comment\":\"description of this supply\",  (string) Description\n"
+                "  \"description\":\"description of this supply\", (string) Description\n"
                 "  \"script\":\"the destination script\"        (string) The output script\n"
              "}\n"
             "\nExamples:\n"
@@ -1432,10 +1437,15 @@ UniValue addcoinsupply(const UniValue& params, bool fHelp)
 
     msg.nPayload             = CChainDataMsg::COIN_SUPPLY_PAYLOAD;
     msg.hashPrevBlock        = chainActive.Tip()->GetBlockHash();
-    msg.strComment           = params[3].get_str();
     spl.nValue               = nAmount;
     spl.scriptDestination    = GetScriptForDestination(address.Get());
     spl.fFinalCoinsSupply    = params[2].get_bool();
+    spl.strDescription       = params[3].get_str();
+
+    if (spl.strDescription.length() <= MIN_CHAIN_DATA_DESCRIPTION_LEN) {
+        LogPrintf("%s : description too short\n", __func__);
+        return false;
+    }
 
     UniValue result(UniValue::VOBJ);
 
@@ -1465,7 +1475,7 @@ UniValue addcoinsupply(const UniValue& params, bool fHelp)
     result.push_back(Pair("address", address.ToString()));
     result.push_back(Pair("amount", ValueFromAmount(nAmount)));
     result.push_back(Pair("isFinal", spl.fFinalCoinsSupply));
-    result.push_back(Pair("comment", msg.strComment));
+    result.push_back(Pair("description", spl.strDescription));
     result.push_back(Pair("script", ScriptToAsmStr(msg.coinSupply.scriptDestination, true)));
     return result;
 }

@@ -13,7 +13,7 @@ static const unsigned int MAX_TX_PER_BLOCK = 20000;
 #define MAX_BLOCK_SIGOPS (dynParams.nMaxBlockSize/50)
 
 /** Coinbase transaction outputs can only be spent after this number of new blocks (network rule) */
-static const int COINBASE_MATURITY = 100;
+#define COINBASE_MATURITY (dynParams.nCoinbaseMaturity)
 
 /** The maximum allowed number if active CVNs */
 static const unsigned int MAX_NUMBER_OF_CVNS = 100;

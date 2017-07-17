@@ -958,6 +958,11 @@ bool CheckDynamicChainParameters(const CDynamicChainParams& params)
         return false;
     }
 
+    if (params.nCoinbaseMaturity < MIN_COINBASE_MATURITY || params.nCoinbaseMaturity > MAX_COINBASE_MATURITY) {
+        LogPrintf("%s : %u nCoinbaseMaturity is out of bounds\n",__func__ , params.nCoinbaseMaturity);
+        return false;
+    }
+
     if (params.strDescription.length() <= MIN_CHAIN_DATA_DESCRIPTION_LEN) {
         LogPrintf("%s : chain data description is too short: %s\n",__func__ , params.strDescription);
         return false;
@@ -989,6 +994,7 @@ void UpdateChainParameters(const CBlock* pblock)
     dynParams.nMaxBlockSize                = pblock->dynamicChainParams.nMaxBlockSize;
     dynParams.nBlockPropagationWaitTime    = pblock->dynamicChainParams.nBlockPropagationWaitTime;
     dynParams.nRetryNewSigSetInterval      = pblock->dynamicChainParams.nRetryNewSigSetInterval;
+    dynParams.nCoinbaseMaturity            = pblock->dynamicChainParams.nCoinbaseMaturity;
     dynParams.strDescription               = pblock->dynamicChainParams.strDescription;
 
     ::minRelayTxFee = CFeeRate(dynParams.nTransactionFee);

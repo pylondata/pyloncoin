@@ -399,6 +399,9 @@ public:
      ** nRetryNewSigSetInterval sec. to create a new set without the CVN IDs that were missing*/
     uint32_t nRetryNewSigSetInterval;
 
+    /** Coinbase transaction outputs can only be spent after this number of new blocks */
+    uint32_t nCoinbaseMaturity;
+
     /** A short description of the changes
      * A description string should be built like this:
      * #nnnnn <URI to a document where the decision is documented> <text that describes the change> */
@@ -427,6 +430,7 @@ public:
         READWRITE(nMaxBlockSize);
         READWRITE(nBlockPropagationWaitTime);
         READWRITE(nRetryNewSigSetInterval);
+        READWRITE(nCoinbaseMaturity);
         READWRITE(strDescription);
     }
 
@@ -445,6 +449,7 @@ public:
         nMaxBlockSize = 0;
         nBlockPropagationWaitTime = 0;
         nRetryNewSigSetInterval = 0;
+        nCoinbaseMaturity = 0;
         strDescription = "";
     }
 
@@ -462,6 +467,11 @@ public:
     bool fFinalCoinsSupply;
     CScript scriptDestination;
 
+    /** A short description of the changes
+     * A description string should be built like this:
+     * #nnnnn <URI to a document where the decision is documented> <text that describes the change> */
+    string strDescription;
+
     CCoinSupply()
     {
         SetNull();
@@ -475,6 +485,7 @@ public:
         nVersion = this->nVersion;
         READWRITE(nValue);
         READWRITE(fFinalCoinsSupply);
+        READWRITE(strDescription);
         READWRITE(*(CScriptBase*)(&scriptDestination));
     }
 
@@ -483,6 +494,7 @@ public:
         nVersion = CDynamicChainParams::CURRENT_VERSION;
         nValue = -1;
         fFinalCoinsSupply = false;
+        strDescription = "";
         scriptDestination.clear();
     }
 
@@ -516,7 +528,6 @@ public:
     vector<uint32_t> vAdminIds;
 
     CCoinSupply coinSupply;
-    string strComment; // currently only used with coinSupply
 
     CChainDataMsg()
     {
@@ -539,10 +550,8 @@ public:
             READWRITE(vChainAdmins);
         if (HasChainParameters())
             READWRITE(dynamicChainParams);
-        if (HasCoinSupplyPayload()) {
+        if (HasCoinSupplyPayload())
             READWRITE(coinSupply);
-            READWRITE(strComment);
-        }
     }
 
     void SetNull()
@@ -556,7 +565,6 @@ public:
         vChainAdmins.clear();
         dynamicChainParams.SetNull();
         coinSupply.SetNull();
-        strComment.clear();
     }
 
     uint256 HashChainAdmins() const;
