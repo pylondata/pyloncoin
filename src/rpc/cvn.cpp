@@ -20,6 +20,8 @@
 #include <univalue.h>
 #include "server.h"
 
+extern void ScriptPubKeyToJSON(const CScript& scriptPubKey, UniValue& out, bool fIncludeHex);
+
 using namespace std;
 
 static string strMethod;
@@ -174,8 +176,11 @@ void CoinSupplyToJSON(const CCoinSupply& cs, UniValue& result)
     result.push_back(Pair("value", ValueFromAmount(cs.nValue)));
     result.push_back(Pair("isFinal", cs.fFinalCoinsSupply));
     result.push_back(Pair("description", cs.strDescription));
-    result.push_back(Pair("destinationAsm", ScriptToAsmStr(cs.scriptDestination)));
-    result.push_back(Pair("destinationHex", HexStr(cs.scriptDestination)));
+
+    UniValue o(UniValue::VOBJ);
+    ScriptPubKeyToJSON(cs.scriptDestination, o, true);
+
+    result.push_back(Pair("destination", o));
 }
 
 UniValue getchainparameters(const UniValue& params, bool fHelp)
