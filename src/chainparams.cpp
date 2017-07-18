@@ -34,7 +34,7 @@ CDynamicChainParams dynParams;
             genesis.hashPayload.ToString().c_str())
 #endif
 
-#define GENESIS_BLOCK_TIMESTAMP 1499280000
+#define GENESIS_BLOCK_TIMESTAMP 1500364800
 const char* genesisMessage = "FairCoin - the currency for a fair economy.";
 
 static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nCreatorId, const CDynamicChainParams& dynamicChainParams)
@@ -111,8 +111,8 @@ public:
 
         genesis.chainMultiSig = CSchnorrSigS("14dc4f77f9d59ece2b3aa02cc4df99954d47fa2719be207d1b5010745aec419e451f01a8749cd16f22a727d0deba5110d2ce7e44ff86f0efdea58db4efdb92cd");
         genesis.vAdminIds.push_back(GENESIS_ADMIN_ID);
-        genesis.adminMultiSig = CSchnorrSigS("774ed07480245e184ad883b5ba2634a0fb093ae3e6e47a111b4e7a090cf5816ad4fef09607d4fdd0a977edefd6f7af1ff591ccc54ac2d4e7bcb7c1162bf2f1b3");
-        genesis.creatorSignature = CSchnorrSigS("3cfaf6fec19b1ee8819f5b74826b5001804c16b6b8a3b7a2551a57cb43f87c9e5cab5026e44738234e5afe5c396744781948851e25517d3f4f15e95d96d8bdbd");
+        genesis.adminMultiSig = CSchnorrSigS("591039a3b2e2c5ca8cd491e940263c9f2515a43b5085d4451dbdf8c09acb3d1fe7001957ebeda65a3cd26f1d19fb3db3b06baf5dc41cdcd3412728c8b57edaf5");
+        genesis.creatorSignature = CSchnorrSigS("ced5d4d4f5967b80ca774324a5d9ab0569ec1f1608dfef6c1e439094dc3467d50b2116fa02f3e89753033e94628668298f61b43df046881c9312f3bccde46a3f");
 
         genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
         genesis.hashPayload    = genesis.GetPayloadHash();
@@ -121,9 +121,9 @@ public:
 #if SHOW_GENESIS_HASHES
         PRINT_HASHES;
 #else
-        assert(consensus.hashGenesisBlock == uint256S("6315c9cf4f562fa201e52c32f7bb77c1c50271cb973e0ea4a1ecc380dd6eed90"));
+        assert(consensus.hashGenesisBlock == uint256S("beed44fa5e96150d95d56ebd5d2625781825a9407a5215dd7eda723373a0a1d7"));
         assert(genesis.hashMerkleRoot == uint256S("7c27ade2c28e67ed3077f8f77b8ea6d36d4f5eba04c099be3c9faa9a4a04c046"));
-        assert(genesis.hashPayload == uint256S("9ad1be60c7d8cbca7f16d26e56a0d1a243de8ac0538315496bcb77e6b436ee17"));
+        assert(genesis.hashPayload == uint256S("2b7ab86ef7189614d4bccb2576bffe834b7c0e6d3fd63539ea9fbbca45d26c0e"));
 #endif
         vSeeds.push_back(CDNSSeedData("1.fair-coin.org", "faircoin2-seed1.fair-coin.org")); // Thomas König
         vSeeds.push_back(CDNSSeedData("2.fair-coin.org", "faircoin2-seed2.fair-coin.org")); // Thomas König
@@ -196,8 +196,8 @@ public:
 
         genesis.chainMultiSig = CSchnorrSigS("14dc4f77f9d59ece2b3aa02cc4df99954d47fa2719be207d1b5010745aec419e451f01a8749cd16f22a727d0deba5110d2ce7e44ff86f0efdea58db4efdb92cd");
         genesis.vAdminIds.push_back(GENESIS_ADMIN_ID);
-        genesis.adminMultiSig = CSchnorrSigS("8415d734ba773fd6afc78f6b3788966878fa7444d9290f89a517eb8ffc8f5ed3750d1af905c339c6a1b94421025ef661c93ab3542fb6ab60e2306743b55b039e");
-        genesis.creatorSignature = CSchnorrSigS("4ab1c3096f50f518ea4e48fb065fe53626b91360dab617d77279cea0b524966a94c0fd48af816ebe50a917b6fc2a25429672eae08510db4b81b2e4cbd9408b9d");
+        genesis.adminMultiSig = CSchnorrSigS("bed9de99847544c8ba2904ca184a16749a20df8451f4a45b802ea02ebb4a365b6dad7674221061518d32882506fd5cfaadea461beb0a951a99189f0cfbfb0584");
+        genesis.creatorSignature = CSchnorrSigS("c0e924975224cba8a8aa599f287e0e4e2be9eb5e2488b83d390fa2be2e4b847f5e3586fbb574e473b303c0f16b65d36d00b4f61c7bee5bb8b1eb35bd2e2cd7ed");
 
         genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
         genesis.hashPayload    = genesis.GetPayloadHash();
@@ -206,9 +206,9 @@ public:
 #if SHOW_GENESIS_HASHES
         PRINT_HASHES;
 #else
-        assert(consensus.hashGenesisBlock == uint256S("89888864b3fc4a1e9aee56bc667b4ce6e2845f8d6c51683ea84ea3b9c15bbe66"));
+        assert(consensus.hashGenesisBlock == uint256S("4302da2d7518f09ff7683931863ef835f40b03760c50d8245049b0182ee512bc"));
         assert(genesis.hashMerkleRoot == uint256S("7c27ade2c28e67ed3077f8f77b8ea6d36d4f5eba04c099be3c9faa9a4a04c046"));
-        assert(genesis.hashPayload == uint256S("310e655d9e998c75e90c4a18efc55cfb73b558f2be2773ee1523105c8dc0090c"));
+        assert(genesis.hashPayload == uint256S("e175d27dfc474ec98dfcd6ca104a2d0fbe876c16ed66eacd739d58cf06f25308"));
 #endif
         vFixedSeeds.clear();
         vSeeds.clear();
@@ -281,8 +281,8 @@ public:
 
         genesis.chainMultiSig = CSchnorrSigS("14dc4f77f9d59ece2b3aa02cc4df99954d47fa2719be207d1b5010745aec419e451f01a8749cd16f22a727d0deba5110d2ce7e44ff86f0efdea58db4efdb92cd");
         genesis.vAdminIds.push_back(GENESIS_ADMIN_ID);
-        genesis.adminMultiSig = CSchnorrSigS("fc06574560f30d33b652db7e63aee477aebf983a110df55e48458e8cb4861d3d7e415a37c301cbc6d46c0c2fc7a2cdd02e03f729f1b13f2120c8df4e92974d81");
-        genesis.creatorSignature = CSchnorrSigS("7abd47628463bffd1476bc3934d29dd3cf0dddfc022eea03946b5215814ab7602470185fc462a177f0f21352254a10932a5e4f5d323c166a56d63030cd6e5dcb");
+        genesis.adminMultiSig = CSchnorrSigS("5a0ccd7e8220ee42600d5e274b4a9bd1f74eac0529855923be4768920e5a3e6b2cb30216d0ed8b0baa7d1f3585de7daddea37ced010d25d84bd90f458f10b7cd");
+        genesis.creatorSignature = CSchnorrSigS("6f61ec5affda63116050acc2d62df6a79535418eec0f1216af6adb495d60aba7ec679d1541414c980149fec5b4e9ec87f71d22b9a351c3aebf66c67c2009d4cb");
 
         genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
         genesis.hashPayload    = genesis.GetPayloadHash();
@@ -291,9 +291,9 @@ public:
 #if SHOW_GENESIS_HASHES
         PRINT_HASHES;
 #else
-        assert(consensus.hashGenesisBlock == uint256S("70a7ffe235e918e4ee13dd1c66131839ea4aed82f9f4170ecac585ba08b88d48"));
+        assert(consensus.hashGenesisBlock == uint256S("c69948f41cf0f402dc3ce9513416d0444cc025bbf1ade86c7704e8506ab54b40"));
         assert(genesis.hashMerkleRoot == uint256S("7c27ade2c28e67ed3077f8f77b8ea6d36d4f5eba04c099be3c9faa9a4a04c046"));
-        assert(genesis.hashPayload == uint256S("15f0f2938adb409dfebbb05de45effb9a3e89b453696dbf883f14c0eb49108e6"));
+        assert(genesis.hashPayload == uint256S("dd0b0d0102cce6598e29a6c5cfadb9db98a7b8985ef5986e107ec2b26f0d83b1"));
 #endif
         vFixedSeeds.clear(); //! Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();  //! Regtest mode doesn't have any DNS seeds.
