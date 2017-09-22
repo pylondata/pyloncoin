@@ -152,8 +152,8 @@
         <translation>Confirmar cifrado de la cartera</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
-        <translation>Atencion: ¡Si cifra su monedero y pierde la contraseña perderá &lt;b&gt;TODOS SUS BITCOINS&lt;/b&gt;!"</translation>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR FAIRCOINS&lt;/b&gt;!</source>
+        <translation>Atencion: ¡Si cifra su monedero y pierde la contraseña perderá &lt;b&gt;TODOS SUS FAIRCOINS&lt;/b&gt;!"</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>

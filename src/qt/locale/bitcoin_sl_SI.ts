@@ -160,7 +160,7 @@
         <translation>Potrditev šifriranja denarnice</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR FAIRCOINS&lt;/b&gt;!</source>
         <translation>Opozorilo: V primeru izgube gesla šifrirane denarnice, boste &lt;b&gt;IZGUBILI VSE BITCOINE V DENARNICI&lt;/b&gt;!</translation>
     </message>
     <message>

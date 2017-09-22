@@ -132,7 +132,7 @@
         <translation>Потврдете го криптирањето на паричникот</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR FAIRCOINS&lt;/b&gt;!</source>
         <translation>Предупредување: Ако го шифрирате вашиот паричник и ја изгубите вашата тајна фраза, ќе &lt;b&gt;ГИ ИЗГУБИТЕ СИТЕ ВАШИ БИТКОИНИ&lt;/b&gt;!</translation>
     </message>
     <message>

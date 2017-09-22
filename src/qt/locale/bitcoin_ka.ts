@@ -152,7 +152,7 @@
         <translation>დაადასტურეთ საფულის დაშიფრვა</translation>
     </message>
     <message>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR BITCOINS&lt;/b&gt;!</source>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR FAIRCOINS&lt;/b&gt;!</source>
         <translation>ყურადღება: საფულის დაშიფრვის შემდეგ თუ თქვენ დაკარგავთ ფრაზა-პაროლს,  &lt;b&gt;ყველა ბიტქოინი დაგეკარგებათ&lt;/b&gt;!</translation>
     </message>
     <message>
