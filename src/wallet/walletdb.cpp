@@ -782,9 +782,13 @@ DBErrors CWalletDB::FindWalletTx(CWallet* pwallet, vector<uint256>& vTxHash, vec
                     CWalletTxFC1 wtx;
                     ssValue >> wtx;
                 } else {
-                    CWalletTx wtx;
-                    ssValue >> wtx;
-                    vWtx.push_back(wtx);
+                    /* do not de-serialise possibly corrupt walletTxs
+                     * when stripping them */
+                    if (GetArg("-zapwallettxes", "1") != "2") {
+                        CWalletTx wtx;
+                        ssValue >> wtx;
+                        vWtx.push_back(wtx);
+                    }
                 }
 
                 vTxHash.push_back(hash);
