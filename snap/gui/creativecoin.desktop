@@ -1,0 +1,4 @@
+[Desktop Entry]
+Name=PYLON
+Exec=PYLON -qwindowtitle "%c"
+Type=Application
