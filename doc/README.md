@@ -1,12 +1,12 @@
 
-PYLON Core 0.14.2
+Pyloncoin Core 0.14.2
 =====================
 
 Setup
 ---------------------
-PYLON Core is the original PYLON client and it builds the backbone of the network. However, it downloads and stores the entire history of PYLON transactions (which is currently several GBs); depending on the speed of your computer and network connection, the synchronization process can take anywhere from a few hours to a day or more.
+Pyloncoin Core is the original PYLON client and it builds the backbone of the network. However, it downloads and stores the entire history of PYLON transactions (which is currently several GBs); depending on the speed of your computer and network connection, the synchronization process can take anywhere from a few hours to a day or more.
 
-To download PYLON Core, visit [PYLON.org](https://PYLON.org).
+To download pyloncoin Core, visit [pylon-network.org](https://pylon-network.org).
 
 Running
 ---------------------
@@ -25,14 +25,7 @@ Unpack the files into a directory, and then run PYLON-qt.exe.
 
 ### OS X
 
-Drag PYLON-Core to your applications folder, and then run PYLON-Core.
-
-### Need Help?
-
-* See the documentation at the [PYLON Wiki](https://PYLON.info/)
-for help and more information.
-* Ask for help on [#PYLON](http://webchat.freenode.net?channels=PYLON) on Freenode. If you don't have an IRC client use [webchat here](http://webchat.freenode.net?channels=PYLON).
-* Ask for help on the [PYLONTalk](https://PYLONtalk.io/) forums.
+Drag Pyloncoin-Core to your applications folder, and then run Pyloncoin-Core.
 
 Building
 ---------------------
@@ -61,9 +54,6 @@ The PYLON repo's [root README](/README.md) contains relevant information on the 
 - [Dnsseed Policy](dnsseed-policy.md)
 - [Benchmarking](benchmarking.md)
 
-### Resources
-* Discuss on the [PYLONTalk](https://PYLONtalk.io/) forums.
-* Discuss general PYLON development on #PYLON-dev on Freenode. If you don't have an IRC client use [webchat here](http://webchat.freenode.net/?channels=PYLON-dev).
 
 ### Miscellaneous
 - [Assets Attribution](assets-attribution.md)
