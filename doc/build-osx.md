@@ -30,7 +30,7 @@ Build PYLON Core
 
 1. Clone the PYLON source code and cd into `PYLON`
 
-        git clone https://github.com/creativechain/creativechain-core
+        git clone https://github.com/klenergy/pyloncoin
         cd PYLON
 
 2.  Build PYLON-core:
