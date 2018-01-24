@@ -1,0 +1,4 @@
+[Desktop Entry]
+Name=pyloncoin
+Exec=pyloncoin -qwindowtitle "%c"
+Type=Application
