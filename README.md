@@ -9,8 +9,8 @@
 # LINKS
 
 - [WEB Pylon Network](http://pylon-network.org/)
-- [Download WhitePaper ENGLISH version](http://pylon-network.org/wp-content/uploads/2017/07/170730_WP-PYLON_EN.pdf)
-- [Download WhitePaper SPANISH version](http://pylon-network.org/wp-content/uploads/2017/07/170730_WP-PYLON_ES.pdf)
+- [Download WhitePaper ENGLISH version](http://pylon-network.org/wp-content/uploads/2017/07/170730_WP-PYLNC_EN.pdf)
+- [Download WhitePaper SPANISH version](http://pylon-network.org/wp-content/uploads/2017/07/170730_WP-PYLNC_ES.pdf)
 - [BitcoinTalk Channel](https://bitcointalk.org/index.php?topic=2054297)
 - [BitcoinTalk Spanish Channel](https://bitcointalk.org/index.php?topic=2055169)
 - [Telegram Official Channel](https://t.me/pylonnetworkofficialtelegram)
@@ -69,8 +69,8 @@ With “Green Mining” the correct incentives are in place, in order to priorit
 # LINKS
 
 - [WEB Pylon Network](http://pylon-network.org/)
-- [Download WhitePaper ENGLISH version](http://pylon-network.org/wp-content/uploads/2017/07/170730_WP-PYLON_EN.pdf)
-- [Download WhitePaper SPANISH version](http://pylon-network.org/wp-content/uploads/2017/07/170730_WP-PYLON_ES.pdf)
+- [Download WhitePaper ENGLISH version](http://pylon-network.org/wp-content/uploads/2017/07/170730_WP-PYLNC_EN.pdf)
+- [Download WhitePaper SPANISH version](http://pylon-network.org/wp-content/uploads/2017/07/170730_WP-PYLNC_ES.pdf)
 - [BitcoinTalk Channel](https://bitcointalk.org/index.php?topic=2054297)
 - [BitcoinTalk Spanish Channel](https://bitcointalk.org/index.php?topic=2055169)
 - [Telegram Official Channel](https://t.me/pylonnetworkofficialtelegram)

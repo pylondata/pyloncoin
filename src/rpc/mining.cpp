@@ -885,7 +885,7 @@ UniValue estimatesmartfee(const JSONRPCRequest& request)
             "\nResult:\n"
             "{\n"
 
-            "  \"feerate\" : x.x,     (numeric) estimate fee-per-kilobyte (in PYLON)\n"
+            "  \"feerate\" : x.x,     (numeric) estimate fee-per-kilobyte (in PYLNC)\n"
 
             "  \"blocks\" : n         (numeric) block number where estimate was found\n"
             "}\n"
