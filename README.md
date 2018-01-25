@@ -1,4 +1,4 @@
-[![N|](http://pylon-network.org/wp-content/uploads/2017/08/Portada_Hilo_1-.png)](https://pylon-netowrk.org)
+[![N|](https://pylon-network.org/wp-content/uploads/2018/01/26197761_146647462661280_9085278499530754073_o.jpg)](https://pylon-netowrk.org)
 ![N|](http://pylon-network.org/wp-content/uploads/2017/08/applications-pylon.png)
 ![N|](http://pylon-network.org/wp-content/uploads/2017/08/Roadmap.jpg)
 ![N|](http://pylon-network.org/wp-content/uploads/2017/08/Token_info.jpg)
@@ -20,6 +20,9 @@
 - [METRON](http://metron.es)
 - [Facebook](https://www.facebook.com/KlenergyTechOfficial/s)
 - [LinkdIn]( https://www.linkedin.com/company-beta/10229571/)
+- [Medium](https://medium.com/@KlenergyTech)
+- [Youtube](https://www.youtube.com/channel/UCZY7CDvy69VrsrBniETH9Sw)
+- [Seemit](https://steemit.com/@pylonnetwork)
 
 #                                 Applications
 # Problem
