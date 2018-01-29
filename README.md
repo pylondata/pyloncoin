@@ -80,3 +80,8 @@ With “Green Mining” the correct incentives are in place, in order to priorit
 - [METRON](http://metron.es)
 - [Facebook](https://www.facebook.com/KlenergyTechOfficial/s)
 - [LinkdIn]( https://www.linkedin.com/company-beta/10229571/)
+
+# License
+
+[MIT License](https://github.com/klenergy/pyloncoin/blob/1.3.0/LICENSE) - Forked from Bitcoin, Litecoin, Creativecoin
+
