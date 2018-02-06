@@ -1,4 +1,4 @@
-[![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura1-1.jpg)
+![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura1-1.jpg)
 ![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura2.jpg)
 ![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura3.jpg)
 ![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura4.jpg)
