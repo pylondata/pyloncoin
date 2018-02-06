@@ -1,10 +1,11 @@
-[![N|](https://pylon-network.org/wp-content/uploads/2018/01/26197761_146647462661280_9085278499530754073_o.jpg)](https://pylon-netowrk.org)
-![N|](http://pylon-network.org/wp-content/uploads/2017/08/applications-pylon.png)
-![N|](http://pylon-network.org/wp-content/uploads/2017/08/Roadmap.jpg)
-![N|](http://pylon-network.org/wp-content/uploads/2017/08/Token_info.jpg)
-![N|](http://pylon-network.org/wp-content/uploads/2017/08/Budgets.jpg)
-![N|](http://pylon-network.org/wp-content/uploads/2017/08/Partners.jpg)
-![N|](http://pylon-network.org/wp-content/uploads/2017/08/JOinus.jpg)
+[![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura1-1.jpg)
+![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura2.jpg)
+![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura3.jpg)
+![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura4.jpg)
+![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura5.jpg)
+![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura6.jpg)
+![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura7.jpg)
+![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura8.jpg)
 
 # LINKS
 
@@ -22,7 +23,7 @@
 - [LinkdIn]( https://www.linkedin.com/company-beta/10229571/)
 - [Medium](https://medium.com/@KlenergyTech)
 - [Youtube](https://www.youtube.com/channel/UCZY7CDvy69VrsrBniETH9Sw)
-- [Seemit](https://steemit.com/@pylonnetwork)
+- [Steemit](https://steemit.com/@pylonnetwork)
 
 #                                 Applications
 # Problem
@@ -80,8 +81,6 @@ With “Green Mining” the correct incentives are in place, in order to priorit
 - [METRON](http://metron.es)
 - [Facebook](https://www.facebook.com/KlenergyTechOfficial/s)
 - [LinkdIn]( https://www.linkedin.com/company-beta/10229571/)
-
-# License
-
-[MIT License](https://github.com/klenergy/pyloncoin/blob/1.3.0/LICENSE) - Forked from Bitcoin, Litecoin, Creativecoin
-
+- [Medium](https://medium.com/@KlenergyTech)
+- [Youtube](https://www.youtube.com/channel/UCZY7CDvy69VrsrBniETH9Sw)
+- [Steemit](https://steemit.com/@pylonnetwork)
