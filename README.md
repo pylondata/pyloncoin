@@ -115,7 +115,13 @@ The way to get cheaper energy will be using PPA (Power Purchase Agreements) with
 
 Pylon Coin is the most sustainable cryptographic currency in the world. The “CORE” of the Pylon Coin is based on the proof of cooperation between all the participants, reducing the energy validation costs of the transactions. It is the first blockchain algorithm developed specifically for the energy sector needs by the Pylon team and its partners, and uses only 100% renewable electricity for its operation.
 
- 
+# Are you a "Prosumer"?
+
+If you have solar panels on your roof and would like to participate as a prosumer on Pylon Network, you can register your installation below.
+
+Fill in the form and you could be one of the few lucky prosumers who participate on the implementation stage of Pylon Network platform.
+
+[Register](https://pylon-network.org/register-installation) 
 
 # LINKS
 
