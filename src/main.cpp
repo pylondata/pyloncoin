@@ -3041,6 +3041,10 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOC, bo
         if (!CheckForDuplicateCvns(block))
             return state.DoS(100, error("CheckBlock(): duplicate entries in CVN payload"),
                          REJECT_INVALID, "bad-dupl-cvn");
+
+        if (!CheckForSufficientNumberOfCvns(block, Params().GetConsensus()))
+            return state.DoS(1, error("CheckBlock(): insufficient number of CVN entries in payload"),
+                         REJECT_INVALID, "too-few-cvns");
     }
 
     if (block.HasChainAdmins()) {

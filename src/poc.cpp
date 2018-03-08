@@ -1087,6 +1087,31 @@ bool CheckForDuplicateCvns(const CBlock& block)
     return true;
 }
 
+bool CheckForSufficientNumberOfCvns(const CBlock& block, const Consensus::Params& params)
+{
+    assert(block.HasCvnInfo());
+
+    const uint256 hashBlock = block.GetHash();
+
+    BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
+    if (mi == mapBlockIndex.end()) {
+        if (hashBlock != params.hashGenesisBlock) {
+            LogPrintf("%s : can not check orphan block %s created by 0x%08x, delaying check.\n", __func__,
+                        hashBlock.ToString(), block.nCreatorId);
+            return false;
+        } else
+            return true;
+    }
+
+    CBlockIndex * const pindexPrev = (*mi).second;
+
+    if (!HasEnoughSignatures(pindexPrev, block.vCvns.size())) {
+        return error("not enough CVNs available to continue blockchain: %d", block.vCvns.size());
+    }
+
+    return true;
+}
+
 bool CheckForDuplicateAdminSigs(const CBlock& block)
 {
     if (block.vAdminIds.empty() || block.vAdminIds.size() == 1)

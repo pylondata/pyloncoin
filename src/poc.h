@@ -233,6 +233,7 @@ extern bool CvnVerifySignature(const uint256 &hash, const CSchnorrSig &sig, cons
 extern bool CvnVerifySignature(const uint256 &hash, const CSchnorrSig &sig, const uint32_t nCvnId);
 extern bool CvnVerifyAdminSignature(const vector<uint32_t> &nAdminIds, const uint256 &hashAdmin, const CSchnorrSig &sig);
 extern bool CheckForDuplicateCvns(const CBlock& block);
+extern bool CheckForSufficientNumberOfCvns(const CBlock& block, const Consensus::Params& params);
 extern bool CheckForDuplicateChainAdmins(const CBlock& block);
 extern bool CheckForDuplicateAdminSigs(const CBlock& block);
 extern bool CheckForDuplicateMissingChainSigs(const CBlock& block);
