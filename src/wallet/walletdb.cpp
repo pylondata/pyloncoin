@@ -813,7 +813,8 @@ DBErrors CWalletDB::ZapWalletTx(CWallet* pwallet, vector<CWalletTx>& vWtx)
 {
     bool fOldPoSWallet = false;
     int nVersion = 0;
-    if (Read((string)"version", nVersion) && nVersion < 1100000) {
+    if (Read((string)"version", nVersion) && nVersion < 1100000 && GetBoolArg("-fc1walletupgrade", true)) {
+        LogPrintf("FairCoin1 wallet detected activating upgrade mode.\n");
         fOldPoSWallet = true;
     }
 

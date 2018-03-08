@@ -1532,7 +1532,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
             try {
                 boost::filesystem::path fairCoin1WalletFile = GetDefaultDataDirFC1() / "wallet.dat";
                 boost::filesystem::path fairCoin2WalletFile = GetDataDir(false) / strWalletFile;
-                if (!boost::filesystem::exists(fairCoin2WalletFile) && boost::filesystem::exists(fairCoin1WalletFile)) {
+                if (GetBoolArg("-fc1walletupgrade", true) && !boost::filesystem::exists(fairCoin2WalletFile) && boost::filesystem::exists(fairCoin1WalletFile)) {
                     LogPrintf("FairCoin1 wallet found here: %s\n", fairCoin1WalletFile.string());
                     try {
                         boost::filesystem::copy_file(fairCoin1WalletFile, GetDataDir(false) / strWalletFile, boost::filesystem::copy_option::fail_if_exists);
