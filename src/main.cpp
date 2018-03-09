@@ -3587,7 +3587,7 @@ bool static LoadBlockIndexDB()
     {
         CBlockIndex* pindex = item.second;
 
-        if (pindex->nVersion & CBlock::CVN_PAYLOAD) {
+        if ((pindex->nVersion & CBlock::CVN_PAYLOAD) && pindex->IsValid(BLOCK_VALID_TRANSACTIONS)) {
             CachedCvnType::iterator it = mapChachedCVNInfoBlocks.find(pindex->GetBlockHash());
 
             if (it == mapChachedCVNInfoBlocks.end()) {
