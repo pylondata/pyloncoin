@@ -512,6 +512,7 @@ UniValue fasitologin(const UniValue& params, bool fHelp)
     string method = params[0].get_str();
     const string strPassword = params[1].get_str();
 
+    string strErrorMsg;
     if (method == "fasito") {
         if (params.size() < 2) {
             throw JSONRPCError(RPC_INVALID_PARAMS, "Fasito PIN not supplied\n");
@@ -519,7 +520,7 @@ UniValue fasitologin(const UniValue& params, bool fHelp)
 #ifdef USE_FASITO
         LogPrintf("Initializing fasito for chain adminstration\n");
         const uint32_t nKeyIndex = params.size() == 3 ? params[2].get_int() : 0;
-        nChainAdminId = InitChainAdminWithFasito(strPassword, nKeyIndex);
+        nChainAdminId = InitChainAdminWithFasito(strPassword, nKeyIndex, strErrorMsg);
 #else
         return "ERROR: This wallet version was not compiled with fasito support\n";
 #endif
@@ -533,7 +534,7 @@ UniValue fasitologin(const UniValue& params, bool fHelp)
             LogPrintf("using key file: %s\n", mapArgs["-adminkeyfile"]);
         }
 
-        nChainAdminId = InitChainAdminWithCertificate(strPassword);
+        nChainAdminId = InitChainAdminWithCertificate(strPassword, strErrorMsg);
 
         if (params.size() == 3) {
             mapArgs["-adminkeyfile"] = strOldAdminKeyFile;
@@ -544,7 +545,10 @@ UniValue fasitologin(const UniValue& params, bool fHelp)
     }
 
     if (!nChainAdminId) {
-        throw JSONRPCError(RPC_INTERNAL_ERROR, "could not find a vaild chain admin ID\n");
+        if (strErrorMsg.size())
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Fasito login error: " + strErrorMsg + "\n");
+        else
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "could not find a vaild chain admin ID\n");
     }
 
     LogPrintf("Configuring node with chain admin ID 0x%08x\n", nChainAdminId);
@@ -627,10 +631,11 @@ UniValue fasitoinitkey(const UniValue& params, bool fHelp)
 #else
 
     bool fWasInitialised = true;
+    string strErrorMsg;
     if (!fasito.fInitialized) {
-        if (!InitFasito(strPIN)) {
+        if (!InitFasito(strPIN, strErrorMsg)) {
             fasito.close();
-            return error("invalid PIN or Fasito not connected");
+            return error("could not init Fasito: %s", strErrorMsg);
         }
 
         fWasInitialised = false;

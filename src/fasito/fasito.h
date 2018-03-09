@@ -87,18 +87,18 @@ public:
 
     void open(const std::string& devname);
     void close();
-    bool login(const string& strPassword);
+    bool login(const string& strPassword, string &strError);
     bool logout();
     void emtpyInputBuffer();
 };
 
-extern bool InitFasito(const string& strPassword);
+extern bool InitFasito(const string& strPassword, string& strError);
 extern uint32_t InitCVNWithFasito(const string &strFasitoPassword);
 extern bool CreateNonceWithFasito(const uint256& hashData, const uint8_t nKey, unsigned char *pPrivateData, CSchnorrNonce& noncePublic, const CSchnorrPubKey& pubKey);
 extern bool CvnSignWithFasito(const uint256 &hashToSign, const uint8_t nKey, CSchnorrSig& signaturee);
 extern bool CvnSignPartialWithFasito(const uint256& hashUnsignedBlock, const uint8_t nKey, const CSchnorrPubKey& sumPublicNoncesOthers, CSchnorrSig& signature, const int nCurrentHeight);
 extern bool AdminSignPartialWithFasito(const uint256& hashToSign, const uint8_t nKey, const CSchnorrPubKey& sumPublicNoncesOthers, CSchnorrSig& signature, const uint8_t nHandle);
-extern uint32_t InitChainAdminWithFasito(const string& strPassword, const uint32_t nKeyIndex);
+extern uint32_t InitChainAdminWithFasito(const string& strPassword, const uint32_t nKeyIndex, string &strError);
 extern bool FasitoInitPrivKey(const CKey& privKey, const uint32_t nKeyIndex, const uint32_t nId);
 
 extern CFasito fasito;

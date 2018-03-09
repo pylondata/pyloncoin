@@ -164,12 +164,13 @@ uint32_t InitCVNWithCertificate(const string &strFasitoPassword)
     return 0;
 }
 
-uint32_t InitChainAdminWithCertificate(const string& strPassword)
+uint32_t InitChainAdminWithCertificate(const string& strPassword, string &strError)
 {
     boost::filesystem::path privkeyFile = GetDataDir() / GetArg("-adminkeyfile", "admin.pem");
     FILE* file = fopen(privkeyFile.string().c_str(), "r");
     if (!file) {
-        LogPrintf("ERROR: key file not found: %s, is -adminkeyfile set correctly?\n", privkeyFile);
+        strprintf(strError, "key file not found: %s, is -adminkeyfile set correctly?", privkeyFile);
+        LogPrintf("%s\n", strError);
         return 0;
     }
 
@@ -179,6 +180,8 @@ uint32_t InitChainAdminWithCertificate(const string& strPassword)
         adminPubKey = adminPrivKey.GetRawPubKey();
         return ExtractIdFromCertificate(x509Cert, true);
     }
+
+    strError = "Could not parse the certificate file. Please see the log file for details.";
 
     return 0;
 }
