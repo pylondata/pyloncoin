@@ -463,7 +463,7 @@ bool DetermineBestSignatureSet(CBlockIndex * const pindexPrev, CBlock *pblock)
     }
 
     /*
-     * We try find the best of the working set, meaning the one with the least missing signatures
+     * Try to find the best of the working set, meaning the one with the least missing signatures
      */
 
     if (vMissingSignerIdsCandidates.empty()) {
@@ -477,7 +477,6 @@ bool DetermineBestSignatureSet(CBlockIndex * const pindexPrev, CBlock *pblock)
         pblock->chainMultiSig     = sigCandidates[0];
         return true;
     }
-
 
     size_t nLeastMissing = MAX_NUMBER_OF_CVNS;
     int nIndex = 0;
@@ -515,10 +514,10 @@ static bool CreateNewBlock(CBlockTemplate& blockTemplate)
 
     uint256 hashBlock = pblock->hashPrevBlock;
     if (mapCVNs.size() == 1) {
+        /* if we only have one CVN available (e.g. during bootstrap) we use a plain Schnorr signature */
         LOCK(sigHolder.cs_sigHolder);
         const MapSigCommonR &commonR = sigHolder.sigs;
 
-        /* if we only have one CVN available (e.g. during bootstrap) we use a plain Schnorr signature */
         if (!commonR.empty() && !commonR.begin()->second.empty()) {
             const MapSigSigner &mapSigner = commonR.begin()->second;
             if (!mapSigner.empty()) {
@@ -534,20 +533,6 @@ static bool CreateNewBlock(CBlockTemplate& blockTemplate)
     } else {
         if (!DetermineBestSignatureSet(blockTemplate.pindexPrev, pblock))
             return false;
-    }
-
-    uint32_t nSigsPrevBlock = GetNumChainSigs(blockTemplate.pindexPrev);
-    uint32_t nSigsBlock = mapCVNs.size() - pblock->vMissingSignerIds.size();
-
-    if (!nSigsPrevBlock || !nSigsBlock) {
-        LogPrintf("CreateNewBlock : could not determine number of signatures: %d|%d\n", nSigsPrevBlock, nSigsBlock);
-        return false;
-    }
-
-    if (nSigsPrevBlock > 1 && ((float)nSigsPrevBlock / (float)2 >= (float)nSigsBlock)) {
-        LogPrintf("CreateNewBlock : cannot create block. Not enough signatures available. Prev: %u, This: %u\n",
-                nSigsPrevBlock, nSigsBlock);
-        return false;
     }
 
     {
@@ -568,6 +553,7 @@ static bool CreateNewBlock(CBlockTemplate& blockTemplate)
         return false;
     }
 
+    uint32_t nSigsBlock = mapCVNs.size() - pblock->vMissingSignerIds.size();
     LogPrintf("creating new block with %u transactions, %u CvnInfo, %u signatures, %u bytes\n",
             pblock->vtx.size(), pblock->vCvns.size(),
             nSigsBlock,
