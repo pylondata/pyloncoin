@@ -225,7 +225,7 @@ extern uint32_t GetNumChainSigs(const CBlock *pblock);
 extern bool CvnSignHash(const uint256 &hashToSign, CSchnorrSig& signature);
 extern bool AdminSignHash(const uint256 &hashToSign, CSchnorrSig& signature, bool fFasito);
 extern bool AdminSignPartial(const uint256 &hashToSign, CAdminPartialSignatureUnsinged &signature, const uint32_t &nAdminId, const CSchnorrPrivNonce *privNonce, const uint8_t nHandle);
-extern bool CvnSignPartial(const uint256 &hashPrevBlock, CCvnPartialSignatureUnsinged &signature, const uint32_t &nNextCreator, const uint32_t &nNodeId, const vector<uint32_t> &vMissingCvnIds);
+extern bool CvnSignPartial(const uint256 &hashPrevBlock, CCvnPartialSignatureUnsinged &signature, const uint32_t &nNextCreator, const uint32_t &nNodeId, const vector<uint32_t> &vMissingCvnIds, const int nPoolOffset);
 extern int CombinePartialSignatures(CSchnorrSig& allsig, uint8_t *sigs[], int nSignatures);
 extern bool CvnSignBlock(CBlock& block);
 extern bool CvnVerifyChainSignature(const CBlock& block);

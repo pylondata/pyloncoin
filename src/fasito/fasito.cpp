@@ -57,10 +57,10 @@ bool CreateNonceWithFasito(const uint256& hashData, const uint8_t nKey, unsigned
             return false;
         }
         int nHandle = atoi(res[0].substr(0,2).c_str());
-        vector<uint8_t> pubNonce = ParseHex(res[0].substr(3));
+        *((uint8_t *)pPrivateData) = (uint8_t)nHandle;
 
+        vector<uint8_t> pubNonce = ParseHex(res[0].substr(3));
         memcpy(&noncePublic.begin()[0], &pubNonce.begin()[0], 64);
-        *((uint32_t *)pPrivateData) = nHandle;
     } catch(const std::exception &e) {
         LogPrintf("failed to send NONCE command: %s\n", e.what());
         return false;
@@ -115,13 +115,12 @@ bool CvnSignWithFasito(const uint256 &hashToSign, const uint8_t nKey, CSchnorrSi
    return true;
 }
 
-bool CvnSignPartialWithFasito(const uint256& hashToSign, const uint8_t nKey, const CSchnorrPubKey& sumPublicNoncesOthers, CSchnorrSig& signature, const int nCurrentHeight)
+bool CvnSignPartialWithFasito(const uint256& hashToSign, const uint8_t nKey, const CSchnorrPubKey& sumPublicNoncesOthers, CSchnorrSig& signature, const int nPoolOffset)
 {
     if (!fasito.mapKeys.count(nKey)) {
         LogPrintf("CvnSignPartialWithFasito : public key #%d not found.\n", nKey);
         return false;
     }
-    int nPoolOffset = nCurrentHeight - mapNoncePool[nCvnNodeId].nHeightAdded;
 
     uint8_t nHandle = fasito.vNonceHandles[nPoolOffset];
 

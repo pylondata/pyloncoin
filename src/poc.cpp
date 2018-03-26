@@ -1783,7 +1783,7 @@ bool static CreateNonceWithKey(const uint256& hashData, const CKey& privKey, uns
 #if POC_DEBUG
     LogPrintf("%s : OK\n  Hash: %s\n  pubk: %s\n  pubn: %s\n privn: %s\n", __func__,
             hashData.ToString(),
-            cvnInfo.pubKey.ToString(),
+            cvnPubKey.ToString(),
             noncePublic.ToString(),
             HexStr(pPrivateData));
 #endif
@@ -1878,9 +1878,12 @@ bool static CvnSignWithKey(const uint256& hashToSign, const CKey& privKey, const
     return true;
 }
 
-bool static CvnSignPartialWithKey(const uint256& hashToSign, const CKey& cvnPrivKey, const CSchnorrPubKey& sumPublicNoncesOthers, CSchnorrSig& signature)
+bool static CvnSignPartialWithKey(const uint256& hashToSign, const CKey& cvnPrivKey, const CSchnorrPubKey& sumPublicNoncesOthers, CSchnorrSig& signature, const int nPoolOffset)
 {
-    int nPoolOffset = chainActive.Tip()->nHeight - mapNoncePool[nCvnNodeId].nHeightAdded;
+    if (nPoolOffset >= (int)vNoncePrivate.size()) {
+        LogPrintf("%s : could not create chain signature nonce pool offset out of range: %d\n", __func__, nPoolOffset);
+        return false;
+    }
 
     if (vNoncePrivate[nPoolOffset].IsNull()) {
         LogPrintf("%s : could not create chain signature no private nonce available\n", __func__);
@@ -1893,9 +1896,9 @@ bool static CvnSignPartialWithKey(const uint256& hashToSign, const CKey& cvnPriv
     }
 
 #if POC_DEBUG
-    LogPrintf("%s : OK\n  Hash: %s\nsigner: 0x%08x\n   sum: %s\n   sig: %s\n", __func__,
-            hashToSign.ToString(), signature.nSignerId,
-            sumPublicNoncesOthers.ToString(), signature.ToString());
+    LogPrintf("%s : OK\n  Hash: %s\nsigner: 0x%08x\n   sum: %s\n   sig: %s\noffset: %d\n nPriv: %d\n", __func__,
+            hashToSign.ToString(), signature.ToString(),
+            sumPublicNoncesOthers.ToString(), signature.ToString(), nPoolOffset, vNoncePrivate[nPoolOffset].ToString());
 #endif
     return true;
 }
@@ -1951,7 +1954,7 @@ static bool AdminSignPartialWithKey(const uint256& hashToSign, const CKey& admin
 
 #if POC_DEBUG
     LogPrintf("%s : OK\n  Hash: %s\nsigner: 0x%08x\n   sum: %s\n   sig: %s\n", __func__,
-            hashToSign.ToString(), signature.nSignerId,
+            hashToSign.ToString(), nChainAdminId,
             sumPublicNoncesOthers.ToString(), signature.ToString());
 #endif
     return true;
@@ -2010,7 +2013,7 @@ bool AdminSignPartial(const uint256 &hashToSign, CAdminPartialSignatureUnsinged 
     return VerifyPartialSignature(hashToSign, signature.signature, mapChainAdmins[nAdminId].pubKey, sumPublicNoncesOthers);
 }
 
-bool CvnSignPartial(const uint256 &hashPrevBlock, CCvnPartialSignatureUnsinged &signature, const uint32_t &nNextCreator, const uint32_t &nNodeId, const vector<uint32_t> &vMissingSignerIds)
+bool CvnSignPartial(const uint256 &hashPrevBlock, CCvnPartialSignatureUnsinged &signature, const uint32_t &nNextCreator, const uint32_t &nNodeId, const vector<uint32_t> &vMissingSignerIds, const int nPoolOffset)
 {
     CHashWriter hasher(SER_GETHASH, 0);
     hasher << hashPrevBlock << nNextCreator;
@@ -2054,14 +2057,14 @@ bool CvnSignPartial(const uint256 &hashPrevBlock, CCvnPartialSignatureUnsinged &
             return false;
         }
 
-        if (!CvnSignPartialWithFasito(hashToSign, fasito.nCVNKeyIndex, sumPublicNoncesOthers, signature.signature, chainActive.Tip()->nHeight))
+        if (!CvnSignPartialWithFasito(hashToSign, fasito.nCVNKeyIndex, sumPublicNoncesOthers, signature.signature, nPoolOffset))
             return false;
 #else
         LogPrintf("%s : this wallet was not compiled with Fasito support.\n", __func__);
         return false;
 #endif
     } else {
-        if (!CvnSignPartialWithKey(hashToSign, cvnPrivKey, sumPublicNoncesOthers, signature.signature))
+        if (!CvnSignPartialWithKey(hashToSign, cvnPrivKey, sumPublicNoncesOthers, signature.signature, nPoolOffset))
             return false;
     }
 
@@ -2118,9 +2121,10 @@ static bool SendCVNSignature(POCStateHolder &s, const vector<uint32_t> &vMissing
 
     uint256 hashPrevBlock = pTip->GetBlockHash();
 
+    int nPoolOffset = chainActive.Tip()->nHeight - mapNoncePool[nCvnNodeId].nHeightAdded;
     CCvnPartialSignatureUnsinged signature;
 
-    if (!CvnSignPartial(hashPrevBlock, signature, nNextCreator, nCvnNodeId, vMissingSignatures)) {
+    if (!CvnSignPartial(hashPrevBlock, signature, nNextCreator, nCvnNodeId, vMissingSignatures, nPoolOffset)) {
         LogPrintf("%s : could not create sig for 0x%08x by 0x%08x, hash %s\n", __func__,
                 nNextCreator, nCvnNodeId, hashPrevBlock.ToString());
         return false;
@@ -2157,20 +2161,43 @@ static bool SetUpNoncePool()
 #endif
     CNoncesPoolDB pooldb;
     CNoncePool pool;
-    if (!pooldb.Read(pool, vNoncePrivate, vNonceHandles))
+    if (!pooldb.Read(pool, vNoncePrivate, vNonceHandles)) {
         return false;
+    }
+
+    if (pool.vPublicNonces.empty()) {
+        LogPrintf("%s : nonce pool is empty\n", __func__);
+        return false;
+    }
 
     if (fUseFasito && vNonceHandles.size() != pool.vPublicNonces.size()) {
-        LogPrintf("SetUpNoncePool : number of private handle/public nonces mismatch: %d/%d\n", vNonceHandles.size(), pool.vPublicNonces.size());
-        vNonceHandles.clear();
+        LogPrintf("%s : number of private handle/public nonces mismatch: %d/%d\n", __func__, vNonceHandles.size(), pool.vPublicNonces.size());
         return false;
     }
 
     if (!fUseFasito && vNoncePrivate.size() != pool.vPublicNonces.size()) {
-        LogPrintf("SetUpNoncePool : number of private/public nonces mismatch: %d/%d\n", vNoncePrivate.size(), pool.vPublicNonces.size());
-        vNoncePrivate.clear();
+        LogPrintf("%s : number of private/public nonces mismatch: %d/%d\n", __func__, vNoncePrivate.size(), pool.vPublicNonces.size());
         return false;
     }
+
+    /* to verify the entries of the current nonce pool we create a partial
+     * signature with each nonce pair in the pool
+     */
+    uint256 hashData;
+    CCvnPartialSignatureUnsinged signature;
+    vector<uint32_t> vMissingSignerIds;
+    int nPoolSize = pool.vPublicNonces.size();
+    GetStrongRandBytes(&hashData.begin()[0], 32);
+
+    LogPrintf("Verifying nonce pool with %d entires...", nPoolSize);
+    for (int i = 0 ; i < nPoolSize ; i++) {
+        if (!CvnSignPartial(hashData, signature, nCvnNodeId, nCvnNodeId, vMissingSignerIds, i)) {
+            LogPrintf("%s : nonce pool is invalid. Re-creating it.\n", __func__);
+            return false;
+        }
+    }
+
+    LogPrintf("OK\n");
 
     {
         LOCK(cs_mapNoncePool);
@@ -2266,7 +2293,8 @@ static bool CreateNoncePoolFasito(CNoncePool& pool, const uint16_t nPoolSize, CN
             return false;
         }
 
-        uint32_t *nHandle = (uint32_t *) &privateData[0];
+        uint8_t *nHandle = (uint8_t *) privateData;
+
         fasito.vNonceHandles.push_back(*nHandle);
         pool.vPublicNonces.push_back(nonce);
         LogPrint("cvnsig", "CreateNoncePoolFasito : add to pool key #%d (handle: %d): %s\n", i, *nHandle, nonce.ToString());
@@ -2520,8 +2548,11 @@ static void handleInit(POCStateHolder& s)
         if (SetUpNoncePool()) {
             LogPrintf("Using saved nonces pool\n");
             RelayNoncePool(mapNoncePool[s.nNodeId]);
-        } else
+        } else {
+            fasito.vNonceHandles.clear();
+            vNoncePrivate.clear();
             CreateNewNoncePool(s);
+        }
 
         s.state = GetAdjustedTime() - s.pindexPrev->nTime > dynParams.nBlockSpacing + dynParams.nBlockSpacingGracePeriod ?
                     CREATE_SIGNATURE_OVERDUE : WAITING_FOR_BLOCK_PROPAGATION;
