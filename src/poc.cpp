@@ -2451,7 +2451,7 @@ static void handleWaitingForSignatures(POCStateHolder& s)
                 LogPrintf("Did not receive all signatures for set. Trying with smaller set of members. Missing: %s\n", CreateSignerIdList(vMissingSignerIds));
 
                 if (!SendCVNSignature(s, vMissingSignerIds)) {
-                    LogPrintf("%s : failed to create signature for set: %s\n", CreateSignerIdList(vMissingSignerIds));
+                    LogPrintf("%s : failed to create signature for set: %s\n", __func__, CreateSignerIdList(vMissingSignerIds));
                 }
             } else {
                 LogPrintf("No set with enough signatures available\n");
