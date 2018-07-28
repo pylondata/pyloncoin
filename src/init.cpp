@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include "config/faircoin-config.h"
+#include "config/pyloncoin-config.h"
 #endif
 
 #include "init.h"
@@ -534,7 +534,7 @@ std::string HelpMessage(HelpMessageMode mode)
 std::string LicenseInfo()
 {
     // todo: remove urls from translations on next change
-    return FormatParagraph(strprintf(_("Copyright (C) 2016-%i The FairCoin Core Developers"), COPYRIGHT_YEAR)) + "\n" +
+    return FormatParagraph(strprintf(_("Copyright (C) 2016-%i The Pyloncoin Core Developers"), COPYRIGHT_YEAR)) + "\n" +
            "\n" +
            FormatParagraph(_("Copyright (C) 2009-2016 The Bitcoin Core Developers")) + "\n" +
            "\n" +
@@ -804,7 +804,7 @@ void InitLogging()
     fLogIPs = GetBoolArg("-logips", DEFAULT_LOGIPS);
 
     LogPrintf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-    LogPrintf("FairCoin version %s (%s)\n", FormatFullVersion(), CLIENT_DATE);
+    LogPrintf("Pyloncoin version %s (%s)\n", FormatFullVersion(), CLIENT_DATE);
 }
 
 /** Initialize bitcoin.
@@ -1074,7 +1074,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
 
     // Sanity check
     if (!InitSanityCheck())
-        return InitError(_("Initialization sanity check failed. FairCoin Core is shutting down."));
+        return InitError(_("Initialization sanity check failed. Pyloncoin Core is shutting down."));
 
     std::string strDataDir = GetDataDir().string();
 #ifdef ENABLE_WALLET
@@ -1090,9 +1090,9 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
     try {
         static boost::interprocess::file_lock lock(pathLockFile.string().c_str());
         if (!lock.try_lock())
-            return InitError(strprintf(_("Cannot obtain a lock on data directory %s. FairCoin Core is probably already running."), strDataDir));
+            return InitError(strprintf(_("Cannot obtain a lock on data directory %s. Pyloncoin Core is probably already running."), strDataDir));
     } catch(const boost::interprocess::interprocess_exception& e) {
-        return InitError(strprintf(_("Cannot obtain a lock on data directory %s. FairCoin Core is probably already running.") + " %s.", strDataDir, e.what()));
+        return InitError(strprintf(_("Cannot obtain a lock on data directory %s. Pyloncoin Core is probably already running.") + " %s.", strDataDir, e.what()));
     }
 
 #ifndef WIN32
@@ -1145,22 +1145,35 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
     UpdateCvnInfo(&genesisBlock, 0);
     UpdateChainAdmins(&genesisBlock);
 
-    nChainAdminId = InitChainAdminWithCertificate("123456");
+std::string error;
+#ifdef USE_FASITO
+    LogPrintf("Using fasito\n");
+    nChainAdminId = InitChainAdminWithFasito(strFasitoPassword, 0, error);
+#else
+    LogPrintf("not using fasito \n");
+    nChainAdminId = InitChainAdminWithCertificate(strFasitoPassword, error);
+#endif
+
     LogPrintf("\n");
     CCvnPartialSignature chainSig;
     vector<uint32_t> vMissingSignatures;
-    CvnSignPartial(genesisBlock.hashPrevBlock, chainSig, GENESIS_NODE_ID, GENESIS_NODE_ID, vMissingSignatures);
-    LogPrintf("Genesis chainMultiSig    : %s\n", chainSig.signature.ToString());
+    CvnSignPartial(genesisBlock.hashPrevBlock, chainSig, GENESIS_NODE_ID, GENESIS_NODE_ID, vMissingSignatures,0);
+    LogPrintf("Genesis chainMultiSig    : %s \n", chainSig.signature.ToString());
 
-    CSchnorrSig chainAdminSig;
+CSchnorrSig chainAdminSig;
+#ifdef USE_FASITO
+    if (!CvnSignWithFasito(genesisBlock.GetPayloadHash(true), 0, chainAdminSig))
+        return InitError("could not create chain admin signature");
+#else
     if (!adminPrivKey.SchnorrSign(genesisBlock.GetPayloadHash(true), chainAdminSig))
         return InitError("could not create chain admin signature");
 
-    LogPrintf("Genesis adminMultiSig    : %s\n", chainAdminSig.ToString());
     if (!CPubKey::VerifySchnorr(genesisBlock.GetPayloadHash(true), chainAdminSig, adminPubKey)) {
         return InitError("could not verify chain admin signature");
     }
-
+#endif
+    LogPrintf("Genesis adminMultiSig    : %s\n", chainAdminSig.ToString());
+    
     CvnSignBlock(genesisBlock);
     LogPrintf("Genesis creatorSignature : %s\n", genesisBlock.creatorSignature.ToString());
     LogPrintf("\n");
@@ -1290,6 +1303,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
     fListen = GetBoolArg("-listen", DEFAULT_LISTEN);
     fDiscover = GetBoolArg("-discover", true);
     fNameLookup = GetBoolArg("-dns", DEFAULT_NAME_LOOKUP);
+    fRelayTxes = !GetBoolArg("-blocksonly", DEFAULT_BLOCKSONLY);
 
     bool fBound = false;
     if (fListen) {
@@ -1452,7 +1466,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
                     strLoadError = _("You need to rebuild the database using -reindex to go back to unpruned mode.  This will redownload the entire blockchain");
                     break;
                 }
-
+                
                 uiInterface.InitMessage(_("Verifying blocks..."));
                 if (fHavePruned && GetArg("-checkblocks", DEFAULT_CHECKBLOCKS) > MIN_BLOCKS_TO_KEEP) {
                     LogPrintf("Prune: pruned datadir may not have more than %d blocks; -checkblocks=%d may fail\n",
@@ -1531,14 +1545,14 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
                 boost::filesystem::path fairCoin1WalletFile = GetDefaultDataDirFC1() / "wallet.dat";
                 boost::filesystem::path fairCoin2WalletFile = GetDataDir(false) / strWalletFile;
                 if (GetBoolArg("-fc1walletupgrade", true) && !boost::filesystem::exists(fairCoin2WalletFile) && boost::filesystem::exists(fairCoin1WalletFile)) {
-                    LogPrintf("FairCoin1 wallet found here: %s\n", fairCoin1WalletFile.string());
+                    LogPrintf("Pyloncoin1 wallet found here: %s\n", fairCoin1WalletFile.string());
                     try {
                         boost::filesystem::copy_file(fairCoin1WalletFile, GetDataDir(false) / strWalletFile, boost::filesystem::copy_option::fail_if_exists);
-                        LogPrintf("copied FairCoin1 wallet.dat to %s\n", fairCoin2WalletFile.string());
+                        LogPrintf("copied Pyloncoin1 wallet.dat to %s\n", fairCoin2WalletFile.string());
 
                         SoftSetArg("-zapwallettxes", "2");
                     } catch (const boost::filesystem::filesystem_error& e) {
-                        LogPrintf("error copying FairCoin1 wallet.dat to %s - %s, cannot perform wallet migration.\n", fairCoin2WalletFile.string(), e.what());
+                        LogPrintf("error copying Pyloncoin1 wallet.dat to %s - %s, cannot perform wallet migration.\n", fairCoin2WalletFile.string(), e.what());
                     }
                 }
             } catch (const std::exception &e) {
@@ -1579,10 +1593,10 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
                              " or address book entries might be missing or incorrect."));
             }
             else if (nLoadWalletRet == DB_TOO_NEW)
-                strErrors << _("Error loading wallet.dat: Wallet requires newer version of FairCoin Core") << "\n";
+                strErrors << _("Error loading wallet.dat: Wallet requires newer version of Pyloncoin Core") << "\n";
             else if (nLoadWalletRet == DB_NEED_REWRITE)
             {
-                strErrors << _("Wallet needed to be rewritten: restart FairCoin Core to complete") << "\n";
+                strErrors << _("Wallet needed to be rewritten: restart Pyloncoin Core to complete") << "\n";
                 LogPrintf("%s", strErrors.str());
                 return InitError(strErrors.str());
             }
@@ -1712,6 +1726,7 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
         }
     }
 
+    nLocalServices |= NODE_WITNESS;
     // ********************************************************* Step 10: import blocks
 
     if (mapArgs.count("-blocknotify"))

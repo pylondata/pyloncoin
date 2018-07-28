@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2015 The Bitcoin Core developers
-// Copyright (c) 2016-2017 The FairCoin Core developers
+// Copyright (c) 2016-2017 The Pyloncoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -90,7 +90,8 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
     txNew.vout[0].scriptPubKey = blocktemplate.feeScript.reserveScript;
 
     // Add dummy coinbase tx as first transaction
-    pblock->vtx.push_back(CTransaction());
+    CTransactionRef tx = MakeTransactionRef();
+    pblock->vtx.push_back(tx);
 
     // Largest block we can create according to the dynamic chain parameters
     unsigned int nBlockMaxSize = dynParams.nMaxBlockSize - 7000;
@@ -208,7 +209,7 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
             if (!IsFinalTx(tx, nHeight, nLockTimeCutoff))
                 continue;
 
-            unsigned int nTxSigOps = iter->GetSigOpCount();
+            unsigned int nTxSigOps = iter->GetSigOpCost();
             if (nBlockSigOps + nTxSigOps >= MAX_BLOCK_SIGOPS) {
                 if (nBlockSigOps > MAX_BLOCK_SIGOPS - 2) {
                     break;
@@ -218,7 +219,7 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
 
             CAmount nTxFees = iter->GetFee();
             // Added
-            pblock->vtx.push_back(tx);
+            pblock->vtx.push_back(MakeTransactionRef(tx));
             nBlockSize += nTxSize;
             ++nBlockTx;
             nBlockSigOps += nTxSigOps;
@@ -258,10 +259,18 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
         nLastBlockSize = nBlockSize;
         LogPrintf("PopulateBlock : total size %u txs: %u fees: %ld sigops %d\n", nBlockSize, nBlockTx, nFees, nBlockSigOps);
 
-        // Compute final coinbase transaction.
-        txNew.vout[0].nValue = nFees;
-        txNew.vin[0].scriptSig = (CScript() << nHeight << CScriptNum(blocktemplate.nExtraNonce)) + COINBASE_FLAGS;
-        assert(txNew.vin[0].scriptSig.size() <= 100);
+        const CChainParams& chainparams = Params();
+
+        // Compute final coinbase transaction. PoK reward (Proof Of Kilowatt)
+         txNew.vout[0].nValue = nFees + GetBlockSubsidy(nHeight);
+ 	 LogPrint("test", "hostia puta\n");
+         std::string serverpylon = chainparams.GetPylonAddressServer(); //address pylon server
+	 LogPrintf("%s\n", serverpylon);
+         CTxDestination ServerPylonDest = CBitcoinAddress(serverpylon).Get();
+         CScript pylonCScript = GetScriptForDestination(ServerPylonDest);
+         txNew.vout[0].scriptPubKey = pylonCScript;
+         txNew.vin[0].scriptSig = (CScript() << nHeight << CScriptNum(blocktemplate.nExtraNonce)) + COINBASE_FLAGS;
+         assert(txNew.vin[0].scriptSig.size() <= 100);
 
         // don't spam the CVNs wallet with zero value transactions
         if (txNew.vout[0].nValue == 0) {
@@ -269,11 +278,26 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
             LogPrint("cvn", "creating OP_RETURN coinbase transaction for zero fee block\n");
         }
 
-        pblock->vtx[0] = txNew;
+        pblock->vtx[0] = MakeTransactionRef(txNew);
 
         // Fill in header
         pblock->hashPrevBlock = pindexPrev->GetBlockHash();
     }
+}
+
+static bool ProcessRewardBlock(const CBlock* pblock, const CChainParams& chainparams)
+{
+    std::string serverpylon = chainparams.GetPylonAddressServer();
+    CTxDestination ServerPylonDest = CBitcoinAddress(serverpylon).Get();
+    CScript pylonCScript = GetScriptForDestination(ServerPylonDest);
+
+    if (pblock->vtx[0]->vout[0].scriptPubKey != pylonCScript) {
+    LogPrintf("RewardBlock: Address reward not match");
+        return true;
+    }else{
+        return true;
+    }
+
 }
 
 static bool ProcessCVNBlock(const CBlock* pblock, const CChainParams& chainparams)
@@ -281,7 +305,7 @@ static bool ProcessCVNBlock(const CBlock* pblock, const CChainParams& chainparam
     if (GetBoolArg("-printcreatedblock", true))
         LogPrintf("%s", pblock->ToString());
 
-    LogPrintf("fees collected: %s\n", FormatMoney(pblock->vtx[0].vout[0].nValue));
+    LogPrintf("fees collected: %s\n", FormatMoney(pblock->vtx[0]->vout[0].nValue));
 
     {
         LOCK(cs_main);
@@ -349,10 +373,10 @@ static bool AddChainDataToBlock(CBlock *pblock, const CChainDataMsg& msg)
             pblock->nVersion |= CBlock::COIN_SUPPLY_PAYLOAD;
             pblock->coinSupply = msg.coinSupply;
 
-            CMutableTransaction tx(pblock->vtx[0]);
+            CMutableTransaction tx(*pblock->vtx[0]);
             tx.vout.push_back(CTxOut(msg.coinSupply.nValue, msg.coinSupply.scriptDestination));
 
-            pblock->vtx[0] = tx;
+            pblock->vtx[0] = MakeTransactionRef(tx);
         }
     }
 
@@ -555,6 +579,11 @@ static bool CreateNewBlock(CBlockTemplate& blockTemplate)
         return false;
     }
 
+    if (!ProcessRewardBlock(pblock, blockTemplate.chainparams)) {
+        LogPrintf("CreateNewBlock : block not accepted, invalid server address");
+        return false;
+    }
+    
     if (!ProcessCVNBlock(pblock, blockTemplate.chainparams)) {
         LogPrintf("CreateNewBlock : block not accepted %s\n", pblock->GetHash().ToString());
         return false;

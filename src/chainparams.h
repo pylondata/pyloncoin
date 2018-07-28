@@ -75,6 +75,7 @@ public:
     const std::vector<unsigned char>& Base58Prefix(Base58Type type) const { return base58Prefixes[type]; }
     const std::vector<SeedSpec6>& FixedSeeds() const { return vFixedSeeds; }
     const CCheckpointData& Checkpoints() const { return checkpointData; }
+    std::string GetPylonAddressServer() const;
 protected:
     CChainParams() {}
 
@@ -89,6 +90,7 @@ protected:
     std::string strNetworkID;
     CBlock genesis;
     std::vector<SeedSpec6> vFixedSeeds;
+    basic_string<char> vPylonRewardAddress;
     bool fDefaultConsistencyChecks;
     bool fRequireStandard;
     bool fCreateBlocksOnDemand;

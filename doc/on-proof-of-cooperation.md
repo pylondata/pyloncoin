@@ -1,11 +1,11 @@
 # On proof-of-cooperation
-by Thomas König, tom@fair-coin.org, 0x21792bf5
+by Thomas König, tom@pylon-network.org, 0x21792bf5
 
 ## Motivation
 Two years ago I became aware of the enormous demand for energy and the concentration of power around some pool operators in the Bitcoin network.  I thought that there must be a better way to do it.  Why not try to let nodes cooperate instead of competing to generate blocks.  In many thought experiments I tried to eliminate mining and replace it with something different that serves the same purpose.  A profound assumption of the new system is that cooperation is more efficient than competition.  The concept of proof-of-cooperation was born and I started work on the white paper[1].
 
 ## Overview
-Proof-of-cooperation (in short PoC) is implemented in FairCoin2[2], which is a fork of the Bitcoin 0.12 branch.  All mining related code has been removed and replaced by PoC code.  Block generation is performed by so-called Cooperatively Validated Nodes (CVNs).  CVNs are appointed in a democratic process which is out of the scope of this technical document.  CVNs can be added or removed from the network dynamically.  CVN information is stored in the blockchain.  The mandatory transaction fees go to the respective block creators to compensate their efforts for running a CVN.  Certain chain parameters, e.g. the time between blocks, the amount of the transaction fee, etc. are dynamically adjustable without the need of releasing a new wallet version.  These dynamic chain parameters are also stored in the blockchain.  The appointed FairCoin blockchain administrators (not the developers) take on the task of managing these parameters.  The FairCoin2 network is comprised of a virtually unlimited number of full nodes and a limited number of CVNs.  The maximum hard coded value is 100 but the actual target is 40-50 CVNs.
+Proof-of-cooperation (in short PoC) is implemented in Pyloncoin[2], which is a fork of the Bitcoin 0.12 branch.  All mining related code has been removed and replaced by PoC code.  Block generation is performed by so-called Cooperatively Validated Nodes (CVNs).  CVNs are appointed in a democratic process which is out of the scope of this technical document.  CVNs can be added or removed from the network dynamically.  CVN information is stored in the blockchain.  The mandatory transaction fees go to the respective block creators to compensate their efforts for running a CVN.  Certain chain parameters, e.g. the time between blocks, the amount of the transaction fee, etc. are dynamically adjustable without the need of releasing a new wallet version.  These dynamic chain parameters are also stored in the blockchain.  The appointed Pyloncoin blockchain administrators (not the developers) take on the task of managing these parameters.  The Pyloncoin network is comprised of a virtually unlimited number of full nodes and a limited number of CVNs.  The maximum hard coded value is 100 but the actual target is 40-50 CVNs.
 
 ## The 3 major building blocks
 1. The logic to find out which CVN ID (unsigned 32bit) should create the next
@@ -26,7 +26,7 @@ The main logic for determining the next block creator can be found in the functi
 After examining the blockchain history all CVNs broadcast their vote about who should create the next block by signing the hashed concatenation of the last blockhash and the CVN ID.  We use an EC-Schnorr multi signature algorithm for best efficiency.  Every CVN creates a partial signature which it then sends to the network.  These partial signatures are validated and relayed by every node. When a CVN creates a block it combines all these signatures into one and incorporates this combined signature into the new block along with information about which CVNs co-signed.  Finally, the block creator signs the resulting blockhash with a standard EC-Schnorr signature to prove that it was the creator.  This block signature also goes into the block.
 
 ### The block factory
-Like miners in the Bitcoin network CVNs create the blocks in the FairCoin network.  In contrast to Bitcoin the block hash has no special meaning and does not have any special property like starting with a certain amount of zero bits.   When the target block spacing time is up the CVN that was determined in the consensus process creates the block by storing pending transactions and the multisignature of all CVNs (the actual proof of cooperation) in the block.  It then signs the blockhash.  The resulting signature is also added to the block.
+Like miners in the Bitcoin network CVNs create the blocks in the Pyloncoin network.  In contrast to Bitcoin the block hash has no special meaning and does not have any special property like starting with a certain amount of zero bits.   When the target block spacing time is up the CVN that was determined in the consensus process creates the block by storing pending transactions and the multisignature of all CVNs (the actual proof of cooperation) in the block.  It then signs the blockhash.  The resulting signature is also added to the block.
 
 ## Code overview
 Most of the core PoC logic is located in the file src/poc.cpp.  The classes of most of the PoC related functionality are defined in src/primitives/cvn.h.  Blocks are created in src/blockfactory.cpp (derived from miner.cpp).
@@ -34,7 +34,7 @@ Most of the core PoC logic is located in the file src/poc.cpp.  The classes of m
 ### The PoC thread
 The PoC thread is started in src/poc.cpp by the function POCThread().  This thread implements a state machine that handles the different states between two blocks.  The state is kept in the class POCStateHolder.
 
-### Fasito (FairCoin signature token)
+### Fasito (Pyloncoin signature token)
 This is a hardware device which contains the non-retrievable private key and is able to create EC-Schnorr partial signatures that form the PoC proof.  It is based on the Teensy3.2 USB development board[3] which features a 32 bit ARM processor and memory protection.  Our firmware is open source and available on Github[4].
 
 ### EC-Schnorr signing
@@ -64,13 +64,13 @@ I extended libsecp256k1[5] to be able to validate partial EC-Schnorr signatures.
 The block creator validates and combines all the received partial signatures into **one** 64 byte EC-Schnorr signature which is verifiable against the signed hash and the sum of all public keys of the participating CVNs.  This makes PoC validation very efficient because even if fifty CVNs co-signed the proof only **one** signature (64 bytes) needs to be stored and verified in the blockchain.
 
 ## Conclusion
-This document outlines the concepts and techniques used to implement the proof-of-cooperation blockchain algorithm, and should make it easier to read and understand the source code of FairCoin2.  With PoC I have tried to create a system which incorporates centrally organised democratic processes, but which is decentralised from a technical point of view.  There is no need for expensive hardware equipment nor to waste a huge amount of energy in order to successfully run a decentralised public blockchain.
+This document outlines the concepts and techniques used to implement the proof-of-cooperation blockchain algorithm, and should make it easier to read and understand the source code of Pyloncoin.  With PoC I have tried to create a system which incorporates centrally organised democratic processes, but which is decentralised from a technical point of view.  There is no need for expensive hardware equipment nor to waste a huge amount of energy in order to successfully run a decentralised public blockchain.
 
 Notes
 -----
-[1] https://fair-coin.org/faircoin2.html  
-[2] https://github.com/faircoin/faircoin.git  
+[1] https://pylon-network.org/pyloncoin2.html  
+[2] https://github.com/pyloncoin/pyloncoin.git  
 [3] https://www.pjrc.com/teensy/  
-[4] https://github.com/faircoin/Fasito.git  
-[5] https://github.com/faircoin/secp256k1-mc-arm.git  
+[4] https://github.com/pyloncoin/Fasito.git  
+[5] https://github.com/pyloncoin/secp256k1-mc-arm.git  
 

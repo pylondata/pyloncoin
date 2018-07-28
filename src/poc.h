@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2017 The FairCoin Core developers
+// Copyright (c) 2016-2017 The Pyloncoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -16,8 +16,8 @@
 #include <boost/filesystem.hpp>
 #include <secp256k1.h>
 
-#define GENESIS_NODE_ID  0xc001d00d
-#define GENESIS_ADMIN_ID 0xad000001
+#define GENESIS_NODE_ID  0xccaaffee
+#define GENESIS_ADMIN_ID 0xccaaffee
 
 /** dynamic chain parameters range checks */
 #define MAX_BLOCK_SPACING 3600

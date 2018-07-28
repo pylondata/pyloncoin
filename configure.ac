@@ -7,23 +7,23 @@ define(_CLIENT_VERSION_BUILD, 0)
 define(_CLIENT_VERSION_IS_RELEASE, false)
 define(_COPYRIGHT_YEAR, 2018)
 define(_COPYRIGHT_HOLDERS,[The %s developers])
-define(_COPYRIGHT_HOLDERS_SUBSTITUTION,[[FairCoin Core]])
-AC_INIT([FairCoin Core],[_CLIENT_VERSION_MAJOR._CLIENT_VERSION_MINOR._CLIENT_VERSION_REVISION],[https://github.com/faircoin/faircoin/issues],[faircoin],[https://fair-coin.org/])
+define(_COPYRIGHT_HOLDERS_SUBSTITUTION,[[Pyloncoin Core]])
+AC_INIT([Pyloncoin Core],[_CLIENT_VERSION_MAJOR._CLIENT_VERSION_MINOR._CLIENT_VERSION_REVISION],[https://github.com/pyloncoin/pyloncoin/issues],[pyloncoin],[https://pylon-network.org/])
 AC_CONFIG_SRCDIR([src/main.cpp])
-AC_CONFIG_HEADERS([src/config/faircoin-config.h])
+AC_CONFIG_HEADERS([src/config/pyloncoin-config.h])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([build-aux/m4])
 
-BITCOIN_DAEMON_NAME=faircoind
-BITCOIN_GUI_NAME=faircoin-qt
-BITCOIN_CLI_NAME=faircoin-cli
-BITCOIN_TX_NAME=faircoin-tx
+BITCOIN_DAEMON_NAME=pyloncoind
+BITCOIN_GUI_NAME=pyloncoin-qt
+BITCOIN_CLI_NAME=pyloncoin-cli
+BITCOIN_TX_NAME=pyloncoin-tx
 
 AC_CANONICAL_HOST
 
-AH_TOP([#ifndef FAIRCOIN_CONFIG_H])
-AH_TOP([#define FAIRCOIN_CONFIG_H])
-AH_BOTTOM([#endif //FAIRCOIN_CONFIG_H])
+AH_TOP([#ifndef PLNCOIN_CONFIG_H])
+AH_TOP([#define PLNCOIN_CONFIG_H])
+AH_BOTTOM([#endif //PLNCOIN_CONFIG_H])
 
 dnl faketime breaks configure and is only needed for make. Disable it here.
 unset FAKETIME
@@ -104,7 +104,7 @@ AC_ARG_WITH([cvn],
   [use_cvn=no])
 
 AC_ARG_WITH([fasito],
-  [AS_HELP_STRING([--with-fasito], [enable use of Fasito (FairCoin signature token) - (default is yes)])],
+  [AS_HELP_STRING([--with-fasito], [enable use of Fasito (Pyloncoin signature token) - (default is yes)])],
   [use_fasito=$withval],
   [use_fasito=yes])
 
@@ -459,7 +459,7 @@ AC_C_BIGENDIAN
 dnl Check for pthread compile/link requirements
 AX_PTHREAD
 
-# The following macro will add the necessary defines to faircoin-config.h, but
+# The following macro will add the necessary defines to pyloncoin-config.h, but
 # they also need to be passed down to any subprojects. Pull the results out of
 # the cache and add them to CPPFLAGS.
 AC_SYS_LARGEFILE
@@ -981,11 +981,11 @@ AC_SUBST(UNIVALUE_LIBS)
 
 BITCOIN_QT_PATH_PROGS([PROTOC], [protoc],$protoc_bin_path)
 
-AC_MSG_CHECKING([whether to build faircoind])
+AC_MSG_CHECKING([whether to build pyloncoind])
 AM_CONDITIONAL([BUILD_BITCOIND], [test x$build_bitcoind = xyes])
 AC_MSG_RESULT($build_bitcoind)
 
-AC_MSG_CHECKING([whether to build utils (faircoin-cli faircoin-tx)])
+AC_MSG_CHECKING([whether to build utils (pyloncoin-cli pyloncoin-tx)])
 AM_CONDITIONAL([BUILD_BITCOIN_UTILS], [test x$build_bitcoin_utils = xyes])
 AC_MSG_RESULT($build_bitcoin_utils)
 
@@ -1105,7 +1105,7 @@ if test x$bitcoin_enable_qt != xno; then
     AC_MSG_WARN("xgettext is required to update qt translations")
   fi
 
-  AC_MSG_CHECKING([whether to build test_faircoin-qt])
+  AC_MSG_CHECKING([whether to build test_pyloncoin-qt])
   if test x$use_gui_tests$bitcoin_enable_qt_test = xyesyes; then
     AC_MSG_RESULT([yes])
     BUILD_TEST_QT="yes"
@@ -1116,7 +1116,7 @@ fi
 
 AM_CONDITIONAL([ENABLE_ZMQ], [test "x$use_zmq" = "xyes"])
 
-AC_MSG_CHECKING([whether to build test_faircoin])
+AC_MSG_CHECKING([whether to build test_pyloncoin])
 if test x$use_tests = xyes; then
   AC_MSG_RESULT([yes])
   BUILD_TEST="yes"

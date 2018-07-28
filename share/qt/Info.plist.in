@@ -11,13 +11,13 @@
   </array>
 
   <key>CFBundleIconFile</key>
-  <string>faircoin.icns</string>
+  <string>pyloncoin.icns</string>
 
   <key>CFBundlePackageType</key>
   <string>APPL</string>
 
   <key>CFBundleGetInfoString</key>
-  <string>@CLIENT_VERSION_MAJOR@.@CLIENT_VERSION_MINOR@.@CLIENT_VERSION_REVISION@, Copyright © 2016-@COPYRIGHT_YEAR@ The FairCoin Core developers</string>
+  <string>@CLIENT_VERSION_MAJOR@.@CLIENT_VERSION_MINOR@.@CLIENT_VERSION_REVISION@, Copyright © 2016-@COPYRIGHT_YEAR@ The Pyloncoin Core developers</string>
 
   <key>CFBundleShortVersionString</key>
   <string>@CLIENT_VERSION_MAJOR@.@CLIENT_VERSION_MINOR@.@CLIENT_VERSION_REVISION@</string>
@@ -29,16 +29,16 @@
   <string>????</string>
 
   <key>CFBundleExecutable</key>
-  <string>FairCoin-Qt</string>
+  <string>Pyloncoin-Qt</string>
   
   <key>CFBundleName</key>
-  <string>FairCoin-Qt</string>
+  <string>Pyloncoin-Qt</string>
 
   <key>LSHasLocalizedDisplayName</key>
   <true/>
 
   <key>CFBundleIdentifier</key>
-  <string>org.faircoin.FairCoin-Qt</string>
+  <string>org.pyloncoin.Pyloncoin-Qt</string>
 
   <key>CFBundleURLTypes</key>
   <array>
@@ -46,10 +46,10 @@
       <key>CFBundleTypeRole</key>
       <string>Editor</string>
       <key>CFBundleURLName</key>
-      <string>org.faircoin.FairCoinPayment</string>
+      <string>org.pyloncoin.PyloncoinPayment</string>
       <key>CFBundleURLSchemes</key>
       <array>
-        <string>faircoin</string>
+        <string>pyloncoin</string>
       </array>
     </dict>
   </array>
@@ -60,7 +60,7 @@
       <key>UTTypeIdentifier</key>
       <string>org.fair-coin.paymentrequest</string>
       <key>UTTypeDescription</key>
-      <string>FairCoin payment request</string>
+      <string>Pyloncoin payment request</string>
       <key>UTTypeConformsTo</key>
       <array>
         <string>public.data</string>
@@ -68,10 +68,10 @@
       <key>UTTypeTagSpecification</key>
       <dict>
         <key>public.mime-type</key>
-        <string>application/x-faircoin-payment-request</string>
+        <string>application/x-pyloncoin-payment-request</string>
         <key>public.filename-extension</key>
         <array>
-          <string>faircoinpaymentrequest</string>
+          <string>pyloncoinpaymentrequest</string>
         </array>
       </dict>
     </dict>
@@ -84,7 +84,7 @@
       <string>Editor</string>
       <key>LSItemContentTypes</key>
       <array>
-        <string>org.faircoin.paymentrequest</string>
+        <string>org.pyloncoin.paymentrequest</string>
       </array>
       <key>LSHandlerRank</key>
       <string>Owner</string>

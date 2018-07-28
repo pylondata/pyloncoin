@@ -204,8 +204,7 @@ void RPCExecutor::request(const QString &command)
         std::string strPrint;
         // Convert argument list to JSON objects in method-dependent way,
         // and pass it along with the method name to the dispatcher.
-        UniValue result = tableRPC.execute(
-            args[0],
+        UniValue result = tableRPC.execute(args[0],
             RPCConvertValues(args[0], std::vector<std::string>(args.begin() + 1, args.end())));
 
         // Format result reply
@@ -481,7 +480,7 @@ void RPCConsole::clear()
             ).arg(fixedFontInfo.family(), ptSize)
         );
 
-    message(CMD_REPLY, (tr("Welcome to the FairCoin Core RPC console.") + "<br>" +
+    message(CMD_REPLY, (tr("Welcome to the Pyloncoin Core RPC console.") + "<br>" +
                         tr("Use up and down arrows to navigate history, and <b>Ctrl-L</b> to clear screen.") + "<br>" +
                         tr("Type <b>help</b> for an overview of available commands.")), true);
 }

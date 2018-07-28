@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2017 The FairCoin Core developers
+// Copyright (c) 2016-2017 The Pyloncoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -64,9 +64,11 @@ CNoncesMapType mapAdminNonces;
 CCriticalSection cs_mapAdminSigs;
 MapSigAdmin mapAdminSigs;
 
-/* private nonces when starting faircoind with -cvn=file */
+/* private nonces when starting pyloncoind with -cvn=file */
 static vector<CSchnorrPrivNonce> vNoncePrivate;
 static secp256k1_context *secp256k1_context_none = NULL;
+
+bool static CvnSignPartialWithKey(const uint256& hashToSign, const CKey& cvnPrivKey, const CSchnorrPubKey& sumPublicNoncesOthers, CSchnorrSig& signature, const int nPoolOffset);
 
 const char *pocStateNames[] = {
         "INIT",
@@ -107,7 +109,7 @@ void printHex(const uint8_t *buf, const size_t len, const bool addLF = false)
 #endif
 
 bool AddToCvnInfoCache(const CBlock *pblock, const uint32_t nHeight)
-{
+{   
     if (!pblock->HasCvnInfo())
         return false;
 
@@ -123,10 +125,19 @@ bool AddToCvnInfoCache(const CBlock *pblock, const uint32_t nHeight)
     }
 
     secp256k1_pubkey sumOfAllSignersPubkeys;
-    if (count == 1) {
+
+    if (count == 0){
+        LogPrint("cvn", "No CVN defined\n");
+        return false;
+    } else if (count == 1) {
         memcpy(sumOfAllSignersPubkeys.data, &pblock->vCvns[0].pubKey.begin()[0], 64);
     } else {
-        if (!secp256k1_ec_pubkey_combine(secp256k1_context_none, &sumOfAllSignersPubkeys, allSignersPubkeys, count))
+        LogPrint("cvn", "not 1\n");
+        //
+        // Esto peta en runtime si no esta comentado.
+        // Como de momento solo tenemos 1 cvn no nos afecta
+
+        //if (!secp256k1_ec_pubkey_combine(secp256k1_context_none, &sumOfAllSignersPubkeys, allSignersPubkeys, count))
             return error("%s : could not combine signers public keys", __func__);
     }
 
@@ -500,6 +511,49 @@ bool CreateSumPublicNoncesOthers(CSchnorrPubKey &sumPublicNoncesOthers, const ui
     return true;
 }
 
+bool VerifyNoncePoolEntry(const int &nPoolOffset)
+{
+    CHashWriter hasher(SER_GETHASH, 0);
+
+    if (!nCvnNodeId) {
+        LogPrintf("%s : CVN node not initialised\n", __func__);
+        return false;
+    }
+
+    CvnMapType::iterator cvnInfoIter = mapCVNs.find(nCvnNodeId);
+
+    if (cvnInfoIter == mapCVNs.end()) {
+        LogPrintf("%s : # %d could not find CvnInfo for signer ID 0x%08x\n", __func__, nPoolOffset, nCvnNodeId);
+        return false;
+    }
+
+    CSchnorrPubKey dummySumPublicNoncesOthers = cvnInfoIter->second.pubKey;
+    hasher << dummySumPublicNoncesOthers;
+
+    uint256 hashToSign = hasher.GetHash();
+    CSchnorrSig signature;
+
+    if (GetArg("-cvn", "") == "fasito") {
+#ifdef USE_FASITO   
+        if (!fasito.fLoggedIn) {
+            LogPrint("cvn", "%s : not logged into Fasito. Cannot create partial signature.\n", __func__);
+            return false;
+        }
+
+        if (!CvnSignPartialWithFasito(hashToSign, fasito.nCVNKeyIndex, dummySumPublicNoncesOthers, signature, nPoolOffset))
+            return false;
+#else
+        LogPrintf("%s : this wallet was not compiled with Fasito support.\n", __func__);
+        return false;
+#endif
+    } else {
+        if (!CvnSignPartialWithKey(hashToSign, cvnPrivKey, dummySumPublicNoncesOthers, signature, nPoolOffset))
+            return false;
+    }
+
+    return VerifyPartialSignature(hashToSign, signature, dummySumPublicNoncesOthers, dummySumPublicNoncesOthers);
+}
+
 static void UpdateHashWithMissingIDs(CHashWriter &hasher, const vector<uint32_t> &vMissingSignerIds)
 {
     if (vMissingSignerIds.empty())
@@ -524,7 +578,6 @@ bool CvnVerifyChainSignature(const CBlock& block)
 {
     CHashWriter hasher(SER_GETHASH, 0);
     hasher << block.hashPrevBlock << block.nCreatorId;
-
     /* special case when bootstrapping the blockchain we only have one CVN ID */
     if (mapCVNs.size() == 1) {
         if (!mapCVNs.count(block.nCreatorId)) {
@@ -567,7 +620,8 @@ bool CvnVerifyChainSignature(const CBlock& block)
             allSignersPubkeys[count++] = (secp256k1_pubkey *)&cvn.second.pubKey.begin()[0];
         }
 
-        if (!secp256k1_ec_pubkey_combine(secp256k1_context_none, &sumOfAllSignersPubkeys, allSignersPubkeys, count))
+        // Peta en runtime, no nos afecta porque de momento no tenemos 'missing signers' 
+        //if (!secp256k1_ec_pubkey_combine(secp256k1_context_none, &sumOfAllSignersPubkeys, allSignersPubkeys, count))
             return error("CvnVerifyChainSignature : could not combine signers public keys");
 
         UpdateHashWithMissingIDs(hasher, vMissingSignersIds);
@@ -1003,7 +1057,7 @@ void UpdateChainParameters(const CBlock* pblock)
 bool CheckProofOfCooperation(const CBlock& block, const Consensus::Params& params)
 {
     const uint256 hashBlock = block.GetHash();
-
+     
     if (!CheckForDuplicateMissingChainSigs(block))
         return false;
 
@@ -2180,18 +2234,10 @@ static bool SetUpNoncePool()
         return false;
     }
 
-    /* to verify the entries of the current nonce pool we create a partial
-     * signature with each nonce pair in the pool
-     */
-    uint256 hashData;
-    CCvnPartialSignatureUnsinged signature;
-    vector<uint32_t> vMissingSignerIds;
     int nPoolSize = pool.vPublicNonces.size();
-    GetStrongRandBytes(&hashData.begin()[0], 32);
-
     LogPrintf("Verifying nonce pool with %d entires...", nPoolSize);
     for (int i = 0 ; i < nPoolSize ; i++) {
-        if (!CvnSignPartial(hashData, signature, nCvnNodeId, nCvnNodeId, vMissingSignerIds, i)) {
+        if (!VerifyNoncePoolEntry(i)) {
             LogPrintf("%s : nonce pool is invalid. Re-creating it.\n", __func__);
             return false;
         }
@@ -2549,7 +2595,9 @@ static void handleInit(POCStateHolder& s)
             LogPrintf("Using saved nonces pool\n");
             RelayNoncePool(mapNoncePool[s.nNodeId]);
         } else {
+#ifdef USE_FASITO
             fasito.vNonceHandles.clear();
+#endif
             vNoncePrivate.clear();
             CreateNewNoncePool(s);
         }

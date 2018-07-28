@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2017 The FairCoin Core developers
+// Copyright (c) 2016-2017 The Pyloncoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -24,13 +24,15 @@ static X509* ParseCertificate(FILE* file, const bool fChainAdmin, const string& 
     OpenSSL_add_all_algorithms(); // needed to load encrypted private keys
 
     EVP_PKEY *privkey = EVP_PKEY_new();
+    char *key = strdup(strPassword.c_str());
 
-    if (!PEM_read_PrivateKey(file, &privkey, NULL, strPassword.length() ? (char *)strPassword.c_str() : NULL)) {
+    if (!PEM_read_PrivateKey(file, &privkey, NULL, strPassword.length() ? key : NULL)) {
         fclose(file);
         LogPrintf("ERROR: could not open certificate file.\n");
         return NULL;
     }
 
+    free(key);
     fclose(file);
 
     const EC_KEY* eckey = EVP_PKEY_get1_EC_KEY(privkey);

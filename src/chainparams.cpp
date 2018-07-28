@@ -13,6 +13,7 @@
 #include "poc.h"
 #include "base58.h"
 #include "chainparamsseeds.h"
+#include "primitives/transaction.h"
 
 #include <stdio.h>
 #include <assert.h>
@@ -34,13 +35,13 @@ CDynamicChainParams dynParams;
             genesis.hashPayload.ToString().c_str())
 #endif
 
-#define GENESIS_BLOCK_TIMESTAMP 1500364800
-const char* genesisMessage = "FairCoin - the currency for a fair economy.";
+#define GENESIS_BLOCK_TIMESTAMP 1531827198   
+const char* genesisMessage = "Coco loco";
 
 static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nCreatorId, const CDynamicChainParams& dynamicChainParams)
 {
     CMutableTransaction txNew;
-    txNew.nVersion = 1;
+    txNew.nVersion = 2;
     txNew.vin.resize(1);
     txNew.vout.resize(1);
     txNew.vin[0].scriptSig = CScript() << OP_0 << CScriptNum(GENESIS_NODE_ID) << OP_0; // Serialised block height + genesis node ID + zero
@@ -52,7 +53,7 @@ static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nCreatorId, const CDyn
     genesis.nTime      = nTime;
     genesis.nCreatorId = nCreatorId;
     genesis.hashPrevBlock.SetNull();
-    genesis.vtx.push_back(txNew);
+    genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
     genesis.dynamicChainParams = dynamicChainParams;
     return genesis;
 }
@@ -77,21 +78,21 @@ public:
          * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
          * a large 32-bit integer with any alignment.
          */
-        pchMessageStart[0] = 0xfa;
-        pchMessageStart[1] = 0xbf;
-        pchMessageStart[2] = 0xb5;
-        pchMessageStart[3] = 0xda;
-        vAlertPubKey = ParseHex("04b06af4982ca3edc2c040cc2cde05fa5b33264af4a98712ceb29d196e7390b4753eb7264dc5f383f29a44d63e70dbbd8d9e46a0a60f80ef62fd1911291ec388e4");
+        pchMessageStart[0] = 0xfc;
+        pchMessageStart[1] = 0xcf;
+        pchMessageStart[2] = 0xcf;
+        pchMessageStart[3] = 0xfc;
+        vAlertPubKey = ParseHex("049F3692B03712571CB09F02E15991EB23249C07818BFB3B325B14A94384B46104C8F7FD2BBA4018FD01D3E2AF284EA292347F5E36946707E9C999A3175CDF6C47");
         nDefaultPort = 40404;
         nPruneAfterHeight = 100000;
 
         CDynamicChainParams dynParams;
-        dynParams.nBlockSpacing                = 3 * 60; // 3 min.
+        dynParams.nBlockSpacing                = 1 * 60; // 3 min.
         dynParams.nBlockSpacingGracePeriod     = 60;
         dynParams.nMaxAdminSigs                = 11;
         dynParams.nMinAdminSigs                = 1;
-        dynParams.nTransactionFee              = 0 * CENT; // 0 FAIR per Kb
-        dynParams.nDustThreshold               = 0 * CENT; // 0 FAIR
+        dynParams.nTransactionFee              = 0 * CENT; // 0 PLN per Kb
+        dynParams.nDustThreshold               = 0 * CENT; // 0 PLN
         dynParams.nMinSuccessiveSignatures     = 1;
         dynParams.nBlocksToConsiderForSigCheck = 1;
         dynParams.nPercentageOfSignaturesMean  = 70; // 70%
@@ -99,20 +100,20 @@ public:
         dynParams.nBlockPropagationWaitTime    = 50; // 50 sec.
         dynParams.nRetryNewSigSetInterval      = 15; // 15 sec.
         dynParams.nCoinbaseMaturity            = 10; // 10 blocks = 30 min.
-        dynParams.strDescription               = "#00001 https://fair-coin.org/ The genesis dynamic chain parameters";
+        dynParams.strDescription               = "#00001 https://pylon-network.org/ The genesis dynamic chain parameters";
 
         genesis = CreateGenesisBlock(GENESIS_BLOCK_TIMESTAMP, GENESIS_NODE_ID, dynParams);
 
         genesis.vCvns.resize(1);
-        genesis.vCvns[0] = CCvnInfo(GENESIS_NODE_ID, 0, CSchnorrPubKeyDER("04f69bd29a5e2b8d0f5c185fcc421d11556c071788de07d3d194ded04721afaa652ad75a649a0dac8f576e484392af68f5c31ab0ef5e3432baf8b14b6ad8b1262c"));
+        genesis.vCvns[0] = CCvnInfo(GENESIS_NODE_ID, 0, CSchnorrPubKeyDER("049F3692B03712571CB09F02E15991EB23249C07818BFB3B325B14A94384B46104C8F7FD2BBA4018FD01D3E2AF284EA292347F5E36946707E9C999A3175CDF6C47"));
 
         genesis.vChainAdmins.resize(1);
-        genesis.vChainAdmins[0] = CChainAdmin(GENESIS_ADMIN_ID, 0, CSchnorrPubKeyDER("041cbfa5cb7dbe6387c0808264feb7adc9d99a003da4922e839a548955307f3d365f9fe6fa76767e848660ec864c9f3075fdcdf3e3755af9e3c2662004979ff580"));
+        genesis.vChainAdmins[0] = CChainAdmin(GENESIS_ADMIN_ID, 0, CSchnorrPubKeyDER("049F3692B03712571CB09F02E15991EB23249C07818BFB3B325B14A94384B46104C8F7FD2BBA4018FD01D3E2AF284EA292347F5E36946707E9C999A3175CDF6C47"));
 
-        genesis.chainMultiSig = CSchnorrSigS("14dc4f77f9d59ece2b3aa02cc4df99954d47fa2719be207d1b5010745aec419e451f01a8749cd16f22a727d0deba5110d2ce7e44ff86f0efdea58db4efdb92cd");
+        genesis.chainMultiSig = CSchnorrSigS("8e004c690c375c23851a9751d4c9867c2c0cc4fceba0dbbcedc15814a43bc47f19e007b3c5f164e14921f50ca52cfc1d39c32f42fef356338b761dd7ca724721");
         genesis.vAdminIds.push_back(GENESIS_ADMIN_ID);
-        genesis.adminMultiSig = CSchnorrSigS("591039a3b2e2c5ca8cd491e940263c9f2515a43b5085d4451dbdf8c09acb3d1fe7001957ebeda65a3cd26f1d19fb3db3b06baf5dc41cdcd3412728c8b57edaf5");
-        genesis.creatorSignature = CSchnorrSigS("ced5d4d4f5967b80ca774324a5d9ab0569ec1f1608dfef6c1e439094dc3467d50b2116fa02f3e89753033e94628668298f61b43df046881c9312f3bccde46a3f");
+        genesis.adminMultiSig = CSchnorrSigS("e06c3bfc7f9d564b556328e2c69c275d853d9765d5f7f417152a1f9526d3a3599ed7b92c11c1e7ebcf3a5ad8b9799151a6a9b9c8998d95fd61b18782c6501791");
+        genesis.creatorSignature = CSchnorrSigS("2685731c204cb7e1617684ad9eda2bfa1089aad52a4a1aed30b1dc052d7d948a12672d3100305397c40b7b7e6b6a9cea1afb2679ef72e109b1e2303aba158717");
 
         genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
         genesis.hashPayload    = genesis.GetPayloadHash();
@@ -121,19 +122,19 @@ public:
 #if SHOW_GENESIS_HASHES
         PRINT_HASHES;
 #else
-        assert(consensus.hashGenesisBlock == uint256S("beed44fa5e96150d95d56ebd5d2625781825a9407a5215dd7eda723373a0a1d7"));
-        assert(genesis.hashMerkleRoot == uint256S("7c27ade2c28e67ed3077f8f77b8ea6d36d4f5eba04c099be3c9faa9a4a04c046"));
-        assert(genesis.hashPayload == uint256S("2b7ab86ef7189614d4bccb2576bffe834b7c0e6d3fd63539ea9fbbca45d26c0e"));
+        assert(consensus.hashGenesisBlock == uint256S("2f5e681af094298e5bc9c721fada509c2f16738182ce1256878644ea1f3eb169"));
+        assert(genesis.hashMerkleRoot == uint256S("f702453dd03b0f055e5437d76128141803984fb10acb85fc3b2184fae2f3fa78"));
+        assert(genesis.hashPayload == uint256S("5fd1f1c8d729bccd4d28fccdbf7613ed1795c5aa82565d9b128f44da262cff55"));
 #endif
-        vSeeds.push_back(CDNSSeedData("1.fair-coin.org", "faircoin2-seed1.fair-coin.org")); // Thomas König
-        vSeeds.push_back(CDNSSeedData("2.fair-coin.org", "faircoin2-seed2.fair-coin.org")); // Thomas König
+       // vSeeds.push_back(CDNSSeedData("1.pylon-network.org", "pyloncoin2-seed1.pylon-network.org")); // Thomas König
+       // vSeeds.push_back(CDNSSeedData("2.pylon-network.org", "pyloncoin2-seed2.pylon-network.org")); // Thomas König
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,95);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,36);
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,223);
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x88)(0xB2)(0x1E).convert_to_container<std::vector<unsigned char> >();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x88)(0xAD)(0xE4).convert_to_container<std::vector<unsigned char> >();
-
+        vPylonRewardAddress = "fPn9o5z38gA79nf8D1KRMacx4EwnUd2kz8";
         vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_main, pnSeed6_main + ARRAYLEN(pnSeed6_main));
 
         fDefaultConsistencyChecks = false;
@@ -166,7 +167,7 @@ public:
         pchMessageStart[1] = 0x12;
         pchMessageStart[2] = 0x0a;
         pchMessageStart[3] = 0x08;
-        vAlertPubKey = ParseHex("045894f38e9dd72b6f210c261d40003eb087030c42b102d3b238b396256d02f5a380ff3b7444d306d9e118fa1fc7b2b7594875f4eb64bbeaa31577391d85eb5a8a");
+        vAlertPubKey = ParseHex("049F3692B03712571CB09F02E15991EB23249C07818BFB3B325B14A94384B46104C8F7FD2BBA4018FD01D3E2AF284EA292347F5E36946707E9C999A3175CDF6C47");
         nDefaultPort = 41404;
         nPruneAfterHeight = 1000;
 
@@ -175,8 +176,8 @@ public:
         dynParams.nBlockSpacingGracePeriod     = 45;
         dynParams.nMaxAdminSigs                = 11;
         dynParams.nMinAdminSigs                = 1;
-        dynParams.nTransactionFee              = 10 * CENT; // 0.1 FAIR per Kb
-        dynParams.nDustThreshold               = 10 * CENT; // 0.1 FAIR
+        dynParams.nTransactionFee              = 10 * CENT; // 0.1 PLN per Kb
+        dynParams.nDustThreshold               = 10 * CENT; // 0.1 PLN
         dynParams.nMinSuccessiveSignatures     = 1;
         dynParams.nBlocksToConsiderForSigCheck = 1;
         dynParams.nPercentageOfSignaturesMean  = 70; // 70%
@@ -184,20 +185,20 @@ public:
         dynParams.nBlockPropagationWaitTime    = 50; // 50 sec.
         dynParams.nRetryNewSigSetInterval      = 15; // 15 sec.
         dynParams.nCoinbaseMaturity            = 10; // 10 blocks = 30 min.
-        dynParams.strDescription               = "#00001 https://fair-coin.org/ The genesis dynamic chain parameters";
+        dynParams.strDescription               = "#00001 https://pylon-network.org/ The genesis dynamic chain parameters";
 
         genesis = CreateGenesisBlock(GENESIS_BLOCK_TIMESTAMP + 1, GENESIS_NODE_ID, dynParams);
 
         genesis.vCvns.resize(1);
-        genesis.vCvns[0] = CCvnInfo(GENESIS_NODE_ID, 0, CSchnorrPubKeyDER("04f69bd29a5e2b8d0f5c185fcc421d11556c071788de07d3d194ded04721afaa652ad75a649a0dac8f576e484392af68f5c31ab0ef5e3432baf8b14b6ad8b1262c"));
+        genesis.vCvns[0] = CCvnInfo(GENESIS_NODE_ID, 0, CSchnorrPubKeyDER("049F3692B03712571CB09F02E15991EB23249C07818BFB3B325B14A94384B46104C8F7FD2BBA4018FD01D3E2AF284EA292347F5E36946707E9C999A3175CDF6C47"));
 
         genesis.vChainAdmins.resize(1);
-        genesis.vChainAdmins[0] = CChainAdmin(GENESIS_ADMIN_ID, 0, CSchnorrPubKeyDER("041cbfa5cb7dbe6387c0808264feb7adc9d99a003da4922e839a548955307f3d365f9fe6fa76767e848660ec864c9f3075fdcdf3e3755af9e3c2662004979ff580"));
+        genesis.vChainAdmins[0] = CChainAdmin(GENESIS_ADMIN_ID, 0, CSchnorrPubKeyDER("049F3692B03712571CB09F02E15991EB23249C07818BFB3B325B14A94384B46104C8F7FD2BBA4018FD01D3E2AF284EA292347F5E36946707E9C999A3175CDF6C47"));
 
-        genesis.chainMultiSig = CSchnorrSigS("14dc4f77f9d59ece2b3aa02cc4df99954d47fa2719be207d1b5010745aec419e451f01a8749cd16f22a727d0deba5110d2ce7e44ff86f0efdea58db4efdb92cd");
+        genesis.chainMultiSig = CSchnorrSigS("8e004c690c375c23851a9751d4c9867c2c0cc4fceba0dbbcedc15814a43bc47f19e007b3c5f164e14921f50ca52cfc1d39c32f42fef356338b761dd7ca724721");
         genesis.vAdminIds.push_back(GENESIS_ADMIN_ID);
-        genesis.adminMultiSig = CSchnorrSigS("0c9cce30058d3a2e8e154d6bf9ab6ae94098a4e2d539bf27f0236e26dee86d1e9a37df700bdd4b991310046b069b0b84ce62371f6c8ab8949e19831d4b071231");
-        genesis.creatorSignature = CSchnorrSigS("377599b4021c3e35a40667466734d2d1a3a1ef94cf52e1f5a6863af180ed7258982869d956ff34251ef4e13d7fd341a68c3e47007b5cbc0c67860a8956df9e71");
+        genesis.adminMultiSig = CSchnorrSigS("e06c3bfc7f9d564b556328e2c69c275d853d9765d5f7f417152a1f9526d3a3599ed7b92c11c1e7ebcf3a5ad8b9799151a6a9b9c8998d95fd61b18782c6501791");
+        genesis.creatorSignature = CSchnorrSigS("0e0ecbaf45571b4916d5c3909da8cb88f8f9f3c2a934b3156e6eb004a1821b66ce41c6606b9dea88812dbb5e36b9e6382e5d9c3d507881f242bc721bf000d64f");
 
         genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
         genesis.hashPayload    = genesis.GetPayloadHash();
@@ -206,13 +207,13 @@ public:
 #if SHOW_GENESIS_HASHES
         PRINT_HASHES;
 #else
-        assert(consensus.hashGenesisBlock == uint256S("42327d5edf3cbb75bb139ec78bd62e517f14d7cbad451e4778741b6b4c1dfbc6"));
-        assert(genesis.hashMerkleRoot == uint256S("7c27ade2c28e67ed3077f8f77b8ea6d36d4f5eba04c099be3c9faa9a4a04c046"));
-        assert(genesis.hashPayload == uint256S("1c4ed40a950abbd27f4cd57e1ccb6613a956ce9edb16210cd5acb12f708389f3"));
+        assert(consensus.hashGenesisBlock == uint256S("37e2805d817f1664d09f1a563bca212359204783e1c16fdbddef692dae5ff006"));
+        assert(genesis.hashMerkleRoot == uint256S("f702453dd03b0f055e5437d76128141803984fb10acb85fc3b2184fae2f3fa78"));
+        assert(genesis.hashPayload == uint256S("8e23c4ae3741ec7396cc0ab4d9e7328191f519076548aa3dbfd83e877879a234"));
 #endif
         vFixedSeeds.clear();
         vSeeds.clear();
-        vSeeds.push_back(CDNSSeedData("1.fair-coin.org", "faircoin2-testnet-seed1.fair-coin.org")); // Thomas König
+       // vSeeds.push_back(CDNSSeedData("1.pylon-network.org", "pyloncoin2-testnet-seed1.pylon-network.org")); // Thomas König
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
@@ -260,8 +261,8 @@ public:
         dynParams.nBlockSpacingGracePeriod     = 30;
         dynParams.nMaxAdminSigs                = 11;
         dynParams.nMinAdminSigs                = 1;
-        dynParams.nTransactionFee              = 10 * CENT; // 0.1 FAIR per Kb
-        dynParams.nDustThreshold               = 10 * CENT; // 0.1 FAIR
+        dynParams.nTransactionFee              = 10 * CENT; // 0.1 PLN per Kb
+        dynParams.nDustThreshold               = 10 * CENT; // 0.1 PLN
         dynParams.nMinSuccessiveSignatures     = 1;
         dynParams.nBlocksToConsiderForSigCheck = 1;
         dynParams.nPercentageOfSignaturesMean  = 70; // 70%
@@ -269,20 +270,20 @@ public:
         dynParams.nBlockPropagationWaitTime    = 20; // 20 sec.
         dynParams.nRetryNewSigSetInterval      = 7; // 7 sec.
         dynParams.nCoinbaseMaturity            = 10; // 10 blocks = 30 min.
-        dynParams.strDescription               = "#00001 https://fair-coin.org/ The genesis dynamic chain parameters";
+        dynParams.strDescription               = "#00001 https://pylon-network.org/ The genesis dynamic chain parameters";
 
         genesis = CreateGenesisBlock(GENESIS_BLOCK_TIMESTAMP + 2, GENESIS_NODE_ID, dynParams);
 
         genesis.vCvns.resize(1);
-        genesis.vCvns[0] = CCvnInfo(GENESIS_NODE_ID, 0, CSchnorrPubKeyDER("04f69bd29a5e2b8d0f5c185fcc421d11556c071788de07d3d194ded04721afaa652ad75a649a0dac8f576e484392af68f5c31ab0ef5e3432baf8b14b6ad8b1262c"));
+        genesis.vCvns[0] = CCvnInfo(GENESIS_NODE_ID, 0, CSchnorrPubKeyDER("049F3692B03712571CB09F02E15991EB23249C07818BFB3B325B14A94384B46104C8F7FD2BBA4018FD01D3E2AF284EA292347F5E36946707E9C999A3175CDF6C47"));
 
         genesis.vChainAdmins.resize(1);
-        genesis.vChainAdmins[0] = CChainAdmin(GENESIS_ADMIN_ID, 0, CSchnorrPubKeyDER("041cbfa5cb7dbe6387c0808264feb7adc9d99a003da4922e839a548955307f3d365f9fe6fa76767e848660ec864c9f3075fdcdf3e3755af9e3c2662004979ff580"));
+        genesis.vChainAdmins[0] = CChainAdmin(GENESIS_ADMIN_ID, 0, CSchnorrPubKeyDER("049F3692B03712571CB09F02E15991EB23249C07818BFB3B325B14A94384B46104C8F7FD2BBA4018FD01D3E2AF284EA292347F5E36946707E9C999A3175CDF6C47"));
 
-        genesis.chainMultiSig = CSchnorrSigS("14dc4f77f9d59ece2b3aa02cc4df99954d47fa2719be207d1b5010745aec419e451f01a8749cd16f22a727d0deba5110d2ce7e44ff86f0efdea58db4efdb92cd");
+        genesis.chainMultiSig = CSchnorrSigS("8e004c690c375c23851a9751d4c9867c2c0cc4fceba0dbbcedc15814a43bc47f19e007b3c5f164e14921f50ca52cfc1d39c32f42fef356338b761dd7ca724721");
         genesis.vAdminIds.push_back(GENESIS_ADMIN_ID);
-        genesis.adminMultiSig = CSchnorrSigS("3ac684b4ea4df55e3c5b23af67494489a01f7b5263d293952313bad3debf8b4d936c86556ad92b1e0c5189141d5c6b9cc172a6e2775781b840e5d03418e7f8aa");
-        genesis.creatorSignature = CSchnorrSigS("2475495c2135e34acf104bb060abebd78c3948ca5048dbb1ff4dde0c1970a729d78667da56fc776a09edd5185b9153e1e6821111c08f62784308aeda4c91a1a3");
+        genesis.adminMultiSig = CSchnorrSigS("e06c3bfc7f9d564b556328e2c69c275d853d9765d5f7f417152a1f9526d3a3599ed7b92c11c1e7ebcf3a5ad8b9799151a6a9b9c8998d95fd61b18782c6501791");
+        genesis.creatorSignature = CSchnorrSigS("0e0ecbaf45571b4916d5c3909da8cb88f8f9f3c2a934b3156e6eb004a1821b66ce41c6606b9dea88812dbb5e36b9e6382e5d9c3d507881f242bc721bf000d64f");
 
         genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
         genesis.hashPayload    = genesis.GetPayloadHash();
@@ -291,9 +292,9 @@ public:
 #if SHOW_GENESIS_HASHES
         PRINT_HASHES;
 #else
-        assert(consensus.hashGenesisBlock == uint256S("335a7133066fe45cc6b1b7d48a5b589153bec2df38c069caf6c05a96f2ec0b76"));
-        assert(genesis.hashMerkleRoot == uint256S("7c27ade2c28e67ed3077f8f77b8ea6d36d4f5eba04c099be3c9faa9a4a04c046"));
-        assert(genesis.hashPayload == uint256S("10f08b71d33acab5031e62f2d6987398567e04988ed5810a893f12a72f3f5193"));
+        assert(consensus.hashGenesisBlock == uint256S("7d4f40680c918723c95e386ba5cef54dcda894868cb9a160f01ebcab30302976"));
+        assert(genesis.hashMerkleRoot == uint256S("f702453dd03b0f055e5437d76128141803984fb10acb85fc3b2184fae2f3fa78"));
+        assert(genesis.hashPayload == uint256S("4acb54f7e07f1a338b550807632c112cf6f5036c8dd9e069946206520001d4c3"));
 #endif
         vFixedSeeds.clear(); //! Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();  //! Regtest mode doesn't have any DNS seeds.
@@ -344,4 +345,9 @@ void SelectParams(const std::string& network)
 {
     SelectBaseParams(network);
     pCurrentParams = &Params(network);
+}
+
+std::string CChainParams::GetPylonAddressServer() const {
+
+    return vPylonRewardAddress;
 }

@@ -1,10 +1,10 @@
 *.tar.gz
 
 *.exe
-src/faircoin
-src/faircoind
-src/faircoin-cli
-src/faircoin-tx
+src/pyloncoin
+src/pyloncoind
+src/pyloncoin-cli
+src/pyloncoin-tx
 src/test/test_bitcoin
 src/test/test_bitcoin_fuzzy
 src/qt/test/test_bitcoin-qt
@@ -30,8 +30,8 @@ config.log
 config.status
 configure
 libtool
-src/config/faircoin-config.h
-src/config/faircoin-config.h.in
+src/config/pyloncoin-config.h
+src/config/pyloncoin-config.h.in
 src/config/stamp-h1
 share/setup.nsi
 share/qt/Info.plist
@@ -74,8 +74,8 @@ src/qt/test/moc*.cpp
 # Compilation and Qt preprocessor part
 *.qm
 Makefile
-faircoin-qt
-FairCoin-Qt.app
+pyloncoin-qt
+Pyloncoin-Qt.app
 
 # Unit-tests
 Makefile.test

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 The FairCoin Core developers
+// Copyright (c) 2017 The Pyloncoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -142,8 +142,8 @@ bool CvnSignPartialWithFasito(const uint256& hashToSign, const uint8_t nKey, con
     }
 
 #if FASITO_DEBUG
-    LogPrintf("CvnSignPartialWithFasito : OK\n  Hash: %s\nsigner: 0x%08x\n   sum: %s\n   sig: %s\n",
-            hashToSign.ToString(), signature.nSignerId,
+    LogPrintf("CvnSignPartialWithFasito : OK\n  Hash: %s\nKey: 0x%d\n   sum: %s\n   sig: %s\n",
+            hashToSign.ToString(), nKey,
             sumPublicNoncesOthers.ToString(), signature.ToString());
 #endif
     return true;
@@ -174,8 +174,8 @@ bool AdminSignPartialWithFasito(const uint256& hashToSign, const uint8_t nKey, c
     }
 
 #if FASITO_DEBUG
-    LogPrintf("%s : OK\n  Hash: %s\nsigner: 0x%08x\n   sum: %s\n   sig: %s\n", __func__,
-            hashToSign.ToString(), signature.nSignerId,
+    LogPrintf("%s : OK\n  Hash: %s\nnKey: %d\n   sum: %s\n   sig: %s\n", __func__,
+            hashToSign.ToString(), nKey,
             sumPublicNoncesOthers.ToString(), signature.ToString());
 #endif
     return true;
@@ -470,7 +470,6 @@ uint32_t InitChainAdminWithFasito(const string& strPassword, const uint32_t nKey
 
         fWasInitialised = false;
     }
-
     if (nKeyIndex > 6) {
         strprintf(strError, "invalid value for adminkeyindex: %d", nKeyIndex);
         LogPrintf("%s\n", strError);
@@ -478,7 +477,6 @@ uint32_t InitChainAdminWithFasito(const string& strPassword, const uint32_t nKey
             fasito.close();
         return 0;
     }
-
     if (!fasito.mapKeys.count(nKeyIndex)) {
         strprintf(strError, "key #%d not found on Fasito", nKeyIndex);
         LogPrintf("%s\n", strError);
@@ -495,7 +493,6 @@ uint32_t InitChainAdminWithFasito(const string& strPassword, const uint32_t nKey
             fasito.close();
         return 0;
     }
-
     fasito.nADMINKeyIndex = nKeyIndex;
     CFasitoKey fKey = fasito.mapKeys[nKeyIndex];
 
