@@ -365,6 +365,8 @@ public:
 class CDynamicChainParams
 {
 public:
+    static const double CVN_REWARD_PERCENT;
+    static const double PROSUMER_REWARD_PERCENT;
     static const uint32_t CURRENT_VERSION = 1;
     uint32_t nVersion;
 
@@ -374,7 +376,8 @@ public:
 
     uint32_t nBlockSpacing; // in seconds
     uint32_t nBlockSpacingGracePeriod; // in seconds
-
+    uint32_t nBlockIntervalResetScore;
+    
     CAmount nTransactionFee; // in µPLN
     CAmount nDustThreshold; // in µPLN
 
@@ -406,10 +409,8 @@ public:
      * #nnnnn <URI to a document where the decision is documented> <text that describes the change> */
     string strDescription;
 
-    CDynamicChainParams()
-    {
-        SetNull();
-    }
+    
+    CDynamicChainParams();
 
     ADD_SERIALIZE_METHODS;
 

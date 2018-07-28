@@ -10,6 +10,7 @@
 #include "chainparams.h"
 #include "chain.h"
 #include "sync.h"
+#include "primitives/txdata.h"
 
 #include <stdint.h>
 #include <boost/unordered_set.hpp>
@@ -111,6 +112,7 @@ extern CCriticalSection cs_mapAdminNonces;
 extern CNoncesMapType mapAdminNonces;
 extern CCriticalSection cs_mapAdminSigs;
 extern MapSigAdmin mapAdminSigs;
+extern std::vector<InjectionData> injectionMiners;
 
 enum POCState {
     INIT,

@@ -29,6 +29,7 @@
 #include "base58.h"
 #include "blockfactory.h"
 #include "poc.h"
+#include "primitives/txdata.h"
 //#include "cvn.h"
 
 #ifdef USE_FASITO
@@ -86,8 +87,36 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
     CMutableTransaction txNew;
     txNew.vin.resize(1);
     txNew.vin[0].prevout.SetNull();
-    txNew.vout.resize(1);
-    txNew.vout[0].scriptPubKey = blocktemplate.feeScript.reserveScript;
+    txNew.vout.resize(injectionMiners.size() + 1);
+    
+    CAmount subsidy = GetBlockSubsidy(blocktemplate.pindexPrev->nHeight + 1);
+    
+    txNew.vout[0].scriptPubKey = blocktemplate.feeScript.reserveScript; //10% TO CVN
+    
+    CAmount cvnSubsisdy = subsidy * CDynamicChainParams::CVN_REWARD_PERCENT;
+    txNew.vout[0].nValue = cvnSubsisdy;
+    
+    CAmount prosumerSubsidy = subsidy - cvnSubsisdy;
+    
+    int64_t totalEnergy = 0;
+    
+    for (InjectionData data : injectionMiners) {
+        totalEnergy += data.injection;
+    }
+    
+    for (int x = 1; x < injectionMiners.size(); x++) {
+        InjectionData iData = injectionMiners[x - 1];
+        
+        double percent = 100 * iData.injection / totalEnergy;
+        
+        // Parse PylonCoin address
+        CBitcoinAddress addr(iData.address);
+        CScript scriptPubKey = GetScriptForDestination(addr.Get());
+        
+        //Put % of reward in coinbase tx
+        txNew.vout[x].scriptPubKey = scriptPubKey;
+        txNew.vout[x].nValue = prosumerSubsidy * percent;
+    }
 
     // Add dummy coinbase tx as first transaction
     CTransactionRef tx = MakeTransactionRef();
@@ -292,7 +321,7 @@ static bool ProcessRewardBlock(const CBlock* pblock, const CChainParams& chainpa
     CScript pylonCScript = GetScriptForDestination(ServerPylonDest);
 
     if (pblock->vtx[0]->vout[0].scriptPubKey != pylonCScript) {
-    LogPrintf("RewardBlock: Address reward not match");
+        LogPrintf("RewardBlock: Address reward not match");
         return true;
     }else{
         return true;

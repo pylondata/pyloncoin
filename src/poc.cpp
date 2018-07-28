@@ -15,6 +15,7 @@
 #include "clientversion.h"
 #include "validationinterface.h"
 #include "blockfactory.h"
+#include "primitives/txdata.h"
 
 #ifdef USE_FASITO
 #include "fasito/fasito.h"
@@ -63,6 +64,8 @@ CNoncesMapType mapAdminNonces;
 
 CCriticalSection cs_mapAdminSigs;
 MapSigAdmin mapAdminSigs;
+
+std::vector<InjectionData> injectionMiners;
 
 /* private nonces when starting pyloncoind with -cvn=file */
 static vector<CSchnorrPrivNonce> vNoncePrivate;

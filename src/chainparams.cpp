@@ -87,8 +87,9 @@ public:
         nPruneAfterHeight = 100000;
 
         CDynamicChainParams dynParams;
-        dynParams.nBlockSpacing                = 1 * 60; // 3 min.
+        dynParams.nBlockSpacing                = 1 * 60; // 1 min.
         dynParams.nBlockSpacingGracePeriod     = 60;
+        dynParams.nBlockIntervalResetScore     = 60;
         dynParams.nMaxAdminSigs                = 11;
         dynParams.nMinAdminSigs                = 1;
         dynParams.nTransactionFee              = 0 * CENT; // 0 PLN per Kb

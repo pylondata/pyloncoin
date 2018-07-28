@@ -15,6 +15,8 @@
 #include "base58.h"
 #include "core_io.h"
 
+const double CDynamicChainParams::CVN_REWARD_PERCENT = 0.1;
+const double CDynamicChainParams::PROSUMER_REWARD_PERCENT = 0.9;
 uint256 CDynamicChainParams::GetHash() const
 {
     return SerializeHash(*this);

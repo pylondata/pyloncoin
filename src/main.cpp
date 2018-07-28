@@ -37,6 +37,8 @@
 #include "validationinterface.h"
 #include "wallet/wallet.h"
 #include "core_io.h"
+#include "base58.h"
+#include "primitives/txdata.h"
 
 #include <sstream>
 #include <atomic>
@@ -89,6 +91,7 @@ CAmount maxTxFee = DEFAULT_TRANSACTION_MAXFEE;
 CTxMemPool mempool(::minRelayTxFee);
 
 std::map<uint256, CTransaction> mapRelay;
+
 std::deque<std::pair<int64_t, uint256> > vRelayExpiration;
 CCriticalSection cs_mapRelay;
 
@@ -1564,49 +1567,7 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
 
 CAmount GetBlockSubsidy(int nHeight)
 {
-    CAmount nSubsidy = 0 * COIN;
-
-    //Pylonnetwork reward design with fibonachi progress the firt year
-    if(nHeight < 1) // The first block pre-mine, for the manteniance of the plattform and incentive the content publication
-        nSubsidy = 0 * COIN;
-    if(nHeight <= 2 && nHeight > 0)
-        nSubsidy = 1 * COIN;
-    if(nHeight <= 6765 && nHeight > 1)
-        nSubsidy = 1 * COIN;
-    if(nHeight <= 10946 && nHeight > 6765)
-        nSubsidy = 1 * COIN;
-    if(nHeight <= 17711 && nHeight > 10946)
-        nSubsidy = 2 * COIN;
-    if(nHeight <= 28657 && nHeight > 17711)
-        nSubsidy = 3 * COIN;
-    if(nHeight <= 46368 && nHeight > 28657)
-        nSubsidy = 5 * COIN;
-    if(nHeight <= 75025 && nHeight > 46368)
-        nSubsidy = 8 * COIN;
-    if(nHeight <= 121393 && nHeight > 75025)
-        nSubsidy = 13 * COIN;
-    if(nHeight <= 196418 && nHeight > 121393)
-        nSubsidy = 21 * COIN;
-    if(nHeight <= 317811 && nHeight > 196148)
-        nSubsidy = 34 * COIN;
-    if(nHeight <= 514229 && nHeight > 317811)
-        nSubsidy = 55 * COIN;
-    if(nHeight <= 832040 && nHeight > 514229)
-        nSubsidy = 34 * COIN;
-    if(nHeight <= 1346269 && nHeight > 832040)
-        nSubsidy = 21 * COIN;
-    if(nHeight <= 2178309 && nHeight > 1346269)
-        nSubsidy = 13 * COIN;
-    if(nHeight <= 3524578 && nHeight > 2178309)
-        nSubsidy = 8 * COIN;
-    if(nHeight <= 5702887 && nHeight > 3524578)
-        nSubsidy = 5 * COIN;
-    if(nHeight <= 9227465 && nHeight > 5702887)
-        nSubsidy = 3 * COIN;
-    if(nHeight <= 14930352 && nHeight > 9227465)
-        nSubsidy = 2 * COIN;
-    if(nHeight <= 24157817 && nHeight > 14930352)
-        nSubsidy = 1 * COIN;
+    CAmount nSubsidy = 1 * COIN;
 
     
    // nSubsidy=1 * COIN;
@@ -3284,11 +3245,36 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOC, bo
                                  REJECT_INVALID, "bad-cb-multiple");
 
         // Check transactions
-        for(const auto& tx : block.vtx)
-            if (!CheckTransaction(*tx, state))
+        for(const auto& tx : block.vtx) {
+            if (!CheckTransaction(*tx, state)) {
                 return error("CheckBlock(): CheckTransaction of %s failed with %s",
                     tx->GetHash().ToString(),
                     FormatStateMessage(state));
+            }
+            
+            const CTransaction ctx = *tx;
+            //Check injection data
+            if (ctx.HasInjectionData()) {
+                for (const CTxOut vout : ctx.vout) {
+                    try {
+                        string str = ScriptToAsmStr(vout.scriptPubKey);
+                        str.replace(0, 9, ""); //DELETE 'OP_RETURN ' CHARS
+                        InjectionData iData(const_cast<char*>(str.c_str())); //PARSE DATA
+                        
+                        //Find if this prominer is already in injectionMiners
+                        if (std::find(injectionMiners.begin(), injectionMiners.end(), iData) != injectionMiners.end()) {
+                            //Prominer exists in injectionMiners
+                            
+                        } else {
+                            injectionMiners.push_back(iData);
+                        }
+                    } catch (const std::exception& e) {
+                        //SWALING ERROR
+                    }
+
+                }
+            }
+        }
 
         unsigned int nSigOps = 0;
         for (const auto& tx : block.vtx)
