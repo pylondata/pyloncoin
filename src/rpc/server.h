@@ -17,7 +17,7 @@
 #include <boost/function.hpp>
 
 #include <univalue.h>
-#include "protocol.h"
+#include "rpc/protocol.h"
 
 static const unsigned int DEFAULT_RPC_SERIALIZE_VERSION = 1;
 

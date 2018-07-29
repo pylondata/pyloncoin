@@ -410,7 +410,9 @@ public:
     string strDescription;
 
     
-    CDynamicChainParams();
+    CDynamicChainParams() {
+        SetNull();
+    }
 
     ADD_SERIALIZE_METHODS;
 

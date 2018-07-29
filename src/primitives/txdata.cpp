@@ -5,11 +5,31 @@
  */
 
 #include "primitives/txdata.h"
+#include <univalue.h>
 
-json_error_t EnergyData::GetError() {
-    return error;
+EnergyData::EnergyData(char* data) {
+    root.read(data);
 }
     
-json_t* EnergyData::GetData() {
+UniValue EnergyData::GetData() {
     return root;
+}
+
+InjectionData::InjectionData(char *data) : EnergyData(data) {
+    
+    UniValue root = this->GetData();
+    std::vector<string> keys = root.getKeys();
+    
+    for (string key : keys) {
+        
+        if (key == "id") {
+            this->id = const_cast<char*>(root["id"].getValStr().c_str());
+        } else if (key == "address") {
+            this->address = const_cast<char*>(root["address"].getValStr().c_str());
+        } else if (key == "injectionH") {
+            this->injection = root["injection"].get_int64();
+        } else if (key == "timestamp") {
+            this->timestamp = root["timestamp"].get_int64();
+        }
+    }
 }

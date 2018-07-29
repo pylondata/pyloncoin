@@ -126,10 +126,10 @@ BITCOIN_CORE_H = \
   policy/rbf.h \
   poc.h \
   prevector.h \
+  primitives/txdata.h \
   primitives/block.h \
   primitives/transaction.h \
   primitives/cvn.h \
-  primitives/txdata.h \
   protocol.h \
   pubkey.h \
   random.h \
@@ -290,14 +290,14 @@ libbitcoin_consensus_a_SOURCES = \
   hash.cpp \
   hash.h \
   prevector.h \
+  primitives/txdata.cpp \
+  primitives/txdata.h \
   primitives/block.cpp \
   primitives/block.h \
   primitives/cvn.cpp \
   primitives/cvn.h \
   primitives/transaction.cpp \
   primitives/transaction.h \
-  primitives/txdata.cpp \
-  primitives/txdata.h \
   pubkey.cpp \
   pubkey.h \
   script/bitcoinconsensus.cpp \
