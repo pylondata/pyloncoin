@@ -1464,6 +1464,12 @@
           <in>cert.cpp</in>
           <in>fasito.cpp</in>
         </df>
+        <df name="governance">
+          <in>governance-votedb.cpp</in>
+          <in>governance-votedb.h</in>
+          <in>governance.cpp</in>
+          <in>governance.h</in>
+        </df>
         <df name="leveldb">
           <df name="db">
             <in>autocompact_test.cc</in>
@@ -5129,6 +5135,17 @@
       <item path="src/fasito/cert.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="src/fasito/fasito.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="src/governance/governance-votedb.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="src/governance/governance-votedb.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="src/governance/governance.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="src/governance/governance.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="src/hash.cpp" ex="false" tool="1" flavor2="0">
       </item>

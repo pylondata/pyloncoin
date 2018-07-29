@@ -2782,17 +2782,51 @@
             </df>
             <df name="boost">
             </df>
+            <df name="dbus">
+            </df>
+            <df name="expat">
+            </df>
+            <df name="fontconfig">
+            </df>
+            <df name="freetype">
+            </df>
             <df name="jansson">
             </df>
             <df name="libevent">
+            </df>
+            <df name="libX11">
+            </df>
+            <df name="libXau">
+            </df>
+            <df name="libxcb">
+            </df>
+            <df name="libXext">
             </df>
             <df name="miniupnpc">
             </df>
             <df name="native_ccache">
             </df>
+            <df name="native_protobuf">
+            </df>
             <df name="openssl">
             </df>
+            <df name="protobuf">
+            </df>
+            <df name="qrencode">
+            </df>
+            <df name="qt">
+            </df>
+            <df name="xcb_proto">
+            </df>
+            <df name="xextproto">
+            </df>
+            <df name="xproto">
+            </df>
+            <df name="xtrans">
+            </df>
             <df name="zeromq">
+            </df>
+            <df name="zlib">
             </df>
           </df>
         </df>
@@ -2823,6 +2857,135 @@
               </df>
               <df name="boost">
               </df>
+              <df name="expat">
+              </df>
+              <df name="fontconfig">
+                <df name="2.12.1-c1aabd9ac5f">
+                  <df name=".patches-c1aabd9ac5f">
+                  </df>
+                  <df name="conf.d">
+                  </df>
+                  <df name="doc">
+                    <df name="fontconfig-devel">
+                    </df>
+                    <in>edit-sgml.c</in>
+                  </df>
+                  <df name="fc-blanks">
+                    <in>fcblanks.h</in>
+                    <in>fcblanks.tmpl.h</in>
+                  </df>
+                  <df name="fc-cache">
+                    <in>fc-cache.c</in>
+                  </df>
+                  <df name="fc-case">
+                    <in>fc-case.c</in>
+                    <in>fcalias.h</in>
+                    <in>fcaliastail.h</in>
+                    <in>fccase.h</in>
+                    <in>fccase.tmpl.h</in>
+                  </df>
+                  <df name="fc-cat">
+                    <in>fc-cat.c</in>
+                  </df>
+                  <df name="fc-glyphname">
+                    <in>fc-glyphname.c</in>
+                    <in>fcalias.h</in>
+                    <in>fcaliastail.h</in>
+                    <in>fcglyphname.h</in>
+                    <in>fcglyphname.tmpl.h</in>
+                  </df>
+                  <df name="fc-lang">
+                    <in>fc-lang.c</in>
+                    <in>fcalias.h</in>
+                    <in>fcaliastail.h</in>
+                    <in>fclang.h</in>
+                    <in>fclang.tmpl.h</in>
+                  </df>
+                  <df name="fc-list">
+                    <in>fc-list.c</in>
+                  </df>
+                  <df name="fc-match">
+                    <in>fc-match.c</in>
+                  </df>
+                  <df name="fc-pattern">
+                    <in>fc-pattern.c</in>
+                  </df>
+                  <df name="fc-query">
+                    <in>fc-query.c</in>
+                  </df>
+                  <df name="fc-scan">
+                    <in>fc-scan.c</in>
+                  </df>
+                  <df name="fc-validate">
+                    <in>fc-validate.c</in>
+                  </df>
+                  <df name="fontconfig">
+                    <in>fcfreetype.h</in>
+                    <in>fcprivate.h</in>
+                    <in>fontconfig.h</in>
+                  </df>
+                  <df name="m4">
+                  </df>
+                  <df name="src">
+                    <df name=".libs">
+                    </df>
+                    <in>fcalias.h</in>
+                    <in>fcaliastail.h</in>
+                    <in>fcarch.c</in>
+                    <in>fcarch.h</in>
+                    <in>fcatomic.c</in>
+                    <in>fcatomic.h</in>
+                    <in>fcblanks.c</in>
+                    <in>fccache.c</in>
+                    <in>fccfg.c</in>
+                    <in>fccharset.c</in>
+                    <in>fccompat.c</in>
+                    <in>fcdbg.c</in>
+                    <in>fcdefault.c</in>
+                    <in>fcdeprecate.h</in>
+                    <in>fcdir.c</in>
+                    <in>fcformat.c</in>
+                    <in>fcfreetype.c</in>
+                    <in>fcfs.c</in>
+                    <in>fcftalias.h</in>
+                    <in>fcftaliastail.h</in>
+                    <in>fcftint.h</in>
+                    <in>fcinit.c</in>
+                    <in>fcint.h</in>
+                    <in>fclang.c</in>
+                    <in>fclist.c</in>
+                    <in>fcmatch.c</in>
+                    <in>fcmatrix.c</in>
+                    <in>fcmutex.h</in>
+                    <in>fcname.c</in>
+                    <in>fcobjs.c</in>
+                    <in>fcobjs.h</in>
+                    <in>fcobjshash.gperf.h</in>
+                    <in>fcobjshash.h</in>
+                    <in>fcpat.c</in>
+                    <in>fcrange.c</in>
+                    <in>fcserialize.c</in>
+                    <in>fcstat.c</in>
+                    <in>fcstdint.h</in>
+                    <in>fcstr.c</in>
+                    <in>fcweight.c</in>
+                    <in>fcwindows.h</in>
+                    <in>fcxml.c</in>
+                    <in>ftglue.c</in>
+                    <in>ftglue.h</in>
+                  </df>
+                  <df name="test">
+                    <in>test-bz89617.c</in>
+                    <in>test-bz96676.c</in>
+                    <in>test-migration.c</in>
+                    <in>test-pthread.c</in>
+                  </df>
+                  <in>config-fixups.h</in>
+                  <in>config.h</in>
+                </df>
+              </df>
+              <df name="freetype">
+              </df>
               <df name="jansson">
               </df>
               <df name="libevent">
@@ -2831,9 +2994,17 @@
               </df>
               <df name="native_ccache">
               </df>
+              <df name="native_protobuf">
+              </df>
               <df name="openssl">
               </df>
+              <df name="protobuf">
+              </df>
+              <df name="qrencode">
+              </df>
               <df name="zeromq">
+              </df>
+              <df name="zlib">
               </df>
             </df>
           </df>
@@ -2845,6 +3016,10 @@
               </df>
               <df name="boost">
               </df>
+              <df name="expat">
+              </df>
+              <df name="freetype">
+              </df>
               <df name="jansson">
               </df>
               <df name="libevent">
@@ -2853,9 +3028,17 @@
               </df>
               <df name="native_ccache">
               </df>
+              <df name="native_protobuf">
+              </df>
               <df name="openssl">
               </df>
+              <df name="protobuf">
+              </df>
+              <df name="qrencode">
+              </df>
               <df name="zeromq">
+              </df>
+              <df name="zlib">
               </df>
             </df>
           </df>
@@ -2896,6 +3079,8 @@
         </df>
         <df name="bench">
           <df name=".deps">
+          </df>
+          <df name=".libs">
           </df>
           <in>Examples.cpp</in>
           <in>bench.cpp</in>
@@ -2954,33 +3139,6 @@
           <in>sha512.cpp</in>
           <in>sha512.h</in>
         </df>
-        <df name="curlpp">
-          <df name="internal">
-            <in>CurlHandle.hpp</in>
-            <in>CurlHandle.inl</in>
-            <in>OptionContainer.hpp</in>
-            <in>OptionContainer.inl</in>
-            <in>OptionContainerType.hpp</in>
-            <in>OptionList.hpp</in>
-            <in>OptionSetter.hpp</in>
-            <in>OptionSetter.inl</in>
-            <in>SList.hpp</in>
-          </df>
-          <in>Easy.hpp</in>
-          <in>Easy.inl</in>
-          <in>Exception.hpp</in>
-          <in>Form.hpp</in>
-          <in>Info.hpp</in>
-          <in>Info.inl</in>
-          <in>Infos.hpp</in>
-          <in>Multi.hpp</in>
-          <in>Option.hpp</in>
-          <in>Option.inl</in>
-          <in>OptionBase.hpp</in>
-          <in>Options.hpp</in>
-          <in>Types.hpp</in>
-          <in>cURLpp.hpp</in>
-        </df>
         <df name="fasito">
           <df name=".deps">
           </df>
@@ -2990,6 +3148,14 @@
           <in>cert.h</in>
           <in>fasito.cpp</in>
           <in>fasito.h</in>
+        </df>
+        <df name="governance">
+          <df name=".deps">
+          </df>
+          <in>governance-votedb.cpp</in>
+          <in>governance-votedb.h</in>
+          <in>governance.cpp</in>
+          <in>governance.h</in>
         </df>
         <df name="leveldb">
           <df name="db">
