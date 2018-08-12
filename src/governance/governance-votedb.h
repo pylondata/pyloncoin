@@ -17,63 +17,37 @@
 #include <list>
 #include <map>
 #include <string>
-#include <governance/governance.h>
+#include "dbwrapper.h"
+#include "governance/governance.h"
 #include "serialize.h"
 #include "streams.h"
 #include "uint256.h"
+#include "util.h"
 
 
 using namespace std;
 
-class GovernanceObjectVoteFile {
+static const size_t DEFAULT_CACHE_SIZE = 80 * 1024 * 1024 * 1024; //80 MB
+
+class GovernanceObjectVoteDB {
 public:
-    typedef std::list<GovernanceObject> vote_l_t;
-
-    typedef vote_l_t::iterator vote_l_it;
-
-    typedef vote_l_t::const_iterator vote_l_cit;
-
-    typedef std::map<uint256,vote_l_it> vote_m_t;
-
-    typedef vote_m_t::iterator vote_m_it;
-
-    typedef vote_m_t::const_iterator vote_m_cit;
+    GovernanceObjectVoteDB();
     
-    GovernanceObjectVoteFile();
+    void AddVote(GovernanceObject& vote);
     
-    GovernanceObjectVoteFile(const GovernanceObjectVoteFile& other);
+    bool HasVote(GovernanceObject& vote);
     
-    void AddVote(const GovernanceObject& vote);
+    void RemoveVotesFromId(string candidateId);
     
-    bool HasVote(const GovernanceObject& vote);
+    int GetVotesCountFromId(string candidateId);
     
-    void RemoveVotesFromId(const string candidateId);
-    
-    int GetVotesCountFromId(const string candidateId);
-    
-    bool SerializeVoteToStream(const uint256& nHash, CDataStream& ss) const;
+    bool SerializeVoteToStream(uint256& nHash, CDataStream& ss) const;
     
     int GetVoteCount() {
-        return nMemoryVotes;
-    }
-    
-    ADD_SERIALIZE_METHODS;
-    
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
-    {
-        READWRITE(nMemoryVotes);
-        READWRITE(listVotes);
-        if(ser_action.ForRead()) {
-            RebuildIndex();
-        }
+        return db->NewIterator()->GetKeySize();
     }
     
 private:
-    int nMemoryVotes;
-    vote_l_t listVotes;
-    map<uint256, vote_l_t> mapVoteIndex;
-    
-    void RebuildIndex();
+    CDBWrapper* db;
 };
 #endif /* GOVERNANCE_VOTEDB_H */

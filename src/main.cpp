@@ -39,6 +39,8 @@
 #include "core_io.h"
 #include "base58.h"
 #include "primitives/txdata.h"
+#include "governance/governance-votedb.h"
+#include "governance/governance.h"
 
 #include <sstream>
 #include <atomic>
@@ -114,6 +116,12 @@ CCriticalSection cs_mapRelayAdminNonces;
 map<uint256, CAdminPartialSignature> mapRelayAdminSigs;
 deque<pair<int64_t, uint256> > vRelayExpirationAdminSigs;
 CCriticalSection cs_mapRelayAdminSigs;
+
+map<uint256, GovernanceObject> mapRelayVotes;
+deque<pair<int64_t, uint256> > vRelayExpirationVotes;
+CCriticalSection cs_mapRelayVotes;
+
+GovernanceObjectVoteDB* voteDb = new GovernanceObjectVoteDB();
 
 struct IteratorComparator
 {
@@ -5579,7 +5587,6 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         }
     }
 
-
     else if (strCommand == NetMsgType::NONCEADMIN)
     {
         CAdminNonce msg;
@@ -5825,6 +5832,26 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         }
     }
 
+    else if (strCommand == NetMsgType::GOV)
+    {
+        GovernanceObject msg;
+        vRecv >> msg;
+        
+        CInv inv(MSG_GOVERNANCE_DATA, msg.GetHash());
+        pfrom->AddInventoryKnown(inv);
+        
+        LOCK(cs_main);
+        
+        pfrom->setAskFor.erase(inv.hash);
+        mapAlreadyAskedFor.erase(inv.hash);
+        
+        if (!AlreadyHave(inv)) {
+            if (!voteDb->HasVote(msg)) {
+                voteDb->AddVote(msg);
+                RelayGovernanceObject(msg);
+            }
+        }
+    }
 
     else if (strCommand == NetMsgType::HEADERS && !fImporting && !fReindex) // Ignore headers received while importing
     {
@@ -6728,6 +6755,23 @@ bool SendMessages(CNode* pto)
             }
             pto->vInventoryChainSignaturesToSend.clear();
 
+            
+            //
+            // Handle: Governance Objects
+            //
+            BOOST_FOREACH(const uint256 hash, pto->vInventoryGovernanceDataToSend) {
+                map<uint256, GovernanceObject>::iterator mi = mapRelayVotes.find(hash);
+                if (mi != mapRelayVotes.end()) {
+                    CInv inv(MSG_GOVERNANCE_DATA, hash);
+                    vInv.push_back(inv);
+                    
+                    if (vInv.size() == MAX_INV_SZ) {
+                        pto->PushMessage(NetMsgType::INV, vInv);
+                        vInv.clear();
+                    }
+                }
+            }
+            
             //
             // Handle: chain admin public nonces
             //

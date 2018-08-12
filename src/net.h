@@ -16,6 +16,7 @@
 #include "sync.h"
 #include "uint256.h"
 #include "poc.h"
+#include "governance/governance.h"
 
 #include <deque>
 #include <stdint.h>
@@ -405,6 +406,7 @@ public:
     std::set<uint256> vInventoryAdminNoncesToSend;
     std::set<uint256> vInventoryAdminSignaturesToSend;
     std::set<uint256> vInventoryChainDataToSend;
+    std::set<uint256> vInventoryGovernanceDataToSend;
     CCriticalSection cs_inventory;
     std::set<uint256> setAskFor;
     std::multimap<int64_t, CInv> mapAskFor;
@@ -544,6 +546,8 @@ public:
             vInventoryAdminSignaturesToSend.insert(inv.hash);
         } else if (inv.type == MSG_POC_CHAIN_DATA) {
             vInventoryChainDataToSend.insert(inv.hash);
+        } else if (inv.type == MSG_GOVERNANCE_DATA) {
+            vInventoryGovernanceDataToSend.insert(inv.hash);
         }
     }
 
@@ -795,8 +799,11 @@ public:
 
 
 class CTransaction;
+class GovernanceObject;
 
 void RelayTransaction(const CTransaction& tx);
+
+void RelayGovernanceObject(GovernanceObject& gobj);
 
 /** Access to the (IP) address database (peers.dat) */
 class CAddrDB

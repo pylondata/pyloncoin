@@ -107,6 +107,7 @@ BITCOIN_CORE_H = \
   core_io.h \
   core_memusage.h \
   governance/governance.h \
+  governance/governance-votedb.h \
   hash.h \
   httprpc.h \
   httpserver.h \
@@ -200,6 +201,7 @@ libbitcoin_server_a_SOURCES = \
   httpserver.cpp \
   init.cpp \
   governance/governance.cpp \
+  governance/governance-votedb.cpp \
   dbwrapper.cpp \
   main.cpp \
   merkleblock.cpp \

@@ -126,6 +126,10 @@ extern const char *GETHEADERS;
  */
 extern const char *TX;
 /**
+ * The tx message transmits a single vote for one candidate.
+ */
+extern const char *GOV;
+/**
  * The headers message sends one or more block headers to a node which
  * previously requested certain headers with a getheaders message.
  * @since protocol version 31800.
@@ -343,17 +347,18 @@ const uint32_t MSG_WITNESS_FLAG = 1 << 30;
 const uint32_t MSG_TYPE_MASK    = 0xffffffff >> 2;
 
 enum {
-    MSG_TX = 1,
-    MSG_BLOCK = 2,
+    MSG_TX = 1 << 1,
+    MSG_BLOCK = 1 << 2,
     // Nodes may always request a MSG_FILTERED_BLOCK in a getdata, however,
     // MSG_FILTERED_BLOCK should not appear in any invs except as a part of getdata.
-    MSG_FILTERED_BLOCK = 3,
-    MSG_CVN_PUB_NONCE_POOL = 4,
-    MSG_CVN_SIGNATURE = 5,
-    MSG_POC_CHAIN_DATA = 6,
-    MSG_CHAIN_ADMIN_NONCE = 7,
-    MSG_CHAIN_ADMIN_SIGNATURE = 8,
-    MSG_CMPCT_BLOCK = 9,     //!< Defined in BIP152
+    MSG_FILTERED_BLOCK = 1 << 3,
+    MSG_CVN_PUB_NONCE_POOL = 1 << 4,
+    MSG_CVN_SIGNATURE = 1 << 5,
+    MSG_POC_CHAIN_DATA = 1 << 6,
+    MSG_CHAIN_ADMIN_NONCE = 1 << 7,
+    MSG_CHAIN_ADMIN_SIGNATURE = 1 << 8,
+    MSG_CMPCT_BLOCK = 1 << 9,     //!< Defined in BIP152
+    MSG_GOVERNANCE_DATA = 1 << 10,
     MSG_WITNESS_BLOCK = MSG_BLOCK | MSG_WITNESS_FLAG, //!< Defined in BIP144
     MSG_WITNESS_TX = MSG_TX | MSG_WITNESS_FLAG,       //!< Defined in BIP144
     MSG_FILTERED_WITNESS_BLOCK = MSG_FILTERED_BLOCK | MSG_WITNESS_FLAG,

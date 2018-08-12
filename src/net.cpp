@@ -2055,6 +2055,15 @@ void RelayTransaction(const CTransaction& tx)
     }
 }
 
+void RelayGovernanceObject(GovernanceObject& gobj) {
+    CInv inv(MSG_GOVERNANCE_DATA, gobj.GetHash());
+    LOCK(cs_vNodes);
+    BOOST_FOREACH(CNode* pnode, vNodes)
+    {
+        pnode->PushInventory(inv);
+    }
+}
+
 void CNode::RecordBytesRecv(uint64_t bytes)
 {
     LOCK(cs_totalBytesRecv);

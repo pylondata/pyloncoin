@@ -308,6 +308,8 @@ extern UniValue getchaintips(const JSONRPCRequest& request);
 extern UniValue invalidateblock(const JSONRPCRequest& request);
 extern UniValue reconsiderblock(const JSONRPCRequest& request);
 
+extern UniValue getvotescountfromid(const JSONRPCRequest& request);
+
 bool StartRPC();
 void InterruptRPC();
 void StopRPC();

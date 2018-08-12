@@ -15,7 +15,13 @@
 #include "main.h"
 #include "primitives/transaction.h"
 
-GovernanceObject::GovernanceObject(int32_t version, uint256 txhash, int32_t vout, CSchnorrSig sig, int32_t type, int64_t time, string id, bool vote) : nVersion(version), txhash(txhash), txvout(vout), creatorSignature(sig), govType(type), timestamp(time), candidateId(id), vote(vote) {}
+GovernanceObject::GovernanceObject() : nVersion(0), txhash(), txvout(0), creatorSignature(), govType(0), candidateId(""), vote(false) {}
+
+
+GovernanceObject::GovernanceObject(uint32_t version, uint256 txhash, uint32_t vout, CSchnorrSig sig, uint32_t type, string id, bool vote) : nVersion(version), txhash(txhash), txvout(vout), creatorSignature(sig), govType(type), candidateId(id), vote(vote) {}
+
+GovernanceObject::GovernanceObject(const GovernanceObject& gobj) : nVersion(gobj.nVersion), txhash(gobj.txhash), txvout(gobj.txvout), creatorSignature(gobj.creatorSignature), govType(gobj.govType), candidateId(gobj.candidateId), vote(gobj.vote) {}
+
 
 uint256 GovernanceObject::GetHash() {
     return SerializeHash(*this, SER_GETHASH, SERIALIZE_TRANSACTION_NO_WITNESS);

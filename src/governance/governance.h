@@ -23,28 +23,31 @@
 
 using namespace std;
 
-static const int32_t CVN_VOTE = 1;
-static const int32_t PROSUMER_VOTE = 2;
+static const uint32_t CVN_VOTE = 1;
+static const uint32_t PROSUMER_VOTE = 2;
 
 class GovernanceObject {
 public:
     
-    static const int64_t MAX_VOTING_TIME = 15 * 60 * 60 * 24; //15 days
-    static const int32_t MIN_VOTE_THRESHOLD = 10;
-    static const int32_t MIN_AMOUNT_CONFIRMATIONS = 1;
+    static const uint64_t MAX_VOTING_TIME = 15 * 60 * 60 * 24; //15 days
+    static const uint32_t MIN_VOTE_THRESHOLD = 10;
+    static const uint32_t MIN_AMOUNT_CONFIRMATIONS = 1;
     static const CAmount MIN_VOTE_AMOUNT_PROSUMER = 1000 * COIN;
     static const CAmount MIN_VOTE_AMOUNT_CVN = 2000 * COIN;
     
-    int32_t nVersion;
+    uint32_t nVersion;
     uint256 txhash;
-    int32_t txvout;
+    uint32_t txvout;
     CSchnorrSig creatorSignature;
-    int32_t govType;
-    int64_t timestamp;
+    uint32_t govType;
     string candidateId;
     bool vote;
     
-    GovernanceObject(int32_t version, uint256 txhash, int32_t txvout, CSchnorrSig creatorSignature, int32_t govType, int64_t timestamp, string candidateId, bool vote);
+    GovernanceObject();
+   
+    GovernanceObject(uint32_t version, uint256 txhash, uint32_t txvout, CSchnorrSig creatorSignature, uint32_t govType, string candidateId, bool vote);
+    
+    GovernanceObject(const GovernanceObject& gobj);
     
     uint256 GetHash();
     
@@ -57,15 +60,12 @@ public:
         READWRITE(txvout);
         READWRITE(creatorSignature);
         READWRITE(govType);
-        READWRITE(timestamp);
         READWRITE(candidateId);
         READWRITE(vote);
     }
         
-    bool operator == (const GovernanceObject& gobj) {
-        return this->creatorSignature == gobj.creatorSignature &&
-                this->govType == gobj.govType &&
-                this->candidateId == gobj.candidateId;
+    bool operator == (GovernanceObject& gobj) {
+        return gobj.GetHash() == this->GetHash();
     }
     
     bool HasMinimumAmount();

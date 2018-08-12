@@ -14,68 +14,58 @@
 #include "governance-votedb.h"
 #include "governance.h"
 
-GovernanceObjectVoteFile::GovernanceObjectVoteFile() : nMemoryVotes(0), listVotes(), mapVoteIndex() {
+GovernanceObjectVoteDB::GovernanceObjectVoteDB() {
+    boost::filesystem::path path = GetDefaultDataDir();
+    boost::filesystem::path governancePath = path / "governance";
+    db = new CDBWrapper(governancePath, DEFAULT_CACHE_SIZE, false, false, false);
 }
 
-GovernanceObjectVoteFile::GovernanceObjectVoteFile(const GovernanceObjectVoteFile& other) 
-    : nMemoryVotes(other.nMemoryVotes), listVotes(other.listVotes), mapVoteIndex()  {
-    RebuildIndex();
-}
-
-void GovernanceObjectVoteFile::AddVote(const GovernanceObject& vote) {
+void GovernanceObjectVoteDB::AddVote(GovernanceObject& vote) {
     uint256 nHash = vote.GetHash();
-    
+
     if (HasVote(vote)) {
         return;
     }
-    
-    listVotes.push_front(vote);
-    mapVoteIndex.emplace(nHash, listVotes.begin());
-    ++nMemoryVotes;
+
+    db->Write(nHash, vote, true);
+
+    vector<uint256> votes;
+    votes.reserve(1);
+
+    votes.push_back(nHash);
+    db->Write(vote.candidateId, votes);
 }
 
-
-bool GovernanceObjectVoteFile::HasVote(const GovernanceObject& vote) {
-    return mapVoteIndex.find(vote.GetHash()) != mapVoteIndex.end();
+bool GovernanceObjectVoteDB::HasVote(GovernanceObject& vote) {
+    return db->Exists(vote.GetHash());
 }
 
-bool GovernanceObjectVoteFile::SerializeVoteToStream(const uint256& nHash, CDataStream& ss) const
-{
-    vote_m_cit it = mapVoteIndex.find(nHash);
-    if(it == mapVoteIndex.end()) {
-        return false;
+bool GovernanceObjectVoteDB::SerializeVoteToStream(uint256& nHash, CDataStream& ss) const {
+    GovernanceObject gObj;
+
+    if (db->Read(nHash, gObj)) {
+        ss << gObj;
+        return true;
     }
-    ss << *(it->second);
-    return true;
+
+    return false;
 }
 
-void GovernanceObjectVoteFile::RemoveVotesFromId(const string candidateId) {
-    vote_l_it it = listVotes.begin();
-    while (it != listVotes.end()) {
-        if (it->candidateId == candidateId) {
-            --nMemoryVotes;
-            mapVoteIndex.erase(it->GetHash());
-            listVotes.erase(it++);
-        } else {
-            ++it;
-        }
+void GovernanceObjectVoteDB::RemoveVotesFromId(string candidateId) {
+    vector<uint256> votes;
+    db->Read(candidateId, votes);
+
+    for (vector<uint256>::iterator it = votes.begin(); it != votes.end(); ++it) {
+        uint256 nHash = *it;
+        db->Erase(nHash, true);
     }
+
+    db->Erase(candidateId, true);
 }
 
-void GovernanceObjectVoteFile::RebuildIndex() {
-    mapVoteIndex.clear();
-    nMemoryVotes = 0;
-    vote_l_it it = listVotes.begin();
-    
-    while (it != listVotes.end()) {
-        GovernanceObject& vote = *it;
-        uint256 nHash = vote.GetHash();
-        if (mapVoteIndex.find(nHash) == mapVoteIndex.end()) {
-            mapVoteIndex[nHash] = it;
-            ++nMemoryVotes;
-            ++it;
-        } else {
-            listVotes.erase(it++);
-        }
-    }
+int GovernanceObjectVoteDB::GetVotesCountFromId(string candidateId) {
+    vector<uint256> votes;
+    db->Read(candidateId, votes);
+
+    return votes.size();
 }
