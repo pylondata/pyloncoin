@@ -117,3 +117,4 @@ test/functional/config.ini
 .cproject
 .project
 .settings
+nbproject

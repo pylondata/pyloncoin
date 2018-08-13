@@ -14,9 +14,12 @@
 #include "governance-votedb.h"
 #include "governance.h"
 
+#include <boost/filesystem.hpp>
+
 GovernanceObjectVoteDB::GovernanceObjectVoteDB() {
     boost::filesystem::path path = GetDefaultDataDir();
     boost::filesystem::path governancePath = path / "governance";
+    boost::filesystem::create_directories(path);
     db = new CDBWrapper(governancePath, DEFAULT_CACHE_SIZE, false, false, false);
 }
 

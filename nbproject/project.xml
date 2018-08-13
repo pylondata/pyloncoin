@@ -6,7 +6,7 @@
             <name>pylon</name>
             <c-extensions>c,i</c-extensions>
             <cpp-extensions>cc,cpp,mm</cpp-extensions>
-            <header-extensions>h,hpp,inl</header-extensions>
+            <header-extensions>SUNWCCh,h,hpp,inl</header-extensions>
             <sourceEncoding>UTF-8</sourceEncoding>
             <make-dep-projects/>
             <sourceRootList>

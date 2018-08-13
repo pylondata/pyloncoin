@@ -1638,6 +1638,8 @@
           <in>blockchain.cpp</in>
           <in>client.cpp</in>
           <in>cvn.cpp</in>
+          <in>gov.cpp</in>
+          <in>gov.h</in>
           <in>misc.cpp</in>
           <in>net.cpp</in>
           <in>protocol.cpp</in>
@@ -5489,6 +5491,10 @@
       <item path="src/rpc/client.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="src/rpc/cvn.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="src/rpc/gov.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="src/rpc/gov.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="src/rpc/misc.cpp" ex="false" tool="1" flavor2="0">
       </item>

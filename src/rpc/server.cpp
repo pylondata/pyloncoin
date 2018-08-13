@@ -278,6 +278,7 @@ static const CRPCCommand vRPCCommands[] =
 
     /* Governance*/
     { "governance",         "getvotescountfromid",    &getvotescountfromid,    true },
+    { "governance",         "makevote",               &makevote,               true },
     
     /* P2P networking */
     { "network",            "getnetworkinfo",         &getnetworkinfo,         true  },

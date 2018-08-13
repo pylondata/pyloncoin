@@ -20,32 +20,37 @@
 #include "serialize.h"
 #include "uint256.h"
 #include "amount.h"
+#include "base58.h"
 
 using namespace std;
 
-static const uint32_t CVN_VOTE = 1;
-static const uint32_t PROSUMER_VOTE = 2;
+static const int32_t CVN_VOTE = 0;
+static const int32_t PROSUMER_VOTE = 1;
 
 class GovernanceObject {
 public:
     
+    static const int32_t GOVERNANCE_DEFAULT_VERSION = 1;
+    static const int32_t GOVERNANCE_CURRENT_VERSION = GOVERNANCE_DEFAULT_VERSION;
+    
     static const uint64_t MAX_VOTING_TIME = 15 * 60 * 60 * 24; //15 days
-    static const uint32_t MIN_VOTE_THRESHOLD = 10;
-    static const uint32_t MIN_AMOUNT_CONFIRMATIONS = 1;
+    static const int32_t MIN_VOTE_THRESHOLD = 10;
+    static const int32_t MIN_AMOUNT_CONFIRMATIONS = 1;
     static const CAmount MIN_VOTE_AMOUNT_PROSUMER = 1000 * COIN;
     static const CAmount MIN_VOTE_AMOUNT_CVN = 2000 * COIN;
     
-    uint32_t nVersion;
+    int32_t nVersion;
     uint256 txhash;
-    uint32_t txvout;
-    CSchnorrSig creatorSignature;
-    uint32_t govType;
+    int32_t txvout;
+    std::vector<unsigned char> voterSignature;
+    int32_t voterId;
+    int32_t govType;
     string candidateId;
     bool vote;
     
     GovernanceObject();
    
-    GovernanceObject(uint32_t version, uint256 txhash, uint32_t txvout, CSchnorrSig creatorSignature, uint32_t govType, string candidateId, bool vote);
+    GovernanceObject(int32_t version, uint256 txhash, int32_t txvout, std::vector<unsigned char> voterSignature, int32_t voterId, int32_t govType, string candidateId, bool vote);
     
     GovernanceObject(const GovernanceObject& gobj);
     
@@ -58,7 +63,8 @@ public:
         READWRITE(nVersion);
         READWRITE(txhash);
         READWRITE(txvout);
-        READWRITE(creatorSignature);
+        READWRITE(voterSignature);
+        READWRITE(voterId);
         READWRITE(govType);
         READWRITE(candidateId);
         READWRITE(vote);
@@ -69,6 +75,8 @@ public:
     }
     
     bool HasMinimumAmount();
+    
+    bool GetOutputAddress(CBitcoinAddress& address);
     
 };
 #endif /* GOVERNANCE_H */

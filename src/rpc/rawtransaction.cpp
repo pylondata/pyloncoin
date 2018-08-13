@@ -111,38 +111,6 @@ void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry)
     }
 }
 
-UniValue getvotescountfromid(const JSONRPCRequest& request)
-{
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() < 1){
-        throw runtime_error(
-            "getvotescountfromid \"candidateid\"\n"
-            "Return the number of success votes of the candidate\n"
-                
-            "\nArguments:\n"
-            "1. \"candidateid\"      (string, required) The candidate id\n"
-                
-            "\nResult:\n"
-            "\"number\"      Number of success votes."
-        );
-    }
-    
-    string candidateId;
-    UniValue v = params[0];
-    
-    if (v.isStr()) {
-        candidateId = v.get_str();
-        
-        int votes = voteDb->GetVotesCountFromId(candidateId);
-        
-        LOCK(cs_main);
-        return votes;
-    }
-    
-    throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid candidate Id");
-        
-}
-
 UniValue getrawtransaction(const JSONRPCRequest& request)
 {
     const UniValue params = request.params;

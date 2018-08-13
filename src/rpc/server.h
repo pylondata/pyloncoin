@@ -275,7 +275,7 @@ extern UniValue validateaddress(const JSONRPCRequest& request);
 extern UniValue validatepubkey(const JSONRPCRequest& request);
 extern UniValue getinfo(const JSONRPCRequest& request);
 extern UniValue getwalletinfo(const JSONRPCRequest& request);
-extern UniValue getblockchaininfo(const JSONRPCRequest& request);
+extern UniValue chaininfo(const JSONRPCRequest& request);
 extern UniValue getnetworkinfo(const JSONRPCRequest& request);
 extern UniValue setmocktime(const JSONRPCRequest& request);
 extern UniValue resendwallettransactions(const JSONRPCRequest& request);
@@ -294,6 +294,7 @@ extern UniValue gettxoutproof(const JSONRPCRequest& request);
 extern UniValue verifytxoutproof(const JSONRPCRequest& request);
 
 extern UniValue getblockcount(const JSONRPCRequest& request); // in rpc/blockchain.cpp
+extern UniValue getblockchaininfo(const JSONRPCRequest& request);
 extern UniValue getbestblockhash(const JSONRPCRequest& request);
 extern UniValue settxfee(const JSONRPCRequest& request);
 extern UniValue getmempoolinfo(const JSONRPCRequest& request);
@@ -308,7 +309,8 @@ extern UniValue getchaintips(const JSONRPCRequest& request);
 extern UniValue invalidateblock(const JSONRPCRequest& request);
 extern UniValue reconsiderblock(const JSONRPCRequest& request);
 
-extern UniValue getvotescountfromid(const JSONRPCRequest& request);
+extern UniValue getvotescountfromid(const JSONRPCRequest& request); //in gov.cpp
+extern UniValue makevote(const JSONRPCRequest& request);
 
 bool StartRPC();
 void InterruptRPC();
