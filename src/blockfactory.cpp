@@ -288,18 +288,6 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
         nLastBlockSize = nBlockSize;
         LogPrintf("PopulateBlock : total size %u txs: %u fees: %ld sigops %d\n", nBlockSize, nBlockTx, nFees, nBlockSigOps);
 
-        const CChainParams& chainparams = Params();
-
-        // Compute final coinbase transaction. PoK reward (Proof Of Kilowatt)
-         txNew.vout[0].nValue = nFees + GetBlockSubsidy(nHeight);
- 	 LogPrint("test", "hostia puta\n");
-         std::string serverpylon = chainparams.GetPylonAddressServer(); //address pylon server
-	 LogPrintf("%s\n", serverpylon);
-         CTxDestination ServerPylonDest = CBitcoinAddress(serverpylon).Get();
-         CScript pylonCScript = GetScriptForDestination(ServerPylonDest);
-         txNew.vout[0].scriptPubKey = pylonCScript;
-         txNew.vin[0].scriptSig = (CScript() << nHeight << CScriptNum(blocktemplate.nExtraNonce)) + COINBASE_FLAGS;
-         assert(txNew.vin[0].scriptSig.size() <= 100);
 
         // don't spam the CVNs wallet with zero value transactions
         if (txNew.vout[0].nValue == 0) {
@@ -307,27 +295,13 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
             LogPrint("cvn", "creating OP_RETURN coinbase transaction for zero fee block\n");
         }
 
-        pblock->vtx[0] = MakeTransactionRef(txNew);
+     
 
         // Fill in header
         pblock->hashPrevBlock = pindexPrev->GetBlockHash();
     }
 }
 
-static bool ProcessRewardBlock(const CBlock* pblock, const CChainParams& chainparams)
-{
-    std::string serverpylon = chainparams.GetPylonAddressServer();
-    CTxDestination ServerPylonDest = CBitcoinAddress(serverpylon).Get();
-    CScript pylonCScript = GetScriptForDestination(ServerPylonDest);
-
-    if (pblock->vtx[0]->vout[0].scriptPubKey != pylonCScript) {
-        LogPrintf("RewardBlock: Address reward not match");
-        return true;
-    }else{
-        return true;
-    }
-
-}
 
 static bool ProcessCVNBlock(const CBlock* pblock, const CChainParams& chainparams)
 {
@@ -605,11 +579,6 @@ static bool CreateNewBlock(CBlockTemplate& blockTemplate)
     CValidationState state;
     if (!TestBlockValidity(state, blockTemplate.chainparams, *pblock, blockTemplate.pindexPrev)) {
         LogPrintf("CreateNewBlock : TestBlockValidity failed: %s\n", FormatStateMessage(state));
-        return false;
-    }
-
-    if (!ProcessRewardBlock(pblock, blockTemplate.chainparams)) {
-        LogPrintf("CreateNewBlock : block not accepted, invalid server address");
         return false;
     }
     
