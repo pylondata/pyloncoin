@@ -11,7 +11,7 @@
  * Created on 13 de agosto de 2018, 12:17
  */
 
-#include "server.h"
+#include "rpc/server.h"
 #include "governance/governance.h"
 #include "governance/governance-votedb.h"
 #include "fasito/fasito.h"
@@ -101,29 +101,32 @@ UniValue makevote(const JSONRPCRequest& request)
     if (candidateVal.isStr()) {
         gobj->candidateId = candidateVal.get_str();
     } else {
-        throw JSONRPCError(RPC_PARSE_ERROR, "The param \"candidate\" must be a string");
+        throw JSONRPCError(RPC_PARSE_ERROR, "The param \"candidate\" must be a string.");
     }
     
-    if (voteTypeVal.isNum()) {
-        gobj->govType = voteTypeVal.get_int();
+    if (voteTypeVal.isNum() || voteTypeVal.isStr()) {
+        std::string::size_type sz;
+        gobj->govType = std::stoi(voteTypeVal.get_str(), &sz);
         if (gobj->govType != CVN_VOTE && gobj->govType != PROSUMER_VOTE) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "The param \"votetype\" must be 0 or 1");
         }
     } else {
-        throw JSONRPCError(RPC_PARSE_ERROR, "The param \"votetype\" must be a number");
+        throw JSONRPCError(RPC_PARSE_ERROR, "The param \"votetype\" must be a number.");
     }
     
     uint256 txhash = ParseHashV(txhashVal, "");
     gobj->txhash = txhash;
     
-    if (voutVal.isNum()) {
-        gobj->txvout = voutVal.get_int();
+    if (voutVal.isNum() || voutVal.isStr()) {
+        std::string::size_type sz;
+        gobj->txvout = std::stoi(voutVal.get_str(), &sz);
     } else {
         throw JSONRPCError(RPC_PARSE_ERROR, "The param \"vout\" must be a number.");
     }
     
-    if (voteVal.isNum()) {
-        gobj->vote = voteVal.get_int() > 0;
+    if (voteVal.isNum() || voteVal.isStr()) {
+        std::string::size_type sz;
+        gobj->vote = std::stoi(voteVal.get_str(), &sz) > 0;
     } else {
         throw JSONRPCError(RPC_PARSE_ERROR, "The param \"vote\" must be a number.");
     }

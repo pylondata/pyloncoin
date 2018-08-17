@@ -600,16 +600,18 @@ template<typename Stream, unsigned int N, typename T>
 void Serialize_impl(Stream& os, const prevector<N, T>& v, const unsigned char&)
 {
     WriteCompactSize(os, v.size());
-    if (!v.empty())
+    if (!v.empty()) {
         os.write((char*)&v[0], v.size() * sizeof(T));
+    }
 }
 
 template<typename Stream, unsigned int N, typename T, typename V>
 void Serialize_impl(Stream& os, const prevector<N, T>& v, const V&)
 {
     WriteCompactSize(os, v.size());
-    for (typename prevector<N, T>::const_iterator vi = v.begin(); vi != v.end(); ++vi)
+    for (typename prevector<N, T>::const_iterator vi = v.begin(); vi != v.end(); ++vi) {
         ::Serialize(os, (*vi));
+    }
 }
 
 template<typename Stream, unsigned int N, typename T>

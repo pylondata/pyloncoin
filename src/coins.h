@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2015 The Bitcoin Core developers
+// Copyright (c) 2009-2016 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -8,6 +8,7 @@
 
 #include "compressor.h"
 #include "core_memusage.h"
+#include "hash.h"
 #include "memusage.h"
 #include "serialize.h"
 #include "uint256.h"
@@ -152,29 +153,6 @@ public:
         return fCoinBase;
     }
 
-    unsigned int GetSerializeSize(int nType, int nVersion) const {
-        unsigned int nSize = 0;
-        unsigned int nMaskSize = 0, nMaskCode = 0;
-        CalcMaskSize(nMaskSize, nMaskCode);
-        bool fFirst = vout.size() > 0 && !vout[0].IsNull();
-        bool fSecond = vout.size() > 1 && !vout[1].IsNull();
-        assert(fFirst || fSecond || nMaskCode);
-        unsigned int nCode = 8*(nMaskCode - (fFirst || fSecond ? 0 : 1)) + (fCoinBase ? 1 : 0) + (fFirst ? 2 : 0) + (fSecond ? 4 : 0);
-        // version
-        nSize += ::GetSerializeSize(VARINT(this->nVersion), nType, nVersion);
-        // size of header code
-        nSize += ::GetSerializeSize(VARINT(nCode), nType, nVersion);
-        // spentness bitmask
-        nSize += nMaskSize;
-        // txouts themself
-        for (unsigned int i = 0; i < vout.size(); i++)
-            if (!vout[i].IsNull())
-                nSize += ::GetSerializeSize(CTxOutCompressor(REF(vout[i])), nType, nVersion);
-        // height
-        nSize += ::GetSerializeSize(VARINT(nHeight), nType, nVersion);
-        return nSize;
-    }
-
     template<typename Stream>
     void Serialize(Stream &s) const {
         unsigned int nMaskSize = 0, nMaskCode = 0;
@@ -264,24 +242,6 @@ public:
     }
 };
 
-class CCoinsKeyHasher
-{
-private:
-    uint256 salt;
-
-public:
-    CCoinsKeyHasher();
-
-    /**
-     * This *must* return size_t. With Boost 1.46 on 32-bit systems the
-     * unordered_map will behave unpredictably if the custom hasher returns a
-     * uint64_t, resulting in failures when syncing the chain (#4634).
-     */
-    size_t operator()(const uint256& key) const {
-        return key.GetHash(salt);
-    }
-};
-
 class SaltedTxidHasher
 {
 private:
@@ -309,26 +269,38 @@ struct CCoinsCacheEntry
     enum Flags {
         DIRTY = (1 << 0), // This cache entry is potentially different from the version in the parent view.
         FRESH = (1 << 1), // The parent view does not have this entry (or it is pruned).
+        /* Note that FRESH is a performance optimization with which we can
+         * erase coins that are fully spent if we know we do not need to
+         * flush the changes to the parent cache.  It is always safe to
+         * not mark FRESH if that condition is not guaranteed.
+         */
     };
 
     CCoinsCacheEntry() : coins(), flags(0) {}
 };
 
-typedef boost::unordered_map<uint256, CCoinsCacheEntry, CCoinsKeyHasher> CCoinsMap;
+typedef boost::unordered_map<uint256, CCoinsCacheEntry, SaltedTxidHasher> CCoinsMap;
 
-struct CCoinsStats
+/** Cursor for iterating over CoinsView state */
+class CCoinsViewCursor
 {
-    int nHeight;
+public:
+    CCoinsViewCursor(const uint256 &hashBlockIn): hashBlock(hashBlockIn) {}
+    virtual ~CCoinsViewCursor();
+
+    virtual bool GetKey(uint256 &key) const = 0;
+    virtual bool GetValue(CCoins &coins) const = 0;
+    /* Don't care about GetKeySize here */
+    virtual unsigned int GetValueSize() const = 0;
+
+    virtual bool Valid() const = 0;
+    virtual void Next() = 0;
+
+    //! Get best block at the time this cursor was created
+    const uint256 &GetBestBlock() const { return hashBlock; }
+private:
     uint256 hashBlock;
-    uint64_t nTransactions;
-    uint64_t nTransactionOutputs;
-    uint64_t nSerializedSize;
-    uint256 hashSerialized;
-    CAmount nTotalAmount;
-
-    CCoinsStats() : nHeight(0), nTransactions(0), nTransactionOutputs(0), nSerializedSize(0), nTotalAmount(0) {}
 };
-
 
 /** Abstract view on the open txout dataset. */
 class CCoinsView
@@ -348,8 +320,8 @@ public:
     //! The passed mapCoins can be modified.
     virtual bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock);
 
-    //! Calculate statistics about the unspent transaction output set
-    virtual bool GetStats(CCoinsStats &stats) const;
+    //! Get a cursor to iterate over the whole state
+    virtual CCoinsViewCursor *Cursor() const;
 
     //! As we use CCoinsViews polymorphically, have a virtual destructor
     virtual ~CCoinsView() {}
@@ -369,7 +341,7 @@ public:
     uint256 GetBestBlock() const;
     void SetBackend(CCoinsView &viewIn);
     bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock);
-    bool GetStats(CCoinsStats &stats) const;
+    CCoinsViewCursor *Cursor() const;
 };
 
 
@@ -480,8 +452,8 @@ public:
      * Note that lightweight clients may not know anything besides the hash of previous transactions,
      * so may not be able to calculate this.
      *
-     * @param[in] tx transaction for which we are checking input total
-     * @return       Sum of value of all inputs (scriptSigs)
+     * @param[in] tx	transaction for which we are checking input total
+     * @return	Sum of value of all inputs (scriptSigs)
      */
     CAmount GetValueIn(const CTransaction& tx) const;
 
@@ -500,7 +472,6 @@ public:
     friend class CCoinsModifier;
 
 private:
-    CCoinsMap::iterator FetchCoins(const uint256 &txid);
     CCoinsMap::const_iterator FetchCoins(const uint256 &txid) const;
 
     /**

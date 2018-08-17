@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2015 The Bitcoin Core developers
+// Copyright (c) 2012-2016 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -45,7 +45,7 @@ bool CCoinsView::GetCoins(const uint256 &txid, CCoins &coins) const { return fal
 bool CCoinsView::HaveCoins(const uint256 &txid) const { return false; }
 uint256 CCoinsView::GetBestBlock() const { return uint256(); }
 bool CCoinsView::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) { return false; }
-bool CCoinsView::GetStats(CCoinsStats &stats) const { return false; }
+CCoinsViewCursor *CCoinsView::Cursor() const { return 0; }
 
 
 CCoinsViewBacked::CCoinsViewBacked(CCoinsView *viewIn) : base(viewIn) { }
@@ -54,11 +54,9 @@ bool CCoinsViewBacked::HaveCoins(const uint256 &txid) const { return base->HaveC
 uint256 CCoinsViewBacked::GetBestBlock() const { return base->GetBestBlock(); }
 void CCoinsViewBacked::SetBackend(CCoinsView &viewIn) { base = &viewIn; }
 bool CCoinsViewBacked::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) { return base->BatchWrite(mapCoins, hashBlock); }
-bool CCoinsViewBacked::GetStats(CCoinsStats &stats) const { return base->GetStats(stats); }
+CCoinsViewCursor *CCoinsViewBacked::Cursor() const { return base->Cursor(); }
 
 SaltedTxidHasher::SaltedTxidHasher() : k0(GetRand(std::numeric_limits<uint64_t>::max())), k1(GetRand(std::numeric_limits<uint64_t>::max())) {}
-
-CCoinsKeyHasher::CCoinsKeyHasher() : salt(GetRandHash()) {}
 
 CCoinsViewCache::CCoinsViewCache(CCoinsView *baseIn) : CCoinsViewBacked(baseIn), hasModifier(false), cachedCoinsUsage(0) { }
 
@@ -119,6 +117,20 @@ CCoinsModifier CCoinsViewCache::ModifyCoins(const uint256 &txid) {
     return CCoinsModifier(*this, ret.first, cachedCoinUsage);
 }
 
+/* ModifyNewCoins allows for faster coin modification when creating the new
+ * outputs from a transaction.  It assumes that BIP 30 (no duplicate txids)
+ * applies and has already been tested for (or the test is not required due to
+ * BIP 34, height in coinbase).  If we can assume BIP 30 then we know that any
+ * non-coinbase transaction we are adding to the UTXO must not already exist in
+ * the utxo unless it is fully spent.  Thus we can check only if it exists DIRTY
+ * at the current level of the cache, in which case it is not safe to mark it
+ * FRESH (b/c then its spentness still needs to flushed).  If it's not dirty and
+ * doesn't exist or is pruned in the current cache, we know it either doesn't
+ * exist or is pruned in parent caches, which is the definition of FRESH.  The
+ * exception to this is the two historical violations of BIP 30 in the chain,
+ * both of which were coinbases.  We do not mark these fresh so we we can ensure
+ * that they will still be properly overwritten when spent.
+ */
 CCoinsModifier CCoinsViewCache::ModifyNewCoins(const uint256 &txid, bool coinbase) {
     assert(!hasModifier);
     std::pair<CCoinsMap::iterator, bool> ret = cacheCoins.insert(std::make_pair(txid, CCoinsCacheEntry()));
@@ -195,6 +207,13 @@ bool CCoinsViewCache::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlockIn
                         entry.flags |= CCoinsCacheEntry::FRESH;
                 }
             } else {
+                // Assert that the child cache entry was not marked FRESH if the
+                // parent cache entry has unspent outputs. If this ever happens,
+                // it means the FRESH flag was misapplied and there is a logic
+                // error in the calling code.
+                if ((it->second.flags & CCoinsCacheEntry::FRESH) && !itUs->second.coins.IsPruned())
+                    throw std::logic_error("FRESH flag misapplied to cache entry for base transaction with spendable outputs");
+
                 // Found the entry in the parent cache
                 if ((itUs->second.flags & CCoinsCacheEntry::FRESH) && it->second.coins.IsPruned()) {
                     // The grandparent does not have an entry, and the child is
@@ -208,6 +227,11 @@ bool CCoinsViewCache::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlockIn
                     itUs->second.coins.swap(it->second.coins);
                     cachedCoinsUsage += itUs->second.coins.DynamicMemoryUsage();
                     itUs->second.flags |= CCoinsCacheEntry::DIRTY;
+                    // NOTE: It is possible the child has a FRESH flag here in
+                    // the event the entry we found in the parent is pruned. But
+                    // we must not copy that FRESH flag to the parent as that
+                    // pruned state likely still needs to be communicated to the
+                    // grandparent.
                 }
             }
         }
@@ -283,7 +307,7 @@ double CCoinsViewCache::GetPriority(const CTransaction &tx, int nHeight, CAmount
         assert(coins);
         if (!coins->IsAvailable(txin.prevout.n)) continue;
         if (coins->nHeight <= nHeight) {
-            dResult += coins->vout[txin.prevout.n].nValue * (nHeight-coins->nHeight);
+            dResult += (double)(coins->vout[txin.prevout.n].nValue) * (nHeight-coins->nHeight);
             inChainInputValue += coins->vout[txin.prevout.n].nValue;
         }
     }
@@ -307,4 +331,8 @@ CCoinsModifier::~CCoinsModifier()
         // If the coin still exists after the modification, add the new usage
         cache.cachedCoinsUsage += it->second.coins.DynamicMemoryUsage();
     }
+}
+
+CCoinsViewCursor::~CCoinsViewCursor()
+{
 }

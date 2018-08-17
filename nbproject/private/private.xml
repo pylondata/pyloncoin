@@ -10,36 +10,15 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
+            <file>file:/home/ander/Escritorio/Pylon/pylon/src/script/script.h</file>
             <file>file:/home/ander/Escritorio/Pylon/pylon/src/hash.h</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/util.h</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/util.cpp</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/primitives/cvn.h</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/wallet/wallet.cpp</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/governance/governance.cpp</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/governance/governance-votedb.cpp</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/init.cpp</file>
+            <file>file:/home/ander/Escritorio/Pylon/pylon/src/blockfactory.cpp</file>
             <file>file:/home/ander/Escritorio/Pylon/pylon/src/serialize.h</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/net.cpp</file>
             <file>file:/home/ander/Escritorio/Pylon/pylon/src/main.cpp</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/coins.cpp</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/primitives/block.cpp</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/governance/governance-votedb.h</file>
+            <file>file:/home/ander/Escritorio/Pylon/pylon/src/crypto/sha256.cpp</file>
             <file>file:/home/ander/Escritorio/Pylon/pylon/src/primitives/transaction.h</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/consensus/consensus.h</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/Makefile.am</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/governance/governance.h</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/amount.h</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/rpc/rawtransaction.cpp</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/primitives/txdata.h</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/rpc/server.cpp</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/protocol.h</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/primitives/block.h</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/wallet/rpcwallet.cpp</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/consensus/params.h</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/coins.h</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/primitives/transaction.cpp</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/version.h</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/net.h</file>
+            <file>file:/home/ander/Escritorio/Pylon/pylon/src/crypto/sha256.h</file>
+            <file>file:/home/ander/Escritorio/Pylon/pylon/src/prevector.h</file>
         </group>
     </open-files>
 </project-private>

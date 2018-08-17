@@ -493,7 +493,7 @@ public:
 
     /** Return true if the wrapped FILE* is NULL, false otherwise.
      */
-    bool IsNull() const         { return (file == NULL); }
+    bool IsNull() const         { return file == NULL; }
 
     //
     // Stream subset

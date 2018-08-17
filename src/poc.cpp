@@ -1226,7 +1226,6 @@ static uint32_t FindNewlyAddedCVN(const CBlockIndex* pindexStart)
         if (pindex->nVersion & CBlock::CVN_PAYLOAD) {
             vector<CCvnInfo> vCvnInfoFromBlock;
             CachedCvnType::iterator it = mapChachedCVNInfoBlocks.find(pindex->GetBlockHash());
-
             if (it == mapChachedCVNInfoBlocks.end()) {
                 CBlock block;
                 if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus())) {
@@ -1413,8 +1412,9 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
         }
     } while (nMinSignatures);
 
-    if (!nNextCreatorId)
+    if (!nNextCreatorId) {
         LogPrintf("%s : could not find any node ID that should create the next block #%u\n", __func__, pindexStart->nHeight + 1);
+    }
 
     LogPrint("cvnnext", "%s : NODE ID 0x%08x should create the next block #%u\n", __func__, nNextCreatorId, pindexStart->nHeight + 1);
 

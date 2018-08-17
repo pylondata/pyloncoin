@@ -13,6 +13,7 @@
 #include "script/script.h"
 #include "serialize.h"
 #include "uint256.h"
+#include "util.h"
 
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
@@ -98,11 +99,11 @@ public:
     
     CTxIn()
     {
-        nSequence = std::numeric_limits<unsigned int>::max();
+        nSequence = SEQUENCE_FINAL;
     }
 
-    explicit CTxIn(COutPoint prevoutIn, CScript scriptSigIn=CScript(), uint32_t nSequenceIn=std::numeric_limits<unsigned int>::max());
-    CTxIn(uint256 hashPrevTx, uint32_t nOut, CScript scriptSigIn=CScript(), uint32_t nSequenceIn=std::numeric_limits<uint32_t>::max());
+    explicit CTxIn(COutPoint prevoutIn, CScript scriptSigIn=CScript(), uint32_t nSequenceIn=SEQUENCE_FINAL);
+    CTxIn(uint256 hashPrevTx, uint32_t nOut, CScript scriptSigIn=CScript(), uint32_t nSequenceIn=SEQUENCE_FINAL);
 
     ADD_SERIALIZE_METHODS;
 
@@ -115,7 +116,7 @@ public:
 
     bool IsFinal() const
     {
-        return (nSequence == std::numeric_limits<uint32_t>::max());
+        return (nSequence == SEQUENCE_FINAL);
     }
 
     friend bool operator==(const CTxIn& a, const CTxIn& b)
@@ -243,7 +244,6 @@ struct CMutableTransaction;
 template<typename Stream, typename TxType>
 inline void UnserializeTransaction(TxType& tx, Stream& s) {
     const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
-
     s >> tx.nVersion;
     unsigned char flags = 0;
     tx.vin.clear();
@@ -312,12 +312,12 @@ class CTransaction
 {
 private:
     /** Memory only. */
-    const uint256 hash;
+    uint256 hash;
     uint256 ComputeHash() const;
 
 public:
     // Default transaction version.
-    static const int32_t CURRENT_VERSION = 2;
+    static const int32_t CURRENT_VERSION = 1;
     static const int32_t INJECTION_VERSION = 3;
 
     // Changing the default transaction version requires a two step process: first
@@ -353,16 +353,6 @@ public:
     template <typename Stream>
     inline void Serialize(Stream& s) const {
         SerializeTransaction(*this, s);
-    }
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        READWRITE(*const_cast<int32_t*>(&this->nVersion));
-        READWRITE(*const_cast<std::vector<CTxIn>*>(&vin));
-        READWRITE(*const_cast<std::vector<CTxOut>*>(&vout));
-        READWRITE(*const_cast<uint32_t*>(&nLockTime));
-        if (ser_action.ForRead())
-            ComputeHash();
     }
 
     bool IsNull() const {
@@ -415,7 +405,7 @@ public:
 
     std::string ToString() const;
     
-        bool HasWitness() const
+    bool HasWitness() const
     {
         for (size_t i = 0; i < vin.size(); i++) {
             if (!vin[i].scriptWitness.IsNull()) {
@@ -446,14 +436,6 @@ struct CMutableTransaction
     template <typename Stream>
     inline void Unserialize(Stream& s) {
         UnserializeTransaction(*this, s);
-    }
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        READWRITE(this->nVersion);
-        READWRITE(vin);
-        READWRITE(vout);
-        READWRITE(nLockTime);
     }
     
     template <typename Stream>

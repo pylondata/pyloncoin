@@ -1544,8 +1544,9 @@ bool ReadBlockFromDisk(CBlock& block, const CDiskBlockPos& pos, const Consensus:
 
     // Open history file to read
     CAutoFile filein(OpenBlockFile(pos, true), SER_DISK, CLIENT_VERSION);
-    if (filein.IsNull())
+    if (filein.IsNull()) {
         return error("ReadBlockFromDisk: OpenBlockFile failed for %s", pos.ToString());
+    }
 
     // Read block
     try {
@@ -1565,11 +1566,14 @@ bool ReadBlockFromDisk(CBlock& block, const CDiskBlockPos& pos, const Consensus:
 
 bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus::Params& consensusParams)
 {
-    if (!ReadBlockFromDisk(block, pindex->GetBlockPos(), consensusParams))
+    if (!ReadBlockFromDisk(block, pindex->GetBlockPos(), consensusParams)) {
         return false;
-    if (block.GetHash() != pindex->GetBlockHash())
+    }
+    if (block.GetHash() != pindex->GetBlockHash()) {
         return error("ReadBlockFromDisk(CBlock&, CBlockIndex*): GetHash() doesn't match index for %s at %s",
                 pindex->ToString(), pindex->GetBlockPos().ToString());
+    }
+
     return true;
 }
 
@@ -1611,7 +1615,6 @@ bool IsInitialBlockDownload()
 
     LogPrintf("Initial blockchain download completed.\n");
     latchToFalse.store(true, std::memory_order_relaxed);
-    LogPrintf("me cago en todo\n");
     return false;
 }
 
@@ -2624,7 +2627,7 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
     // Remove conflicting transactions from the mempool.
     list<CTransaction> txConflicted;
     mempool.removeForBlock(pblock->vtx, pindexNew->nHeight);
-    // Update chainActive & related variables.
+    // Update chainActive & related variables.    
     UpdateTip(pindexNew);
 
     int64_t nTime6 = GetTimeMicros(); nTimePostConnect += nTime6 - nTime5; nTimeTotal += nTime6 - nTime1;
@@ -2646,7 +2649,6 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
 
     if (!IsInitialBlockDownload()) {
         const uint32_t nNextCreator = CheckNextBlockCreator(pindexNew, block.nTime + 1);
-
         // if two successive blocks are created by the same CVN ID (during bootstrap)
         // the sigHolder needs to be cleared completely
         if (nNextCreator == pblock->nCreatorId) {
@@ -3270,10 +3272,8 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOC, bo
                         InjectionData iData(const_cast<char*>(str.c_str())); //PARSE DATA
                         
                         //Find if this prominer is already in injectionMiners
-                        if (std::find(injectionMiners.begin(), injectionMiners.end(), iData) != injectionMiners.end()) {
-                            //Prominer exists in injectionMiners
-                            
-                        } else {
+                        if (std::find(injectionMiners.begin(), injectionMiners.end(), iData) == injectionMiners.end()) {
+                            //Prominer not exists in injectionMiners, adding
                             injectionMiners.push_back(iData);
                         }
                     } catch (const std::exception& e) {
@@ -3790,7 +3790,7 @@ FILE* OpenDiskFile(const CDiskBlockPos &pos, const char *prefix, bool fReadOnly)
             fclose(file);
             return NULL;
         }
-    }
+    }    
     return file;
 }
 
@@ -3830,7 +3830,7 @@ CBlockIndex * InsertBlockIndex(uint256 hash)
 bool static LoadBlockIndexDB()
 {
     const CChainParams& chainparams = Params();
-    if (!pblocktree->LoadBlockIndexGuts())
+    if (!pblocktree->LoadBlockIndexGuts(InsertBlockIndex))
         return false;
 
     boost::this_thread::interruption_point();

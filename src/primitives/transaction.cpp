@@ -8,6 +8,7 @@
 #include "hash.h"
 #include "tinyformat.h"
 #include "utilstrencodings.h"
+#include "transaction.h"
 
 std::string COutPoint::ToString() const
 {
@@ -69,7 +70,8 @@ uint256 CMutableTransaction::GetHash() const
 
 uint256 CTransaction::ComputeHash() const
 {
-    return SerializeHash(*this, SER_GETHASH, SERIALIZE_TRANSACTION_NO_WITNESS);
+    *const_cast<uint256*>(&hash) = SerializeHash(*this, SER_GETHASH, SERIALIZE_TRANSACTION_NO_WITNESS);
+    return hash;
 }
 
 uint256 CTransaction::GetWitnessHash() const
@@ -80,10 +82,14 @@ uint256 CTransaction::GetWitnessHash() const
     return SerializeHash(*this, SER_GETHASH, 0);
 }
 
-CTransaction::CTransaction() : nVersion(CTransaction::CURRENT_VERSION), vin(), vout(), nLockTime(0), hash() { }
+CTransaction::CTransaction() : nVersion(CTransaction::CURRENT_VERSION), vin(), vout(), nLockTime(0) { }
 
-CTransaction::CTransaction(const CMutableTransaction &tx) : nVersion(tx.nVersion), vin(tx.vin), vout(tx.vout), nLockTime(tx.nLockTime), hash(ComputeHash()) {}
-CTransaction::CTransaction(CMutableTransaction &&tx) : nVersion(tx.nVersion), vin(std::move(tx.vin)), vout(std::move(tx.vout)), nLockTime(tx.nLockTime), hash(ComputeHash()) {}
+CTransaction::CTransaction(const CMutableTransaction &tx) : nVersion(tx.nVersion), vin(tx.vin), vout(tx.vout), nLockTime(tx.nLockTime) {
+    ComputeHash();
+}
+CTransaction::CTransaction(CMutableTransaction &&tx) : nVersion(tx.nVersion), vin(std::move(tx.vin)), vout(std::move(tx.vout)), nLockTime(tx.nLockTime) {
+    ComputeHash();
+}
 
 
 CTransaction& CTransaction::operator=(const CTransaction &tx) {

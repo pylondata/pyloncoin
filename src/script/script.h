@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2015 The Bitcoin Core developers
+// Copyright (c) 2009-2016 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -419,12 +419,15 @@ public:
     explicit CScript(const std::vector<unsigned char>& b) { operator<<(b); }
 
 
-    CScript& operator<<(int64_t b) { return push_int64(b); }
+    CScript& operator<<(int64_t b) {
+        return push_int64(b); 
+    }
 
     CScript& operator<<(opcodetype opcode)
     {
-        if (opcode < 0 || opcode > 0xff)
+        if (opcode < 0 || opcode > 0xff) {
             throw std::runtime_error("CScript::operator<<(): invalid opcode");
+        }
         insert(end(), (unsigned char)opcode);
         return *this;
     }
@@ -573,17 +576,26 @@ public:
         int nFound = 0;
         if (b.empty())
             return nFound;
-        iterator pc = begin();
+        CScript result;
+        iterator pc = begin(), pc2 = begin();
         opcodetype opcode;
         do
         {
-            while (end() - pc >= (long)b.size() && memcmp(&pc[0], &b[0], b.size()) == 0)
+            result.insert(result.end(), pc2, pc);
+            while (static_cast<size_t>(end() - pc) >= b.size() && std::equal(b.begin(), b.end(), pc))
             {
-                pc = erase(pc, pc + b.size());
+                pc = pc + b.size();
                 ++nFound;
             }
+            pc2 = pc;
         }
         while (GetOp(pc, opcode));
+
+        if (nFound > 0) {
+            result.insert(result.end(), pc2, end());
+            *this = result;
+        }
+
         return nFound;
     }
     int Find(opcodetype op) const
@@ -626,7 +638,7 @@ public:
      */
     bool IsUnspendable() const
     {
-        return (size() > 0 && *begin() == OP_RETURN);
+        return (size() > 0 && *begin() == OP_RETURN) || (size() > MAX_SCRIPT_SIZE);
     }
 
     void clear()

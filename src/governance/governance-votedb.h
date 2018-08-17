@@ -27,7 +27,7 @@
 
 using namespace std;
 
-static const size_t DEFAULT_CACHE_SIZE = 80 * 1024 * 1024 * 1024; //80 MB
+static const size_t DEFAULT_CACHE_SIZE = 80 * 1024 * 1024; //80 MB
 
 class GovernanceObjectVoteDB {
 public:

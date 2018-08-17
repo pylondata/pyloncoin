@@ -121,7 +121,14 @@ public:
      * from entry priority. Only inputs that were originally in-chain will age.
      */
     double GetPriority(unsigned int currentHeight) const;
-    const CAmount& GetFee() const { return nFee; }
+    const CAmount& GetFee() const { 
+        if (this->tx->nVersion == CTransaction::INJECTION_VERSION) {
+            return NO_FEE;
+        }
+        
+        return nFee; 
+    }
+    
     size_t GetTxSize() const;
     size_t GetTxWeight() const { return nTxWeight; }
     int64_t GetTime() const { return nTime; }

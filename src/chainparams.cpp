@@ -18,10 +18,11 @@
 #include <stdio.h>
 #include <assert.h>
 #include <boost/assign/list_of.hpp>
+#include <iostream>
 
 CDynamicChainParams dynParams;
 
-#define SHOW_GENESIS_HASHES 0
+#define SHOW_GENESIS_HASHES 1
 
 #if SHOW_GENESIS_HASHES
 #define PRINT_HASHES \
