@@ -301,7 +301,7 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
         }
 
         CTransactionRef txr = MakeTransactionRef(std::move(txNew));
-        pblock->vtx[0] = txr;4
+        pblock->vtx[0] = txr;
         // Fill in header
         pblock->hashPrevBlock = pindexPrev->GetBlockHash();
     }
