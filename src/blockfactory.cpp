@@ -280,7 +280,7 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
             totalEnergy += data.injection;
         }
 
-        for (int x = 1; x < injectionMiners.size(); x++) {
+        for (unsigned int x = 1; x < injectionMiners.size(); x++) {
             InjectionData iData = injectionMiners[x - 1];
 
             double percent = 100 * iData.injection / totalEnergy;
