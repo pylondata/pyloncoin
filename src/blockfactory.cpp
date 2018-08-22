@@ -291,8 +291,8 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
                 CScript scriptPubKey = GetScriptForDestination(addr.Get());
 
                 //Put % of reward in coinbase tx
-                txNew.vout[x].scriptPubKey = scriptPubKey;
-                txNew.vout[x].nValue = prosumerSubsidy * percent;
+                txNew.vout[x + 1].scriptPubKey = scriptPubKey;
+                txNew.vout[x + 1].nValue = prosumerSubsidy * percent;
             }
         } else {
             //If not injectionData, all subsidy for CVN's
