@@ -828,7 +828,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransaction& tx, const CBlockIndex
             CWalletTx wtx(this, MakeTransactionRef(tx));
 
             // Get merkle branch if transaction was found in a block
-            if (posInBlock != -1) {
+            if (posInBlock !=posInBlock -1) {
                 wtx.SetMerkleBranch(pIndex, posInBlock);
             }
 
