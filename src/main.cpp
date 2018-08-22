@@ -2630,6 +2630,18 @@ bool static ConnectTip(CValidationState& state, const CChainParams& chainparams,
     // Update chainActive & related variables.    
     UpdateTip(pindexNew);
 
+    // Tell wallet about transactions that went from mempool
+    // to conflicted:
+    for (const auto tx : txConflicted) {
+        GetMainSignals().SyncTransaction(tx, NULL, CMainSignals::SYNC_TRANSACTION_NOT_IN_BLOCK);
+    }
+    // ... and about transactions that got confirmed:
+    int x = 0;
+    for (const auto& tx : pblock->vtx) {
+        GetMainSignals().SyncTransaction(*tx, pindexNew, x);
+        x++;
+    }
+    
     int64_t nTime6 = GetTimeMicros(); nTimePostConnect += nTime6 - nTime5; nTimeTotal += nTime6 - nTime1;
     LogPrint("bench", "  - Connect postprocess: %.2fms [%.2fs]\n", (nTime6 - nTime5) * 0.001, nTimePostConnect * 0.000001);
     LogPrint("bench", "- Connect block: %.2fms [%.2fs]\n", (nTime6 - nTime1) * 0.001, nTimeTotal * 0.000001);

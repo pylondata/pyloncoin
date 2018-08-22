@@ -267,32 +267,38 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
         // Send reward to prosumers and CVNs
         CAmount subsidy = nFees + GetBlockSubsidy(blocktemplate.pindexPrev->nHeight + 1);
 
-        txNew.vout[0].scriptPubKey = blocktemplate.feeScript.reserveScript; //10% TO CVN
+        txNew.vout[0].scriptPubKey = blocktemplate.feeScript.reserveScript;
 
-        CAmount cvnSubsisdy = subsidy * CDynamicChainParams::CVN_REWARD_PERCENT;
-        txNew.vout[0].nValue = cvnSubsisdy;
+        if (!injectionMiners.empty()) {
+            CAmount cvnSubsisdy = subsidy * CDynamicChainParams::CVN_REWARD_PERCENT;
+            txNew.vout[0].nValue = cvnSubsisdy; //10% TO CVN
 
-        CAmount prosumerSubsidy = subsidy - cvnSubsisdy;
+            CAmount prosumerSubsidy = subsidy - cvnSubsisdy;
 
-        int64_t totalEnergy = 0;
+            int64_t totalEnergy = 0;
 
-        for (InjectionData data : injectionMiners) {
-            totalEnergy += data.injection;
+            for (InjectionData data : injectionMiners) {
+                totalEnergy += data.injection;
+            }
+
+            for (int x = 1; x < injectionMiners.size(); x++) {
+                InjectionData iData = injectionMiners[x - 1];
+
+                double percent = 100 * iData.injection / totalEnergy;
+
+                // Parse PylonCoin address
+                CBitcoinAddress addr(iData.address);
+                CScript scriptPubKey = GetScriptForDestination(addr.Get());
+
+                //Put % of reward in coinbase tx
+                txNew.vout[x].scriptPubKey = scriptPubKey;
+                txNew.vout[x].nValue = prosumerSubsidy * percent;
+            }
+        } else {
+            //If not injectionData, all subsidy for CVN's
+            txNew.vout[0].nValue = subsidy;
         }
 
-        for (int x = 1; x < injectionMiners.size(); x++) {
-            InjectionData iData = injectionMiners[x - 1];
-
-            double percent = 100 * iData.injection / totalEnergy;
-
-            // Parse PylonCoin address
-            CBitcoinAddress addr(iData.address);
-            CScript scriptPubKey = GetScriptForDestination(addr.Get());
-
-            //Put % of reward in coinbase tx
-            txNew.vout[x].scriptPubKey = scriptPubKey;
-            txNew.vout[x].nValue = prosumerSubsidy * percent;
-        }
 
         // don't spam the CVNs wallet with zero value transactions
         if (txNew.vout[0].nValue == 0) {
@@ -301,7 +307,7 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
         }
 
         CTransactionRef txr = MakeTransactionRef(std::move(txNew));
-        pblock->vtx[0] = txr;4
+        pblock->vtx[0] = txr;
         // Fill in header
         pblock->hashPrevBlock = pindexPrev->GetBlockHash();
     }
@@ -313,7 +319,7 @@ static bool ProcessCVNBlock(const CBlock* pblock, const CChainParams& chainparam
     if (GetBoolArg("-printcreatedblock", true))
         LogPrintf("%s", pblock->ToString());
 
-    LogPrintf("fees collected: %s\n", FormatMoney(pblock->vtx[0]->vout[0].nValue));
+    LogPrintf("Reward collected: %s\n", FormatMoney(pblock->vtx[0]->vout[0].nValue));
 
     {
         LOCK(cs_main);

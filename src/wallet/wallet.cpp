@@ -822,13 +822,15 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransaction& tx, const CBlockIndex
 
         bool fExisted = mapWallet.count(tx.GetHash()) != 0;
         if (fExisted && !fUpdate) return false;
+        //LogPrintf("CWallet: %s: isMine=%s, isFromMe=%s\n", __func__, IsMine(tx) ? "true" : "false", IsFromMe(tx) ? "true" : "false");
         if (fExisted || IsMine(tx) || IsFromMe(tx))
         {
             CWalletTx wtx(this, MakeTransactionRef(tx));
 
             // Get merkle branch if transaction was found in a block
-            if (posInBlock != -1)
+            if (posInBlock != -1) {
                 wtx.SetMerkleBranch(pIndex, posInBlock);
+            }
 
             // Do not flush the wallet here for performance reasons
             // this is safe, as in case of a crash, we rescan the necessary blocks on startup through our SetBestChain-mechanism
@@ -959,16 +961,18 @@ void CWallet::SyncTransaction(const CTransaction& tx, const CBlockIndex *pindex,
 {
     LOCK2(cs_main, cs_wallet);
 
-    if (!AddToWalletIfInvolvingMe(tx, pindex, posInBlock, true))
+    if (!AddToWalletIfInvolvingMe(tx, pindex, posInBlock, true)) {
         return; // Not one of ours
+    }
 
     // If a transaction changes 'conflicted' state, that changes the balance
     // available of the outputs it spends. So force those to be
     // recomputed, also:
     BOOST_FOREACH(const CTxIn& txin, tx.vin)
     {
-        if (mapWallet.count(txin.prevout.hash))
+        if (mapWallet.count(txin.prevout.hash)) {
             mapWallet[txin.prevout.hash].MarkDirty();
+        }
     }
 }
 
@@ -981,8 +985,10 @@ isminetype CWallet::IsMine(const CTxIn &txin) const
         if (mi != mapWallet.end())
         {
             const CWalletTx& prev = (*mi).second;
-            if (txin.prevout.n < prev.tx->vout.size())
+            if (txin.prevout.n < prev.tx->vout.size()) {
                 return IsMine(prev.tx->vout[txin.prevout.n]);
+            }
+                
         }
     }
     return ISMINE_NO;
@@ -1048,8 +1054,10 @@ CAmount CWallet::GetChange(const CTxOut& txout) const
 bool CWallet::IsMine(const CTransaction& tx) const
 {
     BOOST_FOREACH(const CTxOut& txout, tx.vout)
-        if (IsMine(txout))
+        if (IsMine(txout)) {
             return true;
+        }
+            
     return false;
 }
 
@@ -1064,8 +1072,9 @@ CAmount CWallet::GetDebit(const CTransaction& tx, const isminefilter& filter) co
     BOOST_FOREACH(const CTxIn& txin, tx.vin)
     {
         nDebit += GetDebit(txin, filter);
-        if (!MoneyRange(nDebit))
+        if (!MoneyRange(nDebit)) {
             throw std::runtime_error("CWallet::GetDebit(): value out of range");
+        }
     }
     return nDebit;
 }
@@ -1076,8 +1085,9 @@ CAmount CWallet::GetCredit(const CTransaction& tx, const isminefilter& filter) c
     BOOST_FOREACH(const CTxOut& txout, tx.vout)
     {
         nCredit += GetCredit(txout, filter);
-        if (!MoneyRange(nCredit))
+        if (!MoneyRange(nCredit)) {
             throw std::runtime_error("CWallet::GetCredit(): value out of range");
+        }
     }
     return nCredit;
 }
@@ -1088,8 +1098,9 @@ CAmount CWallet::GetChange(const CTransaction& tx) const
     BOOST_FOREACH(const CTxOut& txout, tx.vout)
     {
         nChange += GetChange(txout);
-        if (!MoneyRange(nChange))
+        if (!MoneyRange(nChange)) {
             throw std::runtime_error("CWallet::GetChange(): value out of range");
+        }
     }
     return nChange;
 }
@@ -3157,8 +3168,9 @@ int CMerkleTx::GetDepthInMainChain(const CBlockIndex* &pindexRet) const
 
 int CMerkleTx::GetBlocksToMaturity() const
 {
-    if (!IsCoinBase())
+    if (!IsCoinBase()) {
         return 0;
+    }
     const int nCoinbaseMaturity = COINBASE_MATURITY+1;
     return max(0, nCoinbaseMaturity - GetDepthInMainChain());
 }
