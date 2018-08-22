@@ -1,7 +1,7 @@
 #/bin/bash
 
 CERT_DIR=~/.pyloncoin2/certs
-PRIVATE=$CERT_DIR/private-pem
+PRIVATE=$CERT_DIR/private.pem
 CERT=$CERT_DIR/cert.pem
 
 mkdir -p $CERT_DIR
