@@ -1,3 +1,5 @@
+#/bin/bash
+
 cd depends
 make NO_QT=1
 cd ..

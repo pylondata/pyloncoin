@@ -382,6 +382,7 @@
         <in>utiltime.cpp</in>
         <in>validationinterface.cpp</in>
       </df>
+      <in>makecert.sh</in>
     </df>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -416,6 +417,8 @@
           <preBuildCommand></preBuildCommand>
         </preBuild>
       </makefileType>
+      <item path="makecert.sh" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="src/addrman.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="src/alert.cpp" ex="false" tool="1" flavor2="0">
