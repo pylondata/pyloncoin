@@ -1,8 +1,6 @@
 Notes
 ---------------------
-Output can be found in log.log
 
-Be aware in poc.cpp lines 137, 550 and 626 code has been disabled.
 
 Configure
 ---------------------
