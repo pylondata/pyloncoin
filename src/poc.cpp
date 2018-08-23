@@ -135,12 +135,7 @@ bool AddToCvnInfoCache(const CBlock *pblock, const uint32_t nHeight)
     } else if (count == 1) {
         memcpy(sumOfAllSignersPubkeys.data, &pblock->vCvns[0].pubKey.begin()[0], 64);
     } else {
-        LogPrint("cvn", "not 1\n");
-        //
-        // Esto peta en runtime si no esta comentado.
-        // Como de momento solo tenemos 1 cvn no nos afecta
-
-        //if (!secp256k1_ec_pubkey_combine(secp256k1_context_none, &sumOfAllSignersPubkeys, allSignersPubkeys, count))
+        if (!secp256k1_ec_pubkey_combine(secp256k1_context_none, &sumOfAllSignersPubkeys, allSignersPubkeys, count))
             return error("%s : could not combine signers public keys", __func__);
     }
 
@@ -623,8 +618,7 @@ bool CvnVerifyChainSignature(const CBlock& block)
             allSignersPubkeys[count++] = (secp256k1_pubkey *)&cvn.second.pubKey.begin()[0];
         }
 
-        // Peta en runtime, no nos afecta porque de momento no tenemos 'missing signers' 
-        //if (!secp256k1_ec_pubkey_combine(secp256k1_context_none, &sumOfAllSignersPubkeys, allSignersPubkeys, count))
+        if (!secp256k1_ec_pubkey_combine(secp256k1_context_none, &sumOfAllSignersPubkeys, allSignersPubkeys, count))
             return error("CvnVerifyChainSignature : could not combine signers public keys");
 
         UpdateHashWithMissingIDs(hasher, vMissingSignersIds);
