@@ -15650,6 +15650,7 @@
           </df>
         </df>
       </df>
+      <in>addcvn.sh</in>
       <in>makecert.sh</in>
     </df>
   </logicalFolder>

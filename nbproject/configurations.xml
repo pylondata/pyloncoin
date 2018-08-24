@@ -382,6 +382,7 @@
         <in>utiltime.cpp</in>
         <in>validationinterface.cpp</in>
       </df>
+      <in>addcvn.sh</in>
       <in>makecert.sh</in>
     </df>
     <logicalFolder name="ExternalFiles"
@@ -417,6 +418,8 @@
           <preBuildCommand></preBuildCommand>
         </preBuild>
       </makefileType>
+      <item path="addcvn.sh" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="makecert.sh" ex="false" tool="3" flavor2="0">
       </item>
       <item path="src/addrman.cpp" ex="false" tool="1" flavor2="0">
