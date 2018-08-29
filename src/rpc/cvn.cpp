@@ -1223,7 +1223,8 @@ UniValue bancvn(const JSONRPCRequest& request)
 UniValue setchainparameters(const JSONRPCRequest& request)
 {
     const UniValue params = request.params;
-    if (request.fHelp || params.size() != 0)
+
+    if (request.fHelp || params.size() != 1)
         throw runtime_error(
             "setchainparameters {\"nParam1\":123,\"nParam2\":456} [\"n:sigs\",...]\n"
             "\nSet new dynamic chain parameters for Pyloncoin network\n"
