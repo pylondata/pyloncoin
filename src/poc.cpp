@@ -113,17 +113,28 @@ void printHex(const uint8_t *buf, const size_t len, const bool addLF = false)
 
 bool AddToCvnInfoCache(const CBlock *pblock, const uint32_t nHeight)
 {   
-    if (!pblock->HasCvnInfo())
+    LogPrintf("%s: %d\n", __func__, 1);
+    if (!pblock->HasCvnInfo()) {
         return false;
+    }
+    
+    LogPrintf("%s: %d\n", __func__, 2);
 
     LOCK(cs_mapCVNs);
 
-    mapCVNs.clear();
+    LogPrintf("%s: %d, size=%d\n", __func__, 1, mapCVNs.size());
+    if (!mapCVNs.empty()) {
+        mapCVNs.clear();
+    }
+    
+    LogPrintf("%s: %d\n", __func__, 2);
     int count = 0;
     secp256k1_pubkey *allSignersPubkeys[MAX_NUMBER_OF_CVNS];
 
     BOOST_FOREACH(const CCvnInfo &cvnInfo, pblock->vCvns) {
+        LogPrintf("%s: %d\n", __func__, 3);
         mapCVNs.insert(std::make_pair(cvnInfo.nNodeId, cvnInfo));
+        LogPrintf("%s: %d\n", __func__, 4);
         allSignersPubkeys[count++] = (secp256k1_pubkey *)&cvnInfo.pubKey.begin()[0];
     }
 
@@ -133,12 +144,15 @@ bool AddToCvnInfoCache(const CBlock *pblock, const uint32_t nHeight)
         LogPrint("cvn", "No CVN defined\n");
         return false;
     } else if (count == 1) {
+        LogPrintf("%s: %d\n", __func__, 5);
         memcpy(sumOfAllSignersPubkeys.data, &pblock->vCvns[0].pubKey.begin()[0], 64);
+        LogPrintf("%s: %d\n", __func__, 6);
     } else {
         if (!secp256k1_ec_pubkey_combine(secp256k1_context_none, &sumOfAllSignersPubkeys, allSignersPubkeys, count))
             return error("%s : could not combine signers public keys", __func__);
     }
 
+    LogPrintf("%s: %d\n", __func__, 7);
     mapCVNInfoCache[nHeight] = CvnInfoCache(sumOfAllSignersPubkeys, mapCVNs.size());
     return true;
 }
@@ -923,9 +937,12 @@ void UpdateCvnInfo(const CBlock* pblock, const uint32_t nHeight)
         LogPrint("cvn", "UpdateCvnInfo : ERROR, block is not of type CVN\n");
         return;
     }
-
+    
+    LogPrintf("%s: %d\n", __func__, 1);
     AddToCvnInfoCache(pblock, nHeight);
+    LogPrintf("%s: %d\n", __func__, 2);
     PrintAllCVNs();
+    LogPrintf("%s: %d\n", __func__, 3);
 }
 
 void UpdateChainAdmins(const CBlock* pblock)

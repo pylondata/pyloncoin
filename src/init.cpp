@@ -1361,9 +1361,13 @@ CSchnorrSig chainAdminSig;
     // initialize CVN and chain parameters
     LogPrintf("Initialize CVN and chain parameters\n");
     CBlock genesis = chainparams.GenesisBlock();
+    LogPrintf("1\n");
     UpdateCvnInfo(&genesis, 0);
+    LogPrintf("2\n");
     UpdateChainParameters(&genesis);
+    LogPrintf("3\n");
     UpdateChainAdmins(&genesis);
+    LogPrintf("4\n");
 
     fReindex = GetBoolArg("-reindex", false);
 
