@@ -2139,7 +2139,9 @@ bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pin
         nFees += block.coinSupply.nValue;
     }
 
-    if (block.HasTx() && block.vtx[0].GetValueOut() > nFees)
+    CAmount subsidy = nFees + GetBlockSubsidy(pindex->nHeight);
+    
+    if (block.HasTx() && block.vtx[0].GetValueOut() > subsidy)
         return state.DoS(100,
                          error("ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)",
                                block.vtx[0].GetValueOut(), nFees),
