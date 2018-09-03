@@ -6314,6 +6314,22 @@ bool SendMessages(CNode* pto)
             pto->vInventoryChainSignaturesToSend.clear();
 
             //
+            // Handle: Governance Objects
+            //
+            BOOST_FOREACH(const uint256 hash, pto->vInventoryGovernanceDataToSend) {
+                map<uint256, GovernanceObject>::iterator mi = mapRelayVotes.find(hash);
+                if (mi != mapRelayVotes.end()) {
+                    CInv inv(MSG_GOV, hash);
+                    vInv.push_back(inv);
+                    
+                    if (vInv.size() == MAX_INV_SZ) {
+                        pto->PushMessage(NetMsgType::INV, vInv);
+                        vInv.clear();
+                    }
+                }
+            }
+            
+            //
             // Handle: chain admin public nonces
             //
             BOOST_FOREACH(const uint256& hash, pto->vInventoryAdminNoncesToSend) {

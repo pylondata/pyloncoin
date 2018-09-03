@@ -26,6 +26,7 @@
 #include <univalue.h>
 
 void GovernanceObjectToJSON(const GovernanceObject& gobj, UniValue& entry) {
+    //entry.push_back(Pair("hash", gobj.GetHash().GetHex()));
     entry.push_back(Pair("version", gobj.nVersion));
     entry.push_back(Pair("txhash", gobj.txhash.GetHex()));
     entry.push_back(Pair("txvout", gobj.txvout));
@@ -131,7 +132,7 @@ UniValue makevote(const UniValue& params, bool fHelp)
         throw JSONRPCError(RPC_PARSE_ERROR, "The param \"vote\" must be a number.");
     }
     
-    if (gobj->HasMinimumAmount()) {
+    if (!gobj->HasMinimumAmount()) {
         throw JSONRPCError(RPC_INVALID_REQUEST, "The transaction output does not reach the minimum required.");
     }
     
