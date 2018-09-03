@@ -10,18 +10,21 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/wallet/rpcwallet.cpp</file>
             <file>file:/home/ander/Escritorio/Pylon/pylon/src/poc.h</file>
             <file>file:/home/ander/Escritorio/Pylon/pylon/src/blockfactory.cpp</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/wallet/wallet.h</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/rpc/server.cpp</file>
+            <file>file:/home/ander/Escritorio/Pylon/pylon/src/protocol.h</file>
+            <file>file:/home/ander/Escritorio/Pylon/pylon/src/primitives/cvn.h</file>
             <file>file:/home/ander/Escritorio/Pylon/pylon/src/wallet/wallet.cpp</file>
+            <file>file:/home/ander/Escritorio/Pylon/pylon/src/protocol.cpp</file>
+            <file>file:/home/ander/Escritorio/Pylon/pylon/src/policy/policy.h</file>
+            <file>file:/home/ander/Escritorio/Pylon/pylon/src/main.h</file>
+            <file>file:/home/ander/Escritorio/Pylon/pylon/src/init.cpp</file>
+            <file>file:/home/ander/Escritorio/Pylon/pylon/src/wallet/rpcwallet.cpp</file>
+            <file>file:/home/ander/Escritorio/Pylon/pylon/src/script/script.h</file>
+            <file>file:/home/ander/Escritorio/Pylon/pylon/src/script/interpreter.cpp</file>
             <file>file:/home/ander/Escritorio/Pylon/pylon/src/main.cpp</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/validationinterface.h</file>
             <file>file:/home/ander/Escritorio/Pylon/pylon/src/primitives/transaction.h</file>
             <file>file:/home/ander/Escritorio/Pylon/pylon/src/poc.cpp</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/rpc/server.h</file>
-            <file>file:/home/ander/Escritorio/Pylon/pylon/src/rpc/cvn.cpp</file>
         </group>
     </open-files>
 </project-private>

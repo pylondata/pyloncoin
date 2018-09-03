@@ -15,22 +15,21 @@ typedef int64_t CAmount;
 
 static const CAmount COIN = 100000000;
 static const CAmount CENT = 1000000;
-static const CAmount NO_FEE = -1;
 
 extern const std::string CURRENCY_UNIT;
 
 /** No amount larger than this is valid.
  *
  * Note that this constant is *not* the total money supply, if coin supply
- * functionallity is enabled, but rather a sanity check. As this sanity check
+ * functionality is enabled, but rather a sanity check. As this sanity check
  * is used by consensus-critical validation code, the exact value of
  * the MAX_MONEY constant is consensus critical; in unusual circumstances
  * like a(nother) overflow bug that allowed for the creation of coins out of
  * thin air modification could lead to a fork.
  *
- * In Pyloncoin this is the exact amount of balances from the Pyloncoin1 block chain
+ * In Pyloncoin2 this is the exact amount of balances from the Pyloncoin1 block chain
  * */
-static const CAmount MAX_MONEY = 54000000 * COIN; // Maximum number of coins from the Pyloncoin1 blockchain
+static const CAmount MAX_MONEY = 53193831.467966 * COIN; // Maximum number of coins from the Pyloncoin1 blockchain
 inline bool MoneyRange(const CAmount& nValue) { return (nValue >= 0 && nValue <= MAX_MONEY); }
 
 /** Type-safe wrapper class for fee rates
@@ -60,7 +59,7 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(nSatoshisPerK);
     }
 };

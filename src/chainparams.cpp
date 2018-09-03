@@ -13,12 +13,10 @@
 #include "poc.h"
 #include "base58.h"
 #include "chainparamsseeds.h"
-#include "primitives/transaction.h"
 
 #include <stdio.h>
 #include <assert.h>
 #include <boost/assign/list_of.hpp>
-#include <iostream>
 
 CDynamicChainParams dynParams;
 
@@ -36,13 +34,13 @@ CDynamicChainParams dynParams;
             genesis.hashPayload.ToString().c_str())
 #endif
 
-#define GENESIS_BLOCK_TIMESTAMP 1531827198   
+#define GENESIS_BLOCK_TIMESTAMP 1531827198
 const char* genesisMessage = "Coco loco";
 
 static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nCreatorId, const CDynamicChainParams& dynamicChainParams)
 {
     CMutableTransaction txNew;
-    txNew.nVersion = 2;
+    txNew.nVersion = 1;
     txNew.vin.resize(1);
     txNew.vout.resize(1);
     txNew.vin[0].scriptSig = CScript() << OP_0 << CScriptNum(GENESIS_NODE_ID) << OP_0; // Serialised block height + genesis node ID + zero
@@ -54,7 +52,7 @@ static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nCreatorId, const CDyn
     genesis.nTime      = nTime;
     genesis.nCreatorId = nCreatorId;
     genesis.hashPrevBlock.SetNull();
-    genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
+    genesis.vtx.push_back(txNew);
     genesis.dynamicChainParams = dynamicChainParams;
     return genesis;
 }
@@ -90,7 +88,6 @@ public:
         CDynamicChainParams dynParams;
         dynParams.nBlockSpacing                = 1 * 60; // 1 min.
         dynParams.nBlockSpacingGracePeriod     = 60;
-        dynParams.nBlockIntervalResetScore     = 60;
         dynParams.nMaxAdminSigs                = 11;
         dynParams.nMinAdminSigs                = 1;
         dynParams.nTransactionFee              = 0 * CENT; // 0 PLN per Kb
@@ -128,14 +125,15 @@ public:
         assert(genesis.hashMerkleRoot == uint256S("f702453dd03b0f055e5437d76128141803984fb10acb85fc3b2184fae2f3fa78"));
         assert(genesis.hashPayload == uint256S("5fd1f1c8d729bccd4d28fccdbf7613ed1795c5aa82565d9b128f44da262cff55"));
 #endif
-       // vSeeds.push_back(CDNSSeedData("1.pylon-network.org", "pyloncoin2-seed1.pylon-network.org")); // Thomas König
-       // vSeeds.push_back(CDNSSeedData("2.pylon-network.org", "pyloncoin2-seed2.pylon-network.org")); // Thomas König
+        // vSeeds.push_back(CDNSSeedData("1.pylon-network.org", "pyloncoin2-seed1.pylon-network.org")); // Thomas König
+        // vSeeds.push_back(CDNSSeedData("2.pylon-network.org", "pyloncoin2-seed2.pylon-network.org")); // Thomas König
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,95);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,36);
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,223);
         base58Prefixes[EXT_PUBLIC_KEY] = boost::assign::list_of(0x04)(0x88)(0xB2)(0x1E).convert_to_container<std::vector<unsigned char> >();
         base58Prefixes[EXT_SECRET_KEY] = boost::assign::list_of(0x04)(0x88)(0xAD)(0xE4).convert_to_container<std::vector<unsigned char> >();
+
         vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_main, pnSeed6_main + ARRAYLEN(pnSeed6_main));
 
         fDefaultConsistencyChecks = false;
@@ -214,7 +212,7 @@ public:
 #endif
         vFixedSeeds.clear();
         vSeeds.clear();
-       // vSeeds.push_back(CDNSSeedData("1.pylon-network.org", "pyloncoin2-testnet-seed1.pylon-network.org")); // Thomas König
+        // vSeeds.push_back(CDNSSeedData("1.pylon-network.org", "pyloncoin2-testnet-seed1.pylon-network.org")); // Thomas König
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
@@ -346,4 +344,65 @@ void SelectParams(const std::string& network)
 {
     SelectBaseParams(network);
     pCurrentParams = &Params(network);
+}
+
+bool CheckDynamicChainParameters(const CDynamicChainParams& params)
+{
+    if (params.nBlockSpacing > MAX_BLOCK_SPACING || params.nBlockSpacing < MIN_BLOCK_SPACING) {
+        LogPrintf("%s : block spacing %u exceeds limit\n",__func__ , params.nBlockSpacing);
+        return false;
+    }
+
+    if (params.nTransactionFee > MAX_TX_FEE_THRESHOLD || params.nTransactionFee < MIN_TX_FEE_THRESHOLD) {
+        LogPrintf("%s : tx fee threshold %u exceeds limit\n",__func__ , params.nTransactionFee);
+        return false;
+    }
+
+    if (params.nDustThreshold > MAX_DUST_THRESHOLD || params.nDustThreshold < MIN_DUST_THRESHOLD) {
+        LogPrintf("%s : dust threshold %u exceeds limit\n",__func__ , params.nDustThreshold);
+        return false;
+    }
+
+    if (!params.nMinAdminSigs || params.nMinAdminSigs > params.nMaxAdminSigs) {
+        LogPrintf("%s : number of CVN signers %u/%u exceeds limit\n",__func__ , params.nMinAdminSigs, params.nMaxAdminSigs);
+        return false;
+    }
+
+    if (params.nBlocksToConsiderForSigCheck < MIN_BLOCKS_TO_CONSIDER_FOR_SIG_CHECK || params.nBlocksToConsiderForSigCheck > MAX_BLOCKS_TO_CONSIDER_FOR_SIG_CHECK) {
+        LogPrintf("%s : %u blocksToConsiderForSigCheck is out of bounds\n",__func__ , params.nBlocksToConsiderForSigCheck);
+        return false;
+    }
+
+    if (params.nPercentageOfSignaturesMean < MIN_PERCENTAGE_OF_SIGNATURES_MEAN || params.nPercentageOfSignaturesMean > MAX_PERCENTAGE_OF_SIGNATURES_MEAN) {
+        LogPrintf("%s : %u nPercentageOfSignatureMean is out of bounds\n",__func__ , params.nPercentageOfSignaturesMean);
+        return false;
+    }
+
+    if (params.nMaxBlockSize < MIN_SIZE_OF_BLOCK || params.nMaxBlockSize > MAX_SIZE_OF_BLOCK) {
+        LogPrintf("%s : %u nMaxBlockSize is out of bounds\n",__func__ , params.nMaxBlockSize);
+        return false;
+    }
+
+    if (params.nBlockPropagationWaitTime < MIN_BLOCK_PROPAGATION_WAIT_TIME || params.nBlockPropagationWaitTime > MAX_BLOCK_PROPAGATION_WAIT_TIME ||
+            params.nBlockPropagationWaitTime >= params.nBlockSpacing) {
+        LogPrintf("%s : %u nBlockPropagationWaitTime is out of bounds\n",__func__ , params.nBlockPropagationWaitTime);
+        return false;
+    }
+
+    if (params.nRetryNewSigSetInterval < MIN_RETRY_NEW_SIG_SET_INTERVAL || params.nRetryNewSigSetInterval > MAX_RETRY_NEW_SIG_SET_INTERVAL) {
+        LogPrintf("%s : %u nRetryNewSigSetInterval is out of bounds\n",__func__ , params.nRetryNewSigSetInterval);
+        return false;
+    }
+
+    if (params.nCoinbaseMaturity < MIN_COINBASE_MATURITY || params.nCoinbaseMaturity > MAX_COINBASE_MATURITY) {
+        LogPrintf("%s : %u nCoinbaseMaturity is out of bounds\n",__func__ , params.nCoinbaseMaturity);
+        return false;
+    }
+
+    if (params.strDescription.length() <= MIN_CHAIN_DATA_DESCRIPTION_LEN) {
+        LogPrintf("%s : chain data description is too short: %s\n",__func__ , params.strDescription);
+        return false;
+    }
+
+    return true;
 }

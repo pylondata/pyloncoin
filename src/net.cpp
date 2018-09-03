@@ -74,8 +74,7 @@ namespace {
 //
 bool fDiscover = true;
 bool fListen = true;
-bool fRelayTxes = true;
-uint64_t nLocalServices = NODE_NETWORK | NODE_POC_DATA | NODE_WITNESS;
+uint64_t nLocalServices = NODE_NETWORK | NODE_POC_DATA;
 CCriticalSection cs_mapLocalHost;
 map<CNetAddr, LocalServiceInfo> mapLocalHost;
 static bool vfLimited[NET_MAX] = {};
@@ -2056,7 +2055,7 @@ void RelayTransaction(const CTransaction& tx)
 }
 
 void RelayGovernanceObject(GovernanceObject& gobj) {
-    CInv inv(MSG_GOVERNANCE_DATA, gobj.GetHash());
+    CInv inv(MSG_GOV, gobj.GetHash());
     LOCK(cs_vNodes);
     BOOST_FOREACH(CNode* pnode, vNodes)
     {

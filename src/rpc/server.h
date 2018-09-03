@@ -17,9 +17,7 @@
 #include <boost/function.hpp>
 
 #include <univalue.h>
-#include "rpc/protocol.h"
-
-static const unsigned int DEFAULT_RPC_SERIALIZE_VERSION = 1;
+#include "protocol.h"
 
 class CRPCCommand;
 
@@ -34,26 +32,14 @@ namespace RPCServer
 class CBlockIndex;
 class CNetAddr;
 
-/** Wrapper for UniValue::VType, which includes typeAny:
- * Used to denote don't care type. Only used by RPCTypeCheckObj */
-struct UniValueType {
-    UniValueType(UniValue::VType _type) : typeAny(false), type(_type) {}
-    UniValueType() : typeAny(true) {}
-    bool typeAny;
-    UniValue::VType type;
-};
-
-class JSONRPCRequest
+class JSONRequest
 {
 public:
     UniValue id;
     std::string strMethod;
     UniValue params;
-    bool fHelp;
-    std::string URI;
-    std::string authUser;
 
-    JSONRPCRequest() { id = NullUniValue; params = NullUniValue; fHelp = false; }
+    JSONRequest() { id = NullUniValue; }
     void parse(const UniValue& valRequest);
 };
 
@@ -79,18 +65,12 @@ bool RPCIsInWarmup(std::string *statusOut);
 void RPCTypeCheck(const UniValue& params,
                   const std::list<UniValue::VType>& typesExpected, bool fAllowNull=false);
 
-/**
- * Type-check one argument; throws JSONRPCError if wrong type given.
- */
-void RPCTypeCheckArgument(const UniValue& value, UniValue::VType typeExpected);
-
 /*
   Check for expected keys/value types in an Object.
+  Use like: RPCTypeCheckObj(object, boost::assign::map_list_of("name", str_type)("value", int_type));
 */
 void RPCTypeCheckObj(const UniValue& o,
-    const std::map<std::string, UniValueType>& typesExpected,
-    bool fAllowNull = false,
-    bool fStrict = false);
+                  const std::map<std::string, UniValue::VType>& typesExpected, bool fAllowNull=false);
 
 /** Opaque base class for timers returned by NewTimerFunc.
  * This provides no methods at the moment, but makes sure that delete
@@ -131,7 +111,7 @@ void RPCUnregisterTimerInterface(RPCTimerInterface *iface);
  */
 void RPCRunLater(const std::string& name, boost::function<void(void)> func, int64_t nSeconds);
 
-typedef UniValue(*rpcfn_type)(const JSONRPCRequest& jsonRequest);
+typedef UniValue(*rpcfn_type)(const UniValue& params, bool fHelp);
 
 class CRPCCommand
 {
@@ -156,25 +136,12 @@ public:
 
     /**
      * Execute a method.
-     * @param request The JSONRPCRequest to execute
+     * @param method   Method to execute
+     * @param params   UniValue Array of arguments (JSON objects)
      * @returns Result of the call.
      * @throws an exception (UniValue) when an error happens.
      */
-    UniValue execute(const JSONRPCRequest &request) const;
     UniValue execute(const std::string &method, const UniValue &params) const;
-    /**
-    * Returns a list of registered commands
-    * @returns List of registered commands.
-    */
-    std::vector<std::string> listCommands() const;
-
-
-    /**
-     * Appends a CRPCCommand to the dispatch table.
-     * Returns false if RPC server is already running (dump concurrency protection).
-     * Commands cannot be overwritten (returns false).
-     */
-    bool appendCommand(const std::string& name, const CRPCCommand* pcmd);
 };
 
 extern const CRPCTable tableRPC;
@@ -197,120 +164,119 @@ extern std::string HelpExampleRpc(const std::string& methodname, const std::stri
 
 extern void EnsureWalletIsUnlocked();
 
-extern UniValue getconnectioncount(const JSONRPCRequest& request); // in rpc/net.cpp
-extern UniValue getpeerinfo(const JSONRPCRequest& request);
-extern UniValue ping(const JSONRPCRequest& request);
-extern UniValue addnode(const JSONRPCRequest& request);
-extern UniValue disconnectnode(const JSONRPCRequest& request);
-extern UniValue getaddednodeinfo(const JSONRPCRequest& request);
-extern UniValue getnettotals(const JSONRPCRequest& request);
-extern UniValue setban(const JSONRPCRequest& request);
-extern UniValue listbanned(const JSONRPCRequest& request);
-extern UniValue clearbanned(const JSONRPCRequest& request);
+extern UniValue getconnectioncount(const UniValue& params, bool fHelp); // in rpc/net.cpp
+extern UniValue getpeerinfo(const UniValue& params, bool fHelp);
+extern UniValue ping(const UniValue& params, bool fHelp);
+extern UniValue addnode(const UniValue& params, bool fHelp);
+extern UniValue disconnectnode(const UniValue& params, bool fHelp);
+extern UniValue getaddednodeinfo(const UniValue& params, bool fHelp);
+extern UniValue getnettotals(const UniValue& params, bool fHelp);
+extern UniValue setban(const UniValue& params, bool fHelp);
+extern UniValue listbanned(const UniValue& params, bool fHelp);
+extern UniValue clearbanned(const UniValue& params, bool fHelp);
 
-extern UniValue dumpprivkey(const JSONRPCRequest& request); // in rpc/dump.cpp
-extern UniValue importprivkey(const JSONRPCRequest& request);
-extern UniValue importaddress(const JSONRPCRequest& request);
-extern UniValue importpubkey(const JSONRPCRequest& request);
-extern UniValue dumpwallet(const JSONRPCRequest& request);
-extern UniValue importwallet(const JSONRPCRequest& request);
+extern UniValue dumpprivkey(const UniValue& params, bool fHelp); // in rpc/dump.cpp
+extern UniValue importprivkey(const UniValue& params, bool fHelp);
+extern UniValue importaddress(const UniValue& params, bool fHelp);
+extern UniValue importpubkey(const UniValue& params, bool fHelp);
+extern UniValue dumpwallet(const UniValue& params, bool fHelp);
+extern UniValue importwallet(const UniValue& params, bool fHelp);
 
-extern UniValue getgenerate(const JSONRPCRequest& request); // in rpc/cvn.cpp
-extern UniValue setgenerate(const JSONRPCRequest& request);
-extern UniValue fasitologin(const JSONRPCRequest& request);
-extern UniValue fasitologout(const JSONRPCRequest& request);
-extern UniValue fasitoinitkey(const JSONRPCRequest& request);
-extern UniValue fasitononce(const JSONRPCRequest& request);
-extern UniValue fasitosign(const JSONRPCRequest& request);
-extern UniValue addcvn(const JSONRPCRequest& request);
-extern UniValue removecvn(const JSONRPCRequest& request);
-extern UniValue fasitoschnorr(const JSONRPCRequest& request);
-extern UniValue fasitoschnorrverify(const JSONRPCRequest& request);
-extern UniValue fasitohash(const JSONRPCRequest& request);
-extern UniValue fasitocmd(const JSONRPCRequest& request);
-extern UniValue getcvninfo(const JSONRPCRequest& request);
-extern UniValue bancvn(const JSONRPCRequest& request);
-extern UniValue getchainparameters(const JSONRPCRequest& request);
-extern UniValue relaynoncepool(const JSONRPCRequest& request);
-extern UniValue setchainparameters(const JSONRPCRequest& request);
-extern UniValue getactivecvns(const JSONRPCRequest& request);
-extern UniValue getactiveadmins(const JSONRPCRequest& request);
-extern UniValue submitblock(const JSONRPCRequest& request);
-extern UniValue addcoinsupply(const JSONRPCRequest& request);
-extern UniValue estimatefee(const JSONRPCRequest& request);
+extern UniValue getgenerate(const UniValue& params, bool fHelp); // in rpc/cvn.cpp
+extern UniValue setgenerate(const UniValue& params, bool fHelp);
+extern UniValue fasitologin(const UniValue& params, bool fHelp);
+extern UniValue fasitologout(const UniValue& params, bool fHelp);
+extern UniValue fasitoinitkey(const UniValue& params, bool fHelp);
+extern UniValue fasitononce(const UniValue& params, bool fHelp);
+extern UniValue fasitosign(const UniValue& params, bool fHelp);
+extern UniValue addcvn(const UniValue& params, bool fHelp);
+extern UniValue removecvn(const UniValue& params, bool fHelp);
+extern UniValue fasitoschnorr(const UniValue& params, bool fHelp);
+extern UniValue fasitoschnorrverify(const UniValue& params, bool fHelp);
+extern UniValue fasitohash(const UniValue& params, bool fHelp);
+extern UniValue fasitocmd(const UniValue& params, bool fHelp);
+extern UniValue getcvninfo(const UniValue& params, bool fHelp);
+extern UniValue bancvn(const UniValue& params, bool fHelp);
+extern UniValue getchainparameters(const UniValue& params, bool fHelp);
+extern UniValue relaynoncepool(const UniValue& params, bool fHelp);
+extern UniValue setchainparameters(const UniValue& params, bool fHelp);
+extern UniValue getactivecvns(const UniValue& params, bool fHelp);
+extern UniValue getactiveadmins(const UniValue& params, bool fHelp);
+extern UniValue submitblock(const UniValue& params, bool fHelp);
+extern UniValue addcoinsupply(const UniValue& params, bool fHelp);
+extern UniValue estimatefee(const UniValue& params, bool fHelp);
 
-extern UniValue getnewaddress(const JSONRPCRequest& request); // in rpcwallet.cpp
-extern UniValue getaccountaddress(const JSONRPCRequest& request);
-extern UniValue getrawchangeaddress(const JSONRPCRequest& request);
-extern UniValue setaccount(const JSONRPCRequest& request);
-extern UniValue getaccount(const JSONRPCRequest& request);
-extern UniValue getaddressesbyaccount(const JSONRPCRequest& request);
-extern UniValue sendtoaddress(const JSONRPCRequest& request);
-extern UniValue signmessage(const JSONRPCRequest& request);
-extern UniValue verifymessage(const JSONRPCRequest& request);
-extern UniValue getreceivedbyaddress(const JSONRPCRequest& request);
-extern UniValue getreceivedbyaccount(const JSONRPCRequest& request);
-extern UniValue getbalance(const JSONRPCRequest& request);
-extern UniValue getunconfirmedbalance(const JSONRPCRequest& request);
-extern UniValue movecmd(const JSONRPCRequest& request);
-extern UniValue sendfrom(const JSONRPCRequest& request);
-extern UniValue sendmany(const JSONRPCRequest& request);
-extern UniValue addmultisigaddress(const JSONRPCRequest& request);
-extern UniValue createmultisig(const JSONRPCRequest& request);
-extern UniValue listreceivedbyaddress(const JSONRPCRequest& request);
-extern UniValue listreceivedbyaccount(const JSONRPCRequest& request);
-extern UniValue listtransactions(const JSONRPCRequest& request);
-extern UniValue listaddressgroupings(const JSONRPCRequest& request);
-extern UniValue listaccounts(const JSONRPCRequest& request);
-extern UniValue listsinceblock(const JSONRPCRequest& request);
-extern UniValue gettransaction(const JSONRPCRequest& request);
-extern UniValue abandontransaction(const JSONRPCRequest& request);
-extern UniValue backupwallet(const JSONRPCRequest& request);
-extern UniValue keypoolrefill(const JSONRPCRequest& request);
-extern UniValue walletpassphrase(const JSONRPCRequest& request);
-extern UniValue walletpassphrasechange(const JSONRPCRequest& request);
-extern UniValue walletlock(const JSONRPCRequest& request);
-extern UniValue encryptwallet(const JSONRPCRequest& request);
-extern UniValue validateaddress(const JSONRPCRequest& request);
-extern UniValue validatepubkey(const JSONRPCRequest& request);
-extern UniValue getinfo(const JSONRPCRequest& request);
-extern UniValue getwalletinfo(const JSONRPCRequest& request);
-extern UniValue chaininfo(const JSONRPCRequest& request);
-extern UniValue getnetworkinfo(const JSONRPCRequest& request);
-extern UniValue setmocktime(const JSONRPCRequest& request);
-extern UniValue resendwallettransactions(const JSONRPCRequest& request);
+extern UniValue getnewaddress(const UniValue& params, bool fHelp); // in rpcwallet.cpp
+extern UniValue getaccountaddress(const UniValue& params, bool fHelp);
+extern UniValue getrawchangeaddress(const UniValue& params, bool fHelp);
+extern UniValue setaccount(const UniValue& params, bool fHelp);
+extern UniValue getaccount(const UniValue& params, bool fHelp);
+extern UniValue getaddressesbyaccount(const UniValue& params, bool fHelp);
+extern UniValue sendtoaddress(const UniValue& params, bool fHelp);
+extern UniValue signmessage(const UniValue& params, bool fHelp);
+extern UniValue verifymessage(const UniValue& params, bool fHelp);
+extern UniValue getreceivedbyaddress(const UniValue& params, bool fHelp);
+extern UniValue getreceivedbyaccount(const UniValue& params, bool fHelp);
+extern UniValue getbalance(const UniValue& params, bool fHelp);
+extern UniValue getunconfirmedbalance(const UniValue& params, bool fHelp);
+extern UniValue movecmd(const UniValue& params, bool fHelp);
+extern UniValue sendfrom(const UniValue& params, bool fHelp);
+extern UniValue sendmany(const UniValue& params, bool fHelp);
+extern UniValue addmultisigaddress(const UniValue& params, bool fHelp);
+extern UniValue createmultisig(const UniValue& params, bool fHelp);
+extern UniValue listreceivedbyaddress(const UniValue& params, bool fHelp);
+extern UniValue listreceivedbyaccount(const UniValue& params, bool fHelp);
+extern UniValue listtransactions(const UniValue& params, bool fHelp);
+extern UniValue listaddressgroupings(const UniValue& params, bool fHelp);
+extern UniValue listaccounts(const UniValue& params, bool fHelp);
+extern UniValue listsinceblock(const UniValue& params, bool fHelp);
+extern UniValue gettransaction(const UniValue& params, bool fHelp);
+extern UniValue abandontransaction(const UniValue& params, bool fHelp);
+extern UniValue backupwallet(const UniValue& params, bool fHelp);
+extern UniValue keypoolrefill(const UniValue& params, bool fHelp);
+extern UniValue walletpassphrase(const UniValue& params, bool fHelp);
+extern UniValue walletpassphrasechange(const UniValue& params, bool fHelp);
+extern UniValue walletlock(const UniValue& params, bool fHelp);
+extern UniValue encryptwallet(const UniValue& params, bool fHelp);
+extern UniValue validateaddress(const UniValue& params, bool fHelp);
+extern UniValue validatepubkey(const UniValue& params, bool fHelp);
+extern UniValue getinfo(const UniValue& params, bool fHelp);
+extern UniValue getwalletinfo(const UniValue& params, bool fHelp);
+extern UniValue getblockchaininfo(const UniValue& params, bool fHelp);
+extern UniValue getnetworkinfo(const UniValue& params, bool fHelp);
+extern UniValue setmocktime(const UniValue& params, bool fHelp);
+extern UniValue resendwallettransactions(const UniValue& params, bool fHelp);
 
-extern UniValue getrawtransaction(const JSONRPCRequest& request); // in rcp/rawtransaction.cpp
-extern UniValue listunspent(const JSONRPCRequest& request);
-extern UniValue lockunspent(const JSONRPCRequest& request);
-extern UniValue listlockunspent(const JSONRPCRequest& request);
-extern UniValue createrawtransaction(const JSONRPCRequest& request);
-extern UniValue decoderawtransaction(const JSONRPCRequest& request);
-extern UniValue decodescript(const JSONRPCRequest& request);
-extern UniValue fundrawtransaction(const JSONRPCRequest& request);
-extern UniValue signrawtransaction(const JSONRPCRequest& request);
-extern UniValue sendrawtransaction(const JSONRPCRequest& request);
-extern UniValue gettxoutproof(const JSONRPCRequest& request);
-extern UniValue verifytxoutproof(const JSONRPCRequest& request);
+extern UniValue getrawtransaction(const UniValue& params, bool fHelp); // in rcp/rawtransaction.cpp
+extern UniValue listunspent(const UniValue& params, bool fHelp);
+extern UniValue lockunspent(const UniValue& params, bool fHelp);
+extern UniValue listlockunspent(const UniValue& params, bool fHelp);
+extern UniValue createrawtransaction(const UniValue& params, bool fHelp);
+extern UniValue decoderawtransaction(const UniValue& params, bool fHelp);
+extern UniValue decodescript(const UniValue& params, bool fHelp);
+extern UniValue fundrawtransaction(const UniValue& params, bool fHelp);
+extern UniValue signrawtransaction(const UniValue& params, bool fHelp);
+extern UniValue sendrawtransaction(const UniValue& params, bool fHelp);
+extern UniValue gettxoutproof(const UniValue& params, bool fHelp);
+extern UniValue verifytxoutproof(const UniValue& params, bool fHelp);
 
-extern UniValue getblockcount(const JSONRPCRequest& request); // in rpc/blockchain.cpp
-extern UniValue getblockchaininfo(const JSONRPCRequest& request);
-extern UniValue getbestblockhash(const JSONRPCRequest& request);
-extern UniValue settxfee(const JSONRPCRequest& request);
-extern UniValue getmempoolinfo(const JSONRPCRequest& request);
-extern UniValue getrawmempool(const JSONRPCRequest& request);
-extern UniValue getblockhash(const JSONRPCRequest& request);
-extern UniValue getblockheader(const JSONRPCRequest& request);
-extern UniValue getblock(const JSONRPCRequest& request);
-extern UniValue gettxoutsetinfo(const JSONRPCRequest& request);
-extern UniValue gettxout(const JSONRPCRequest& request);
-extern UniValue verifychain(const JSONRPCRequest& request);
-extern UniValue getchaintips(const JSONRPCRequest& request);
-extern UniValue invalidateblock(const JSONRPCRequest& request);
-extern UniValue reconsiderblock(const JSONRPCRequest& request);
+extern UniValue getblockcount(const UniValue& params, bool fHelp); // in rpc/blockchain.cpp
+extern UniValue getbestblockhash(const UniValue& params, bool fHelp);
+extern UniValue settxfee(const UniValue& params, bool fHelp);
+extern UniValue getmempoolinfo(const UniValue& params, bool fHelp);
+extern UniValue getrawmempool(const UniValue& params, bool fHelp);
+extern UniValue getblockhash(const UniValue& params, bool fHelp);
+extern UniValue getblockheader(const UniValue& params, bool fHelp);
+extern UniValue getblock(const UniValue& params, bool fHelp);
+extern UniValue gettxoutsetinfo(const UniValue& params, bool fHelp);
+extern UniValue gettxout(const UniValue& params, bool fHelp);
+extern UniValue verifychain(const UniValue& params, bool fHelp);
+extern UniValue getchaintips(const UniValue& params, bool fHelp);
+extern UniValue invalidateblock(const UniValue& params, bool fHelp);
+extern UniValue reconsiderblock(const UniValue& params, bool fHelp);
 
-extern UniValue getvotescountfromid(const JSONRPCRequest& request); //in gov.cpp
-extern UniValue makevote(const JSONRPCRequest& request);
+extern UniValue getvotescountfromid(const UniValue& request, bool fHelp); //in gov.cpp
+extern UniValue makevote(const UniValue& request, bool fHelp);
 
 bool StartRPC();
 void InterruptRPC();

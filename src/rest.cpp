@@ -50,7 +50,7 @@ struct CCoin {
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion)
     {
         READWRITE(nTxVer);
         READWRITE(nHeight);
@@ -287,10 +287,9 @@ static bool rest_chaininfo(HTTPRequest* req, const std::string& strURIPart)
 
     switch (rf) {
     case RF_JSON: {
-        JSONRPCRequest jsonRequest;
-        jsonRequest.params = UniValue(UniValue::VARR);
-        UniValue chainInfoObject = getblockchaininfo(jsonRequest);
-        std::string strJSON = chainInfoObject.write() + "\n";
+        UniValue rpcParams(UniValue::VARR);
+        UniValue chainInfoObject = getblockchaininfo(rpcParams, false);
+        string strJSON = chainInfoObject.write() + "\n";
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, strJSON);
         return true;
@@ -313,9 +312,8 @@ static bool rest_chainparameters(HTTPRequest* req, const std::string& strURIPart
 
     switch (rf) {
     case RF_JSON: {
-        JSONRPCRequest jsonRequest;
-        jsonRequest.params = UniValue(UniValue::VARR);
-        UniValue chainParamsObject = getchainparameters(jsonRequest);
+        UniValue rpcParams(UniValue::VOBJ);
+        UniValue chainParamsObject = getchainparameters(rpcParams, false);
         string strJSON = chainParamsObject.write() + "\n";
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, strJSON);
@@ -339,9 +337,8 @@ static bool rest_getactivecvns(HTTPRequest* req, const std::string& strURIPart)
 
     switch (rf) {
     case RF_JSON: {
-        JSONRPCRequest jsonRequest;
-        jsonRequest.params = UniValue(UniValue::VARR);
-        UniValue cvnListObject = getactivecvns(jsonRequest);
+        UniValue rpcParams(UniValue::VOBJ);
+        UniValue cvnListObject = getactivecvns(rpcParams, false);
         string strJSON = cvnListObject.write() + "\n";
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, strJSON);
@@ -365,9 +362,8 @@ static bool rest_getactiveadmins(HTTPRequest* req, const std::string& strURIPart
 
     switch (rf) {
     case RF_JSON: {
-        JSONRPCRequest jsonRequest;
-        jsonRequest.params = UniValue(UniValue::VARR);
-        UniValue adminListObject = getactiveadmins(jsonRequest);
+        UniValue rpcParams(UniValue::VOBJ);
+        UniValue adminListObject = getactiveadmins(rpcParams, false);
         string strJSON = adminListObject.write() + "\n";
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, strJSON);
@@ -391,9 +387,8 @@ static bool rest_estimatefee(HTTPRequest* req, const std::string& strURIPart)
 
     switch (rf) {
     case RF_JSON: {
-        JSONRPCRequest jsonRequest;
-        jsonRequest.params = UniValue(UniValue::VARR);
-        UniValue feePerKb = estimatefee(jsonRequest);
+        UniValue rpcParams(UniValue::VOBJ);
+        UniValue feePerKb = estimatefee(rpcParams, false);
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, feePerKb.get_str());
         return true;
@@ -468,7 +463,7 @@ static bool rest_tx(HTTPRequest* req, const std::string& strURIPart)
     if (!ParseHashStr(hashStr, hash))
         return RESTERR(req, HTTP_BAD_REQUEST, "Invalid hash: " + hashStr);
 
-    CTransactionRef tx;
+    CTransaction tx;
     uint256 hashBlock = uint256();
     if (!GetTransaction(hash, tx, Params().GetConsensus(), hashBlock, true))
         return RESTERR(req, HTTP_NOT_FOUND, hashStr + " not found");
@@ -493,7 +488,7 @@ static bool rest_tx(HTTPRequest* req, const std::string& strURIPart)
 
     case RF_JSON: {
         UniValue objTx(UniValue::VOBJ);
-        TxToJSON(*tx, hashBlock, objTx);
+        TxToJSON(tx, hashBlock, objTx);
         string strJSON = objTx.write() + "\n";
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, strJSON);

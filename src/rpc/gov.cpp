@@ -21,6 +21,7 @@
 #include "main.h"
 #include "poc.h"
 #include "base58.h"
+#include "wallet/wallet.h"
 
 #include <univalue.h>
 
@@ -34,10 +35,10 @@ void GovernanceObjectToJSON(const GovernanceObject& gobj, UniValue& entry) {
     entry.push_back(Pair("signature", EncodeBase64(&gobj.voterSignature[0], gobj.voterSignature.size())));
 }
 
-UniValue getvotescountfromid(const JSONRPCRequest& request)
+UniValue getvotescountfromid(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() < 1){
+
+    if (fHelp || params.size() < 1){
         throw runtime_error(
             "getvotescountfromid \"candidateid\"\n"
             "Return the number of success votes of the candidate\n"
@@ -66,10 +67,9 @@ UniValue getvotescountfromid(const JSONRPCRequest& request)
         
 }
 
-UniValue makevote(const JSONRPCRequest& request)
+UniValue makevote(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() < 5){
+    if (fHelp || params.size() < 5){
         throw runtime_error(
             "makevote \"candidateid\" \"votetype\" \"txhash\" \"vout\" \"vote\"\n"
             "Votes the candidate\n"

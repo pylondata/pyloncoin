@@ -86,15 +86,15 @@ public:
     }
 
     template<typename Stream>
-    void Serialize(Stream& s) const
+    void Serialize(Stream& s, int nType, int nVersion) const
     {
-        s.write((char*)data, sizeof(data));
+        s.write((char*)data, WIDTH);
     }
 
     template<typename Stream>
-    void Unserialize(Stream& s)
+    void Unserialize(Stream& s, int nType, int nVersion)
     {
-        s.read((char*)data, sizeof(data));
+        s.read((char*)data, WIDTH);
     }
 };
 
@@ -222,8 +222,9 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(this->nVersion);
+        nVersion = this->nVersion;
         READWRITE(nSignerId);
         READWRITE(nCreatorId);
         READWRITE(hashPrevBlock);
@@ -274,7 +275,7 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(*(CCvnPartialSignatureUnsinged*)this);
         READWRITE(msgSig);
     }
@@ -305,7 +306,7 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(nNodeId);
         READWRITE(nHeightAdded);
         READWRITE(pubKey);
@@ -344,7 +345,7 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(nAdminId);
         READWRITE(nHeightAdded);
         READWRITE(pubKey);
@@ -376,8 +377,7 @@ public:
 
     uint32_t nBlockSpacing; // in seconds
     uint32_t nBlockSpacingGracePeriod; // in seconds
-    uint32_t nBlockIntervalResetScore;
-    
+
     CAmount nTransactionFee; // in µPLN
     CAmount nDustThreshold; // in µPLN
 
@@ -409,16 +409,17 @@ public:
      * #nnnnn <URI to a document where the decision is documented> <text that describes the change> */
     string strDescription;
 
-    
-    CDynamicChainParams() {
+    CDynamicChainParams()
+    {
         SetNull();
     }
 
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(this->nVersion);
+        nVersion = this->nVersion;
         READWRITE(nMinAdminSigs);
         READWRITE(nMaxAdminSigs);
         READWRITE(nBlockSpacing);
@@ -481,8 +482,9 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(this->nVersion);
+        nVersion = this->nVersion;
         READWRITE(nValue);
         READWRITE(fFinalCoinsSupply);
         READWRITE(strDescription);
@@ -537,7 +539,7 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(nPayload);
         READWRITE(nCreationTime);
         READWRITE(hashPrevBlock);
@@ -618,7 +620,7 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(nCvnId);
         READWRITE(hashRootBlock);
         READWRITE(nCreationTime);
@@ -652,7 +654,7 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(*(CNoncePoolUnsigned*)this);
         READWRITE(msgSig);
     }
@@ -682,7 +684,7 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(nAdminId);
         READWRITE(hashRootBlock);
         READWRITE(nCreationTime);
@@ -714,7 +716,7 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(*(CAdminNonceUnsigned*)this);
         READWRITE(msgSig);
     }
@@ -759,7 +761,7 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(nAdminId);
         READWRITE(hashRootBlock);
         READWRITE(hashChainData);
@@ -809,7 +811,7 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(*(CAdminPartialSignatureUnsinged*)this);
         READWRITE(msgSig);
     }

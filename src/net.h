@@ -153,8 +153,6 @@ CAddress GetLocalAddress(const CNetAddr *paddrPeer = NULL);
 
 extern bool fDiscover;
 extern bool fListen;
-extern bool fRelayTxes;
-
 extern uint64_t nLocalServices;
 extern uint64_t nLocalHostNonce;
 extern CAddrMan addrman;
@@ -280,8 +278,9 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(this->nVersion);
+        nVersion = this->nVersion;
         READWRITE(nCreateTime);
         READWRITE(nBanUntil);
         READWRITE(banReason);
@@ -406,7 +405,6 @@ public:
     std::set<uint256> vInventoryAdminNoncesToSend;
     std::set<uint256> vInventoryAdminSignaturesToSend;
     std::set<uint256> vInventoryChainDataToSend;
-    std::set<uint256> vInventoryGovernanceDataToSend;
     CCriticalSection cs_inventory;
     std::set<uint256> setAskFor;
     std::multimap<int64_t, CInv> mapAskFor;
@@ -417,10 +415,6 @@ public:
     // Used for BIP35 mempool sending, also protected by cs_inventory
     bool fSendMempool;
 
-    // Block and TXN accept times
-    std::atomic<int64_t> nLastBlockTime;
-    std::atomic<int64_t> nLastTXTime;
-    
     // Ping time measurement:
     // The pong reply we're expecting, or 0 if no pong expected.
     uint64_t nPingNonceSent;
@@ -546,8 +540,6 @@ public:
             vInventoryAdminSignaturesToSend.insert(inv.hash);
         } else if (inv.type == MSG_POC_CHAIN_DATA) {
             vInventoryChainDataToSend.insert(inv.hash);
-        } else if (inv.type == MSG_GOVERNANCE_DATA) {
-            vInventoryGovernanceDataToSend.insert(inv.hash);
         }
     }
 

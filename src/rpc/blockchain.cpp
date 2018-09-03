@@ -99,16 +99,16 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const u
 
     ///////// TRANSACTIONS
     UniValue txs(UniValue::VARR);
-    for(const auto& tx : block.vtx)
+    BOOST_FOREACH(const CTransaction& tx, block.vtx)
     {
         if (nMode >= 5)
         {
             UniValue objTx(UniValue::VOBJ);
-            TxToJSON(*tx, uint256(), objTx);
+            TxToJSON(tx, uint256(), objTx);
             txs.push_back(objTx);
         }
         else
-            txs.push_back(tx->GetHash().GetHex());
+            txs.push_back(tx.GetHash().GetHex());
     }
     result.push_back(Pair("tx", txs));
 
@@ -168,10 +168,9 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, const u
     return result;
 }
 
-UniValue getblockcount(const JSONRPCRequest& request)
+UniValue getblockcount(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 0)
+    if (fHelp || params.size() != 0)
         throw runtime_error(
             "getblockcount\n"
             "\nReturns the number of blocks in the longest block chain.\n"
@@ -186,10 +185,9 @@ UniValue getblockcount(const JSONRPCRequest& request)
     return chainActive.Height();
 }
 
-UniValue getbestblockhash(const JSONRPCRequest& request)
+UniValue getbestblockhash(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 0)
+    if (fHelp || params.size() != 0)
         throw runtime_error(
             "getbestblockhash\n"
             "\nReturns the hash of the best (tip) block in the longest block chain.\n"
@@ -256,10 +254,9 @@ UniValue mempoolToJSON(bool fVerbose = false)
     }
 }
 
-UniValue getrawmempool(const JSONRPCRequest& request)
+UniValue getrawmempool(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() > 1)
+    if (fHelp || params.size() > 1)
         throw runtime_error(
             "getrawmempool ( verbose )\n"
             "\nReturns all transaction ids in memory pool as a json array of string transaction ids.\n"
@@ -302,10 +299,9 @@ UniValue getrawmempool(const JSONRPCRequest& request)
     return mempoolToJSON(fVerbose);
 }
 
-UniValue getblockhash(const JSONRPCRequest& request)
+UniValue getblockhash(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 1)
+    if (fHelp || params.size() != 1)
         throw runtime_error(
             "getblockhash index\n"
             "\nReturns hash of block in best-block-chain at index provided.\n"
@@ -328,10 +324,9 @@ UniValue getblockhash(const JSONRPCRequest& request)
     return pblockindex->GetBlockHash().GetHex();
 }
 
-UniValue getblockheader(const JSONRPCRequest& request)
+UniValue getblockheader(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() < 1 || params.size() > 2)
+    if (fHelp || params.size() < 1 || params.size() > 2)
         throw runtime_error(
             "getblockheader \"hash\" ( verbose )\n"
             "\nIf verbose is false, returns a string that is serialized, hex-encoded data for blockheader 'hash'.\n"
@@ -387,64 +382,9 @@ UniValue getblockheader(const JSONRPCRequest& request)
     return blockheaderToJSON(pblockindex);
 }
 
-struct CCoinsStats
+UniValue getblock(const UniValue& params, bool fHelp)
 {
-    int nHeight;
-    uint256 hashBlock;
-    uint64_t nTransactions;
-    uint64_t nTransactionOutputs;
-    uint64_t nSerializedSize;
-    uint256 hashSerialized;
-    CAmount nTotalAmount;
-
-    CCoinsStats() : nHeight(0), nTransactions(0), nTransactionOutputs(0), nSerializedSize(0), nTotalAmount(0) {}
-};
-
-//! Calculate statistics about the unspent transaction output set
-static bool GetUTXOStats(CCoinsView *view, CCoinsStats &stats)
-{
-    std::unique_ptr<CCoinsViewCursor> pcursor(view->Cursor());
-
-    CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
-    stats.hashBlock = pcursor->GetBestBlock();
-    {
-        LOCK(cs_main);
-        stats.nHeight = mapBlockIndex.find(stats.hashBlock)->second->nHeight;
-    }
-    ss << stats.hashBlock;
-    CAmount nTotalAmount = 0;
-    while (pcursor->Valid()) {
-        boost::this_thread::interruption_point();
-        uint256 key;
-        CCoins coins;
-        if (pcursor->GetKey(key) && pcursor->GetValue(coins)) {
-            stats.nTransactions++;
-            ss << key;
-            for (unsigned int i=0; i<coins.vout.size(); i++) {
-                const CTxOut &out = coins.vout[i];
-                if (!out.IsNull()) {
-                    stats.nTransactionOutputs++;
-                    ss << VARINT(i+1);
-                    ss << out;
-                    nTotalAmount += out.nValue;
-                }
-            }
-            stats.nSerializedSize += 32 + pcursor->GetValueSize();
-            ss << VARINT(0);
-        } else {
-            return error("%s: unable to read value", __func__);
-        }
-        pcursor->Next();
-    }
-    stats.hashSerialized = ss.GetHash();
-    stats.nTotalAmount = nTotalAmount;
-    return true;
-}
-
-UniValue getblock(const JSONRPCRequest& request)
-{
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() < 1 || params.size() > 3)
+    if (fHelp || params.size() < 1 || params.size() > 3)
         throw runtime_error(
             "getblock \"hash\" ( verbose ) ( verbose mode )\n"
             "\nIf verbose is false, returns a string that is serialized, hex-encoded data for block 'hash'.\n"
@@ -517,10 +457,9 @@ UniValue getblock(const JSONRPCRequest& request)
     return blockToJSON(block, pblockindex, nMode);
 }
 
-UniValue gettxoutsetinfo(const JSONRPCRequest& request)
+UniValue gettxoutsetinfo(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 0)
+    if (fHelp || params.size() != 0)
         throw runtime_error(
             "gettxoutsetinfo\n"
             "\nReturns statistics about the unspent transaction output set.\n"
@@ -544,7 +483,7 @@ UniValue gettxoutsetinfo(const JSONRPCRequest& request)
 
     CCoinsStats stats;
     FlushStateToDisk();
-    if (GetUTXOStats(pcoinsTip, stats)) {
+    if (pcoinsTip->GetStats(stats)) {
         ret.push_back(Pair("height", (int64_t)stats.nHeight));
         ret.push_back(Pair("bestblock", stats.hashBlock.GetHex()));
         ret.push_back(Pair("transactions", (int64_t)stats.nTransactions));
@@ -556,10 +495,9 @@ UniValue gettxoutsetinfo(const JSONRPCRequest& request)
     return ret;
 }
 
-UniValue gettxout(const JSONRPCRequest& request)
+UniValue gettxout(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() < 2 || params.size() > 3)
+    if (fHelp || params.size() < 2 || params.size() > 3)
         throw runtime_error(
             "gettxout \"txid\" n ( includemempool )\n"
             "\nReturns details about an unspent transaction output.\n"
@@ -637,12 +575,11 @@ UniValue gettxout(const JSONRPCRequest& request)
     return ret;
 }
 
-UniValue verifychain(const JSONRPCRequest& request)
+UniValue verifychain(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
     int nCheckLevel = GetArg("-checklevel", DEFAULT_CHECKLEVEL);
     int nCheckDepth = GetArg("-checkblocks", DEFAULT_CHECKBLOCKS);
-    if (request.fHelp || params.size() > 2)
+    if (fHelp || params.size() > 2)
         throw runtime_error(
             "verifychain ( checklevel numblocks )\n"
             "\nVerifies blockchain database.\n"
@@ -666,10 +603,9 @@ UniValue verifychain(const JSONRPCRequest& request)
     return CVerifyDB().VerifyDB(Params(), pcoinsTip, nCheckLevel, nCheckDepth);
 }
 
-UniValue getblockchaininfo(const JSONRPCRequest& request)
+UniValue getblockchaininfo(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 0)
+    if (fHelp || params.size() != 0)
         throw runtime_error(
             "getblockchaininfo\n"
             "Returns an object containing various state info regarding block chain processing.\n"
@@ -729,10 +665,9 @@ struct CompareBlocksByHeight
     }
 };
 
-UniValue getchaintips(const JSONRPCRequest& request)
+UniValue getchaintips(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 0)
+    if (fHelp || params.size() != 0)
         throw runtime_error(
             "getchaintips\n"
             "Return information about all known tips in the block tree,"
@@ -833,10 +768,9 @@ UniValue mempoolInfoToJSON()
     return ret;
 }
 
-UniValue getmempoolinfo(const JSONRPCRequest& request)
+UniValue getmempoolinfo(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 0)
+    if (fHelp || params.size() != 0)
         throw runtime_error(
             "getmempoolinfo\n"
             "\nReturns details on the active state of the TX memory pool.\n"
@@ -856,10 +790,9 @@ UniValue getmempoolinfo(const JSONRPCRequest& request)
     return mempoolInfoToJSON();
 }
 
-UniValue invalidateblock(const JSONRPCRequest& request)
+UniValue invalidateblock(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 1)
+    if (fHelp || params.size() != 1)
         throw runtime_error(
             "invalidateblock \"hash\"\n"
             "\nPermanently marks a block as invalid, as if it violated a consensus rule.\n"
@@ -895,10 +828,9 @@ UniValue invalidateblock(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-UniValue reconsiderblock(const JSONRPCRequest& request)
+UniValue reconsiderblock(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 1)
+    if (fHelp || params.size() != 1)
         throw runtime_error(
             "reconsiderblock \"hash\"\n"
             "\nRemoves invalidity status of a block and its descendants, reconsider them for activation.\n"

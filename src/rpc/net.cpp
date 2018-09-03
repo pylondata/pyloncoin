@@ -22,10 +22,9 @@
 
 using namespace std;
 
-UniValue getconnectioncount(const JSONRPCRequest& request)
+UniValue getconnectioncount(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 0)
+    if (fHelp || params.size() != 0)
         throw runtime_error(
             "getconnectioncount\n"
             "\nReturns the number of connections to other nodes.\n"
@@ -41,10 +40,9 @@ UniValue getconnectioncount(const JSONRPCRequest& request)
     return (int)vNodes.size();
 }
 
-UniValue ping(const JSONRPCRequest& request)
+UniValue ping(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 0)
+    if (fHelp || params.size() != 0)
         throw runtime_error(
             "ping\n"
             "\nRequests that a ping be sent to all other nodes, to measure ping time.\n"
@@ -78,10 +76,9 @@ static void CopyNodeStats(std::vector<CNodeStats>& vstats)
     }
 }
 
-UniValue getpeerinfo(const JSONRPCRequest& request)
+UniValue getpeerinfo(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 0)
+    if (fHelp || params.size() != 0)
         throw runtime_error(
             "getpeerinfo\n"
             "\nReturns data about each connected network node as a json array of objects.\n"
@@ -175,14 +172,12 @@ UniValue getpeerinfo(const JSONRPCRequest& request)
     return ret;
 }
 
-UniValue addnode(const JSONRPCRequest& request)
+UniValue addnode(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    
     string strCommand;
     if (params.size() == 2)
         strCommand = params[1].get_str();
-    if (request.fHelp || params.size() != 2 ||
+    if (fHelp || params.size() != 2 ||
         (strCommand != "onetry" && strCommand != "add" && strCommand != "remove"))
         throw runtime_error(
             "addnode \"node\" \"add|remove|onetry\"\n"
@@ -227,10 +222,9 @@ UniValue addnode(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-UniValue disconnectnode(const JSONRPCRequest& request)
+UniValue disconnectnode(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 1)
+    if (fHelp || params.size() != 1)
         throw runtime_error(
             "disconnectnode \"node\" \n"
             "\nImmediately disconnects from the specified node.\n"
@@ -250,11 +244,9 @@ UniValue disconnectnode(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-UniValue getaddednodeinfo(const JSONRPCRequest& request)
+UniValue getaddednodeinfo(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    
-    if (request.fHelp || params.size() < 1 || params.size() > 2)
+    if (fHelp || params.size() < 1 || params.size() > 2)
         throw runtime_error(
             "getaddednodeinfo dns ( \"node\" )\n"
             "\nReturns information about the given added node, or all added nodes\n"
@@ -368,10 +360,9 @@ UniValue getaddednodeinfo(const JSONRPCRequest& request)
     return ret;
 }
 
-UniValue getnettotals(const JSONRPCRequest& request)
+UniValue getnettotals(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() > 0)
+    if (fHelp || params.size() > 0)
         throw runtime_error(
             "getnettotals\n"
             "\nReturns information about network traffic, including bytes in, bytes out,\n"
@@ -433,10 +424,9 @@ static UniValue GetNetworksInfo()
     return networks;
 }
 
-UniValue getnetworkinfo(const JSONRPCRequest& request)
+UniValue getnetworkinfo(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 0)
+    if (fHelp || params.size() != 0)
         throw runtime_error(
             "getnetworkinfo\n"
             "Returns an object containing various state info regarding P2P networking.\n"
@@ -501,13 +491,12 @@ UniValue getnetworkinfo(const JSONRPCRequest& request)
     return obj;
 }
 
-UniValue setban(const JSONRPCRequest& request)
+UniValue setban(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
     string strCommand;
     if (params.size() >= 2)
         strCommand = params[1].get_str();
-    if (request.fHelp || params.size() < 2 ||
+    if (fHelp || params.size() < 2 ||
         (strCommand != "add" && strCommand != "remove"))
         throw runtime_error(
                             "setban \"ip(/netmask)\" \"add|remove\" (bantime) (absolute)\n"
@@ -569,10 +558,9 @@ UniValue setban(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-UniValue listbanned(const JSONRPCRequest& request)
+UniValue listbanned(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 0)
+    if (fHelp || params.size() != 0)
         throw runtime_error(
                             "listbanned\n"
                             "\nList all banned IPs/Subnets.\n"
@@ -600,10 +588,9 @@ UniValue listbanned(const JSONRPCRequest& request)
     return bannedAddresses;
 }
 
-UniValue clearbanned(const JSONRPCRequest& request)
+UniValue clearbanned(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 0)
+    if (fHelp || params.size() != 0)
         throw runtime_error(
                             "clearbanned\n"
                             "\nClear all banned IPs.\n"

@@ -282,16 +282,21 @@ void TxConfirmStats::removeTx(unsigned int entryHeight, unsigned int nBestSeenHe
     }
 }
 
-bool CBlockPolicyEstimator::removeTx(uint256 hash)
+void CBlockPolicyEstimator::removeTx(uint256 hash)
 {
     std::map<uint256, TxStatsInfo>::iterator pos = mapMemPoolTxs.find(hash);
-    if (pos != mapMemPoolTxs.end()) {
-        feeStats.removeTx(pos->second.blockHeight, nBestSeenHeight, pos->second.bucketIndex);
-        mapMemPoolTxs.erase(hash);
-        return true;
-    } else {
-        return false;
+    if (pos == mapMemPoolTxs.end()) {
+        LogPrint("estimatefee", "Blockpolicy error mempool tx %s not found for removeTx\n",
+                 hash.ToString().c_str());
+        return;
     }
+    TxConfirmStats *stats = pos->second.stats;
+    unsigned int entryHeight = pos->second.blockHeight;
+    unsigned int bucketIndex = pos->second.bucketIndex;
+
+    if (stats != NULL)
+        stats->removeTx(entryHeight, nBestSeenHeight, bucketIndex);
+    mapMemPoolTxs.erase(hash);
 }
 
 CBlockPolicyEstimator::CBlockPolicyEstimator(const CFeeRate& _minRelayFee)
@@ -347,57 +352,89 @@ void CBlockPolicyEstimator::processTransaction(const CTxMemPoolEntry& entry, boo
 	return;
     }
 
-    if (txHeight != nBestSeenHeight) {
+    if (txHeight < nBestSeenHeight) {
         // Ignore side chains and re-orgs; assuming they are random they don't
         // affect the estimate.  We'll potentially double count transactions in 1-block reorgs.
-        // Ignore txs if BlockPolicyEstimator is not in sync with chainActive.Tip().
-        // It will be synced next time a block is processed.
         return;
     }
 
     // Only want to be updating estimates when our blockchain is synced,
     // otherwise we'll miscalculate how many blocks its taking to get included.
-    if (!fCurrentEstimate) {
-        untrackedTxs++;
+    if (!fCurrentEstimate)
+        return;
+
+    if (!entry.WasClearAtEntry()) {
+        // This transaction depends on other transactions in the mempool to
+        // be included in a block before it will be able to be included, so
+        // we shouldn't include it in our calculations
         return;
     }
 
-    trackedTxs++;
-
-    // Feerates are stored and reported as BTC-per-kb:
+    // Fees are stored and reported as BTC-per-kb:
     CFeeRate feeRate(entry.GetFee(), entry.GetTxSize());
 
+    // Want the priority of the tx at confirmation. However we don't know
+    // what that will be and its too hard to continue updating it
+    // so use starting priority as a proxy
+    double curPri = entry.GetPriority(txHeight);
     mapMemPoolTxs[hash].blockHeight = txHeight;
-    mapMemPoolTxs[hash].bucketIndex = feeStats.NewTx(txHeight, (double)feeRate.GetFeePerK());
+
+    LogPrint("estimatefee", "Blockpolicy mempool tx %s ", hash.ToString().substr(0,10));
+    // Record this as a priority estimate
+    if (entry.GetFee() == 0 || isPriDataPoint(feeRate, curPri)) {
+        mapMemPoolTxs[hash].stats = &priStats;
+        mapMemPoolTxs[hash].bucketIndex =  priStats.NewTx(txHeight, curPri);
+    }
+    // Record this as a fee estimate
+    else if (isFeeDataPoint(feeRate, curPri)) {
+        mapMemPoolTxs[hash].stats = &feeStats;
+        mapMemPoolTxs[hash].bucketIndex = feeStats.NewTx(txHeight, (double)feeRate.GetFeePerK());
+    }
+    else {
+        LogPrint("estimatefee", "not adding");
+    }
+    LogPrint("estimatefee", "\n");
 }
 
-bool CBlockPolicyEstimator::processBlockTx(unsigned int nBlockHeight, const CTxMemPoolEntry* entry)
+void CBlockPolicyEstimator::processBlockTx(unsigned int nBlockHeight, const CTxMemPoolEntry& entry)
 {
-    if (!removeTx(entry->GetTx().GetHash())) {
-        // This transaction wasn't being tracked for fee estimation
-        return false;
+    if (!entry.WasClearAtEntry()) {
+        // This transaction depended on other transactions in the mempool to
+        // be included in a block before it was able to be included, so
+        // we shouldn't include it in our calculations
+        return;
     }
 
     // How many blocks did it take for miners to include this transaction?
     // blocksToConfirm is 1-based, so a transaction included in the earliest
     // possible block has confirmation count of 1
-    int blocksToConfirm = nBlockHeight - entry->GetHeight();
+    int blocksToConfirm = nBlockHeight - entry.GetHeight();
     if (blocksToConfirm <= 0) {
         // This can't happen because we don't process transactions from a block with a height
         // lower than our greatest seen height
         LogPrint("estimatefee", "Blockpolicy error Transaction had negative blocksToConfirm\n");
-        return false;
+        return;
     }
 
-    // Feerates are stored and reported as BTC-per-kb:
-    CFeeRate feeRate(entry->GetFee(), entry->GetTxSize());
+    // Fees are stored and reported as BTC-per-kb:
+    CFeeRate feeRate(entry.GetFee(), entry.GetTxSize());
 
-    feeStats.Record(blocksToConfirm, (double)feeRate.GetFeePerK());
-    return true;
+    // Want the priority of the tx at confirmation.  The priority when it
+    // entered the mempool could easily be very small and change quickly
+    double curPri = entry.GetPriority(nBlockHeight);
+
+    // Record this as a priority estimate
+    if (entry.GetFee() == 0 || isPriDataPoint(feeRate, curPri)) {
+        priStats.Record(blocksToConfirm, curPri);
+    }
+    // Record this as a fee estimate
+    else if (isFeeDataPoint(feeRate, curPri)) {
+        feeStats.Record(blocksToConfirm, (double)feeRate.GetFeePerK());
+    }
 }
 
 void CBlockPolicyEstimator::processBlock(unsigned int nBlockHeight,
-                                         std::vector<const CTxMemPoolEntry*>& entries)
+                                         std::vector<CTxMemPoolEntry>& entries, bool fCurrentEstimate)
 {
     if (nBlockHeight <= nBestSeenHeight) {
         // Ignore side chains and re-orgs; assuming they are random
@@ -407,30 +444,51 @@ void CBlockPolicyEstimator::processBlock(unsigned int nBlockHeight,
         // transaction fees."
         return;
     }
-
-    // Must update nBestSeenHeight in sync with ClearCurrent so that
-    // calls to removeTx (via processBlockTx) correctly calculate age
-    // of unconfirmed txs to remove from tracking.
     nBestSeenHeight = nBlockHeight;
 
-    // Clear the current block state and update unconfirmed circular buffer
+    // Only want to be updating estimates when our blockchain is synced,
+    // otherwise we'll miscalculate how many blocks its taking to get included.
+    if (!fCurrentEstimate)
+        return;
+
+    // Update the dynamic cutoffs
+    // a fee/priority is "likely" the reason your tx was included in a block if >85% of such tx's
+    // were confirmed in 2 blocks and is "unlikely" if <50% were confirmed in 10 blocks
+    LogPrint("estimatefee", "Blockpolicy recalculating dynamic cutoffs:\n");
+    priLikely = priStats.EstimateMedianVal(2, SUFFICIENT_PRITXS, MIN_SUCCESS_PCT, true, nBlockHeight);
+    if (priLikely == -1)
+        priLikely = INF_PRIORITY;
+
+    double feeLikelyEst = feeStats.EstimateMedianVal(2, SUFFICIENT_FEETXS, MIN_SUCCESS_PCT, true, nBlockHeight);
+    if (feeLikelyEst == -1)
+        feeLikely = CFeeRate(INF_FEERATE);
+    else
+        feeLikely = CFeeRate(feeLikelyEst);
+
+    priUnlikely = priStats.EstimateMedianVal(10, SUFFICIENT_PRITXS, UNLIKELY_PCT, false, nBlockHeight);
+    if (priUnlikely == -1)
+        priUnlikely = 0;
+
+    double feeUnlikelyEst = feeStats.EstimateMedianVal(10, SUFFICIENT_FEETXS, UNLIKELY_PCT, false, nBlockHeight);
+    if (feeUnlikelyEst == -1)
+        feeUnlikely = CFeeRate(0);
+    else
+        feeUnlikely = CFeeRate(feeUnlikelyEst);
+
+    // Clear the current block states
     feeStats.ClearCurrent(nBlockHeight);
+    priStats.ClearCurrent(nBlockHeight);
 
-    unsigned int countedTxs = 0;
     // Repopulate the current block states
-    for (unsigned int i = 0; i < entries.size(); i++) {
-        if (processBlockTx(nBlockHeight, entries[i]))
-            countedTxs++;
-    }
+    for (unsigned int i = 0; i < entries.size(); i++)
+        processBlockTx(nBlockHeight, entries[i]);
 
-    // Update all exponential averages with the current block state
+    // Update all exponential averages with the current block states
     feeStats.UpdateMovingAverages();
+    priStats.UpdateMovingAverages();
 
-    LogPrint("estimatefee", "Blockpolicy after updating estimates for %u of %u txs in block, since last block %u of %u tracked, new mempool map size %u\n",
-             countedTxs, entries.size(), trackedTxs, trackedTxs + untrackedTxs, mapMemPoolTxs.size());
-
-    trackedTxs = 0;
-    untrackedTxs = 0;
+    LogPrint("estimatefee", "Blockpolicy after updating estimates for %u confirmed entries, new mempool map size %u\n",
+             entries.size(), mapMemPoolTxs.size());
 }
 
 CFeeRate CBlockPolicyEstimator::estimateFee(int confTarget)

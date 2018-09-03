@@ -22,7 +22,7 @@ const char *MERKLEBLOCK="merkleblock";
 const char *GETBLOCKS="getblocks";
 const char *GETHEADERS="getheaders";
 const char *TX="tx";
-const char *GOV="gov";
+const char *GOV="GOV";
 const char *HEADERS="headers";
 const char *BLOCK="block";
 const char *GETADDR="getaddr";
@@ -47,6 +47,7 @@ static const char* ppszTypeName[] =
 {
     "ERROR", // Should never occur
     NetMsgType::TX,
+    NetMsgType::GOV,
     NetMsgType::BLOCK,
     "filtered block", // Should never occur
     NetMsgType::NONCEPOOL,
@@ -54,7 +55,6 @@ static const char* ppszTypeName[] =
     NetMsgType::CHAINDATA,
     NetMsgType::NONCEADMIN,
     NetMsgType::SIGADMIN,
-    NetMsgType::GOV,
 };
 
 /** All known message types. Keep this in the same order as the list of

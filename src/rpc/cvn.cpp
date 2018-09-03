@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2017 The Pyloncoin Core developers
+// Copyright (c) 2016-2017 The FairCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -32,10 +32,9 @@ static CSchnorrNonce adminPublicNonce;
 static uint8_t nAdminNonceHandle = 0;
 #endif // USE_CVN
 
-UniValue getactivecvns(const JSONRPCRequest& request)
+UniValue getactivecvns(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() > 1)
+    if (fHelp || params.size() > 1)
         throw runtime_error(
             "getactivecvns\n"
             "\nDisplay a list of all currently active CVN\n"
@@ -89,10 +88,9 @@ UniValue getactivecvns(const JSONRPCRequest& request)
     return result;
 }
 
-UniValue getactiveadmins(const JSONRPCRequest& request)
+UniValue getactiveadmins(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() > 1)
+    if (fHelp || params.size() > 1)
         throw runtime_error(
             "getactiveadmins\n"
             "\nDisplay a list of all currently active chain administrators\n"
@@ -185,10 +183,9 @@ void CoinSupplyToJSON(const CCoinSupply& cs, UniValue& result)
     result.push_back(Pair("destination", o));
 }
 
-UniValue getchainparameters(const JSONRPCRequest& request)
+UniValue getchainparameters(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 0)
+    if (fHelp || params.size() != 0)
         throw runtime_error(
             "getchainparameters\n"
             "\nDisplay the current values of the dynamic chain parameters\n"
@@ -210,10 +207,9 @@ UniValue getchainparameters(const JSONRPCRequest& request)
     return result;
 }
 
-UniValue estimatefee(const JSONRPCRequest& request)
+UniValue estimatefee(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 1)
+    if (fHelp || params.size() != 1)
         throw std::runtime_error(
             "estimatefee nblocks\n"
             "\nReturns the current mandatory fee per kilobyte needed for a transaction to be accepted.\n"
@@ -437,10 +433,9 @@ static bool AddDynParamsToMsg(CChainDataMsg& msg, UniValue jsonParams)
     return fAllGood;
 }
 
-UniValue getgenerate(const JSONRPCRequest& request)
+UniValue getgenerate(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 0)
+    if (fHelp || params.size() != 0)
         throw runtime_error(
             "getgenerate\n"
             "\nReturn if the server is set to generate blocks or not. The default is false.\n"
@@ -457,10 +452,9 @@ UniValue getgenerate(const JSONRPCRequest& request)
     return GetBoolArg("-gen", DEFAULT_GENERATE);
 }
 
-UniValue setgenerate(const JSONRPCRequest& request)
+UniValue setgenerate(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 1)
+    if (fHelp || params.size() != 1 )
         throw runtime_error(
             "setgenerate generate\n"
             "\nSet 'generate' true or false to turn generation on or off.\n"
@@ -492,10 +486,9 @@ UniValue setgenerate(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-UniValue fasitologin(const JSONRPCRequest& request)
+UniValue fasitologin(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() < 2 || params.size() > 3)
+    if (fHelp || params.size() < 2 || params.size() > 3)
         throw runtime_error(
             "fasitologin type PIN\n"
             "\nLogin to Fasito or read the admin certificate file.\n"
@@ -565,10 +558,9 @@ UniValue fasitologin(const JSONRPCRequest& request)
     return "OK";
 }
 
-UniValue fasitologout(const JSONRPCRequest& request)
+UniValue fasitologout(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size())
+    if (fHelp || params.size())
         throw runtime_error(
             "fasitologout\n"
             "\nLogout from Fasito.\n"
@@ -603,10 +595,9 @@ UniValue fasitologout(const JSONRPCRequest& request)
     return "OK";
 }
 
-UniValue fasitoinitkey(const JSONRPCRequest& request)
+UniValue fasitoinitkey(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 3)
+    if (fHelp || params.size() != 3)
         throw runtime_error(
             "fasitoinitkey PIN slot\n"
             "\nInitialise a private key slot on Fasito.\n"
@@ -683,10 +674,9 @@ UniValue fasitoinitkey(const JSONRPCRequest& request)
 #endif // USE_FASITO
 }
 
-UniValue fasitononce(const JSONRPCRequest& request)
+UniValue fasitononce(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size())
+    if (fHelp || params.size())
         throw runtime_error(
             "fasitononce\n"
             "\nCreates a nonce pair and publishes the public part on the network.\n"
@@ -745,10 +735,9 @@ UniValue fasitononce(const JSONRPCRequest& request)
     return msg.ToString();
 }
 
-UniValue fasitosign(const JSONRPCRequest& request)
+UniValue fasitosign(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 1)
+    if (fHelp || params.size() != 1)
         throw runtime_error(
             "fasitosign\n"
             "\nCreate a partial signature using the received nonces.\n"
@@ -806,13 +795,12 @@ UniValue fasitosign(const JSONRPCRequest& request)
     return result;
 }
 
-UniValue addcvn(const JSONRPCRequest& request)
+UniValue addcvn(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 3)
+    if (fHelp || params.size() != 3)
         throw runtime_error(
             "addcvn \"type\" \"node Id\" \"pubkey\"\n"
-            "\nAdd a new CVN or admin to the Pyloncoin network\n"
+            "\nAdd a new CVN or admin to the FairCoin network\n"
             "\nArguments:\n"
             "1. \"type\"               (string, required) c=CVNInfo, a=ChainAdmin\n"
             "2. \"Id\"                 (string, required) The ID (in hex) of the new CVN or admin.\n"
@@ -822,7 +810,7 @@ UniValue addcvn(const JSONRPCRequest& request)
                 "  \"type\":\"type of added info\",             (string) The type of the added info (c=CVNInfo, a=ChainAdmin)\n"
                 "  \"Id\":\"ID in hex\",                        (hex) The ID of the new CVN (or admin) in hexadecimal form\n"
                 "  \"prevBlockHash\":\"hash (hex)\",            (string) The timestamp of the block\n"
-                "  \"address\":\"pyloncoin address\",            (string) The Pyloncoin address of the new CVN.\n"
+                "  \"address\":\"faircoin address\",            (string) The FairCoin address of the new CVN.\n"
                 "  \"pubKey\":\"public key\",                   (string) The public key of the new CVN (in hex).\n"
                 "  \"signatures\":\"number of signatures\"      (string) The number of admin signatures that signed the CvnInfo.\n"
                 "  \"chainParams\":\"serialized params\"        (string) The serialized representation of CDynamicChainParams.\n"
@@ -906,13 +894,12 @@ UniValue addcvn(const JSONRPCRequest& request)
     return result;
 }
 
-UniValue removecvn(const JSONRPCRequest& request)
+UniValue removecvn(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 2)
+    if (fHelp || params.size() != 2)
         throw runtime_error(
             "removecvn \"type\" \"Id\"\n"
-            "\nRemove a CVN or and admin from the Pyloncoin network\n"
+            "\nRemove a CVN or and admin from the FairCoin network\n"
             "\nArguments:\n"
             "1. \"type\"         (string, required) c=CVNInfo, a=ChainAdmin\n"
             "2. \"Id\"           (string, required) The ID (in hex) of the CVN or admin to remove.\n"
@@ -1001,10 +988,9 @@ UniValue removecvn(const JSONRPCRequest& request)
     return result;
 }
 
-UniValue fasitoschnorr(const JSONRPCRequest& request)
+UniValue fasitoschnorr(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 1)
+    if (fHelp || params.size() != 1)
         throw runtime_error(
             "fasitoschnorr \"dataHash\"\n"
             "\nCreates an EC Schnorr signature of the given hash\n"
@@ -1039,10 +1025,9 @@ UniValue fasitoschnorr(const JSONRPCRequest& request)
     return result;
 }
 
-UniValue fasitoschnorrverify(const JSONRPCRequest& request)
+UniValue fasitoschnorrverify(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() < 2 || params.size() > 3)
+    if (fHelp || params.size() < 2 || params.size() > 3)
         throw runtime_error(
             "fasitoschnorrverify \"dataHash\" \"signature\"\n"
             "\nVerifies an EC Schnorr signature for the given hash\n"
@@ -1089,10 +1074,9 @@ UniValue fasitoschnorrverify(const JSONRPCRequest& request)
     return result;
 }
 
-UniValue fasitohash(const JSONRPCRequest& request)
+UniValue fasitohash(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 1)
+    if (fHelp || params.size() != 1)
         throw runtime_error(
             "fasitohash \"data\"\n"
             "\nCreates a SHA256 (single) hash of the data\n"
@@ -1119,10 +1103,9 @@ UniValue fasitohash(const JSONRPCRequest& request)
     return hash.ToString();
 }
 
-UniValue fasitocmd(const JSONRPCRequest& request)
+UniValue fasitocmd(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 1)
+    if (fHelp || params.size() != 1)
         throw runtime_error(
             "fasitocmd \"command string\"\n"
             "\nExecute a generic command on Fasito\n"
@@ -1157,10 +1140,9 @@ UniValue fasitocmd(const JSONRPCRequest& request)
     return result;
 }
 
-UniValue getcvninfo(const JSONRPCRequest& request)
+UniValue getcvninfo(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() > 1)
+    if (fHelp || params.size() > 1)
         throw runtime_error(
             "getcvninfo\n"
             "\nDisplay the current state of the CVN\n"
@@ -1187,10 +1169,9 @@ UniValue getcvninfo(const JSONRPCRequest& request)
     return "to be implemented";
 }
 
-UniValue bancvn(const JSONRPCRequest& request)
+UniValue bancvn(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() > 1)
+    if (fHelp || params.size() > 1)
         throw runtime_error(
             "bancvn\n"
             "\nBan a malicious CVN\n"
@@ -1220,14 +1201,12 @@ UniValue bancvn(const JSONRPCRequest& request)
     return "OK";
 }
 
-UniValue setchainparameters(const JSONRPCRequest& request)
+UniValue setchainparameters(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-
-    if (request.fHelp || params.size() != 1)
+    if (fHelp || params.size() != 1)
         throw runtime_error(
             "setchainparameters {\"nParam1\":123,\"nParam2\":456} [\"n:sigs\",...]\n"
-            "\nSet new dynamic chain parameters for Pyloncoin network\n"
+            "\nSet new dynamic chain parameters for FairCoin network\n"
             "\nArguments:\n"
             "1. \"{\"key\":\"val\"}]\" (string, required) The dynamic chain parameters to set\n"
             "\nResult:\n"
@@ -1286,10 +1265,9 @@ UniValue setchainparameters(const JSONRPCRequest& request)
     return result;
 }
 
-UniValue relaynoncepool(const JSONRPCRequest& request)
+UniValue relaynoncepool(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() > 2)
+    if (fHelp || params.size() > 2)
         throw runtime_error(
             "relaynoncepool true|false\n"
             "\nRelay local nonce pool(s)\n"
@@ -1360,10 +1338,9 @@ protected:
     };
 };
 
-UniValue submitblock(const JSONRPCRequest& request)
+UniValue submitblock(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() < 1 || params.size() > 2)
+    if (fHelp || params.size() < 1 || params.size() > 2)
         throw runtime_error(
             "submitblock \"hexdata\" ( \"jsonparametersobject\" )\n"
             "\nAttempts to submit new block to network.\n"
@@ -1422,15 +1399,14 @@ UniValue submitblock(const JSONRPCRequest& request)
     return BIP22ValidationResult(state);
 }
 
-UniValue addcoinsupply(const JSONRPCRequest& request)
+UniValue addcoinsupply(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 4)
+    if (fHelp || params.size() != 4)
         throw runtime_error(
-            "addcoinsupply \"pyloncoinaddress\" \"amount\" \"isFinal\" \"comment\"\n"
-            "\nAdd instructions to increase the coin supply to the Pyloncoin network\n"
+            "addcoinsupply \"faircoinaddress\" \"amount\" \"isFinal\" \"comment\"\n"
+            "\nAdd instructions to increase the coin supply to the FairCoin network\n"
             "\nArguments:\n"
-            "1. \"pyloncoinaddress\"  (string, required) The Pyloncoin address to send to.\n"
+            "1. \"faircoinaddress\"  (string, required) The FairCoin address to send to.\n"
             "2. \"amount\"           (numeric or string, required) The amount in " + CURRENCY_UNIT + " to send. E.g. 33.1234 " + CURRENCY_UNIT + ".\n"
             "3. \"isFinal\"          (bool, required) Whether this is the last coin supply that can be added to the blockchain.\n"
             "4. \"description\"      (string, required) A description of the coin supply.\n"
@@ -1456,7 +1432,7 @@ UniValue addcoinsupply(const JSONRPCRequest& request)
 
     CBitcoinAddress address(params[0].get_str());
     if (!address.IsValid())
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Pyloncoin address");
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid FairCoin address");
 
     // Amount
     CAmount nAmount = AmountFromValue(params[1]);

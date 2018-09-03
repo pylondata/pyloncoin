@@ -1,11 +1,6 @@
-// Copyright (c) 2015-2016 The Bitcoin Core developers
-// Distributed under the MIT software license, see the accompanying
-// file COPYING or http://www.opensource.org/licenses/mit-license.php.
-
 #ifndef _BITCOIN_PREVECTOR_H_
 #define _BITCOIN_PREVECTOR_H_
 
-#include <assert.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
@@ -171,15 +166,10 @@ private:
             }
         } else {
             if (!is_direct()) {
-                /* FIXME: Because malloc/realloc here won't call new_handler if allocation fails, assert
-                    success. These should instead use an allocator or new/delete so that handlers
-                    are called as necessary, but performance would be slightly degraded by doing so. */
                 _union.indirect = static_cast<char*>(realloc(_union.indirect, ((size_t)sizeof(T)) * new_capacity));
-                assert(_union.indirect);
                 _union.capacity = new_capacity;
             } else {
                 char* new_indirect = static_cast<char*>(malloc(((size_t)sizeof(T)) * new_capacity));
-                assert(new_indirect);
                 T* src = direct_ptr(0);
                 T* dst = reinterpret_cast<T*>(new_indirect);
                 memcpy(dst, src, size() * sizeof(T));
@@ -254,10 +244,6 @@ public:
         }
     }
 
-    prevector(prevector<N, T, Size, Diff>&& other) : _size(0) {
-        swap(other);
-    }
-
     prevector& operator=(const prevector<N, T, Size, Diff>& other) {
         if (&other == this) {
             return *this;
@@ -270,11 +256,6 @@ public:
             new(static_cast<void*>(item_ptr(size() - 1))) T(*it);
             ++it;
         }
-        return *this;
-    }
-
-    prevector& operator=(prevector<N, T, Size, Diff>&& other) {
-        swap(other);
         return *this;
     }
 
@@ -313,8 +294,9 @@ public:
     }
 
     void resize(size_type new_size) {
-        if (size() > new_size) {
-            erase(item_ptr(new_size), end());
+        while (size() > new_size) {
+            item_ptr(size() - 1)->~T();
+            _size--;
         }
         if (new_size > capacity()) {
             change_capacity(new_size);
@@ -382,7 +364,10 @@ public:
     }
 
     iterator erase(iterator pos) {
-        return erase(pos, pos + 1);
+        (*pos).~T();
+        memmove(&(*pos), &(*pos) + 1, ((char*)&(*end())) - ((char*)(1 + &(*pos))));
+        _size--;
+        return pos;
     }
 
     iterator erase(iterator first, iterator last) {
@@ -407,7 +392,7 @@ public:
     }
 
     void pop_back() {
-        erase(end() - 1, end());
+        _size--;
     }
 
     T& front() {
@@ -427,7 +412,12 @@ public:
     }
 
     void swap(prevector<N, T, Size, Diff>& other) {
-        std::swap(_union, other._union);
+        if (_size & other._size & 1) {
+            std::swap(_union.capacity, other._union.capacity);
+            std::swap(_union.indirect, other._union.indirect);
+        } else {
+            std::swap(_union, other._union);
+        }
         std::swap(_size, other._size);
     }
 
@@ -489,14 +479,6 @@ public:
         } else {
             return ((size_t)(sizeof(T))) * _union.capacity;
         }
-    }
-
-    value_type* data() {
-        return item_ptr(0);
-    }
-
-    const value_type* data() const {
-        return item_ptr(0);
     }
 };
 #pragma pack(pop)

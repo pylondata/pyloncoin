@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2016 The Bitcoin Core developers
+// Copyright (c) 2009-2015 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -26,9 +26,6 @@ static const int MAX_OPS_PER_SCRIPT = 201;
 
 // Maximum number of public keys per multisig
 static const int MAX_PUBKEYS_PER_MULTISIG = 20;
-
-// Maximum script length in bytes
-static const int MAX_SCRIPT_SIZE = 10000;
 
 // Threshold for nLockTime: below this value it is interpreted as block number,
 // otherwise as UNIX timestamp.
@@ -167,8 +164,7 @@ enum opcodetype
     OP_NOP1 = 0xb0,
     OP_CHECKLOCKTIMEVERIFY = 0xb1,
     OP_NOP2 = OP_CHECKLOCKTIMEVERIFY,
-    OP_CHECKSEQUENCEVERIFY = 0xb2,
-    OP_NOP3 = OP_CHECKSEQUENCEVERIFY,
+    OP_NOP3 = 0xb2,
     OP_NOP4 = 0xb3,
     OP_NOP5 = 0xb4,
     OP_NOP6 = 0xb5,
@@ -263,11 +259,6 @@ public:
     inline CScriptNum& operator+=( const CScriptNum& rhs)       { return operator+=(rhs.m_value);  }
     inline CScriptNum& operator-=( const CScriptNum& rhs)       { return operator-=(rhs.m_value);  }
 
-    inline CScriptNum operator&(   const int64_t& rhs)    const { return CScriptNum(m_value & rhs);}
-    inline CScriptNum operator&(   const CScriptNum& rhs) const { return operator&(rhs.m_value);   }
-
-    inline CScriptNum& operator&=( const CScriptNum& rhs)       { return operator&=(rhs.m_value);  }
-
     inline CScriptNum operator-()                         const
     {
         assert(m_value != std::numeric_limits<int64_t>::min());
@@ -293,12 +284,6 @@ public:
         assert(rhs == 0 || (rhs > 0 && m_value >= std::numeric_limits<int64_t>::min() + rhs) ||
                            (rhs < 0 && m_value <= std::numeric_limits<int64_t>::max() + rhs));
         m_value -= rhs;
-        return *this;
-    }
-
-    inline CScriptNum& operator&=( const int64_t& rhs)
-    {
-        m_value &= rhs;
         return *this;
     }
 
@@ -419,15 +404,12 @@ public:
     explicit CScript(const std::vector<unsigned char>& b) { operator<<(b); }
 
 
-    CScript& operator<<(int64_t b) {
-        return push_int64(b); 
-    }
+    CScript& operator<<(int64_t b) { return push_int64(b); }
 
     CScript& operator<<(opcodetype opcode)
     {
-        if (opcode < 0 || opcode > 0xff) {
+        if (opcode < 0 || opcode > 0xff)
             throw std::runtime_error("CScript::operator<<(): invalid opcode");
-        }
         insert(end(), (unsigned char)opcode);
         return *this;
     }
@@ -576,26 +558,17 @@ public:
         int nFound = 0;
         if (b.empty())
             return nFound;
-        CScript result;
-        iterator pc = begin(), pc2 = begin();
+        iterator pc = begin();
         opcodetype opcode;
         do
         {
-            result.insert(result.end(), pc2, pc);
-            while (static_cast<size_t>(end() - pc) >= b.size() && std::equal(b.begin(), b.end(), pc))
+            while (end() - pc >= (long)b.size() && memcmp(&pc[0], &b[0], b.size()) == 0)
             {
-                pc = pc + b.size();
+                pc = erase(pc, pc + b.size());
                 ++nFound;
             }
-            pc2 = pc;
         }
         while (GetOp(pc, opcode));
-
-        if (nFound > 0) {
-            result.insert(result.end(), pc2, end());
-            *this = result;
-        }
-
         return nFound;
     }
     int Find(opcodetype op) const
@@ -624,8 +597,6 @@ public:
     unsigned int GetSigOpCount(const CScript& scriptSig) const;
 
     bool IsPayToScriptHash() const;
-    bool IsPayToWitnessScriptHash() const;
-    bool IsWitnessProgram(int& version, std::vector<unsigned char>& program) const;
 
     /** Called by IsStandardTx and P2SH/BIP62 VerifyScript (which makes it consensus-critical). */
     bool IsPushOnly(const_iterator pc) const;
@@ -638,7 +609,7 @@ public:
      */
     bool IsUnspendable() const
     {
-        return (size() > 0 && *begin() == OP_RETURN) || (size() > MAX_SCRIPT_SIZE);
+        return (size() > 0 && *begin() == OP_RETURN);
     }
 
     void clear()
@@ -646,22 +617,6 @@ public:
         // The default std::vector::clear() does not release memory.
         CScriptBase().swap(*this);
     }
-};
-
-struct CScriptWitness
-{
-    // Note that this encodes the data elements being pushed, rather than
-    // encoding them as a CScript that pushes them.
-    std::vector<std::vector<unsigned char> > stack;
-
-    // Some compilers complain without a default constructor
-    CScriptWitness() { }
-
-    bool IsNull() const { return stack.empty(); }
-
-    void SetNull() { stack.clear(); stack.shrink_to_fit(); }
-
-    std::string ToString() const;
 };
 
 class CReserveScript

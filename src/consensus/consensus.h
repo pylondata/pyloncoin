@@ -6,33 +6,23 @@
 #ifndef BITCOIN_CONSENSUS_CONSENSUS_H
 #define BITCOIN_CONSENSUS_CONSENSUS_H
 
-#include <stdint.h>
-
 /** The maximum allowed number of transactions in a block */
 static const unsigned int MAX_TX_PER_BLOCK = 20000;
 
 /** The maximum allowed number of signature check operations in a block (network rule) */
-static const unsigned int MAX_BLOCK_SIGOPS = 30000;
+#define MAX_BLOCK_SIGOPS (dynParams.nMaxBlockSize/50)
+
 /** Coinbase transaction outputs can only be spent after this number of new blocks (network rule) */
 #define COINBASE_MATURITY (dynParams.nCoinbaseMaturity)
 
-/** The maximum allowed weight for a block, see BIP 141 (network rule) */
-static const unsigned int MAX_BLOCK_WEIGHT = 4000000;
-
-/** The maximum allowed number of signature check operations in a block (network rule) */
-static const int64_t MAX_BLOCK_SIGOPS_COST = 20000;
-
 /** The maximum allowed number if active CVNs */
-static const unsigned int MAX_NUMBER_OF_CVNS = 3000000;
+static const unsigned int MAX_NUMBER_OF_CVNS = 100;
 
 /** The maximum allowed number if active chain admins */
-static const unsigned int MAX_NUMBER_OF_CHAIN_ADMINS = 50;
+static const unsigned int MAX_NUMBER_OF_CHAIN_ADMINS = 11;
 
-/** Flags for nSequence and nLockTime locks */
+/** Flags for LockTime() */
 enum {
-    /* Interpret sequence numbers as relative lock-time constraints. */
-    LOCKTIME_VERIFY_SEQUENCE = (1 << 0),
-
     /* Use GetMedianTimePast() instead of nTime for end point timestamp. */
     LOCKTIME_MEDIAN_TIME_PAST = (1 << 1),
 };

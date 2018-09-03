@@ -134,7 +134,7 @@ CClientUIInterface uiInterface; // Declared but not defined in ui_interface.h
 // shutdown thing.
 //
 
-volatile bool fRequestShutdown = false;
+std::atomic<bool> fRequestShutdown(false);
 
 void StartShutdown()
 {
@@ -1145,35 +1145,23 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
     UpdateCvnInfo(&genesisBlock, 0);
     UpdateChainAdmins(&genesisBlock);
 
-std::string error;
-#ifdef USE_FASITO
-    LogPrintf("Using fasito\n");
-    nChainAdminId = InitChainAdminWithFasito(strFasitoPassword, 0, error);
-#else
-    LogPrintf("not using fasito \n");
-    nChainAdminId = InitChainAdminWithCertificate(strFasitoPassword, error);
-#endif
-
+    string strError;
+    nChainAdminId = InitChainAdminWithCertificate("123456", strError);
     LogPrintf("\n");
     CCvnPartialSignature chainSig;
     vector<uint32_t> vMissingSignatures;
-    CvnSignPartial(genesisBlock.hashPrevBlock, chainSig, GENESIS_NODE_ID, GENESIS_NODE_ID, vMissingSignatures,0);
-    LogPrintf("Genesis chainMultiSig    : %s \n", chainSig.signature.ToString());
+    CvnSignPartial(genesisBlock.hashPrevBlock, chainSig, GENESIS_NODE_ID, GENESIS_NODE_ID, vMissingSignatures, 0);
+    LogPrintf("Genesis chainMultiSig    : %s\n", chainSig.signature.ToString());
 
-CSchnorrSig chainAdminSig;
-#ifdef USE_FASITO
-    if (!CvnSignWithFasito(genesisBlock.GetPayloadHash(true), 0, chainAdminSig))
-        return InitError("could not create chain admin signature");
-#else
+    CSchnorrSig chainAdminSig;
     if (!adminPrivKey.SchnorrSign(genesisBlock.GetPayloadHash(true), chainAdminSig))
         return InitError("could not create chain admin signature");
 
+    LogPrintf("Genesis adminMultiSig    : %s\n", chainAdminSig.ToString());
     if (!CPubKey::VerifySchnorr(genesisBlock.GetPayloadHash(true), chainAdminSig, adminPubKey)) {
         return InitError("could not verify chain admin signature");
     }
-#endif
-    LogPrintf("Genesis adminMultiSig    : %s\n", chainAdminSig.ToString());
-    
+
     CvnSignBlock(genesisBlock);
     LogPrintf("Genesis creatorSignature : %s\n", genesisBlock.creatorSignature.ToString());
     LogPrintf("\n");
@@ -1303,7 +1291,6 @@ CSchnorrSig chainAdminSig;
     fListen = GetBoolArg("-listen", DEFAULT_LISTEN);
     fDiscover = GetBoolArg("-discover", true);
     fNameLookup = GetBoolArg("-dns", DEFAULT_NAME_LOOKUP);
-    fRelayTxes = !GetBoolArg("-blocksonly", DEFAULT_BLOCKSONLY);
 
     bool fBound = false;
     if (fListen) {
@@ -1361,13 +1348,9 @@ CSchnorrSig chainAdminSig;
     // initialize CVN and chain parameters
     LogPrintf("Initialize CVN and chain parameters\n");
     CBlock genesis = chainparams.GenesisBlock();
-    LogPrintf("1\n");
     UpdateCvnInfo(&genesis, 0);
-    LogPrintf("2\n");
     UpdateChainParameters(&genesis);
-    LogPrintf("3\n");
     UpdateChainAdmins(&genesis);
-    LogPrintf("4\n");
 
     fReindex = GetBoolArg("-reindex", false);
 
@@ -1470,7 +1453,7 @@ CSchnorrSig chainAdminSig;
                     strLoadError = _("You need to rebuild the database using -reindex to go back to unpruned mode.  This will redownload the entire blockchain");
                     break;
                 }
-                
+
                 uiInterface.InitMessage(_("Verifying blocks..."));
                 if (fHavePruned && GetArg("-checkblocks", DEFAULT_CHECKBLOCKS) > MIN_BLOCKS_TO_KEEP) {
                     LogPrintf("Prune: pruned datadir may not have more than %d blocks; -checkblocks=%d may fail\n",
@@ -1730,7 +1713,6 @@ CSchnorrSig chainAdminSig;
         }
     }
 
-    nLocalServices |= NODE_WITNESS;
     // ********************************************************* Step 10: import blocks
 
     if (mapArgs.count("-blocknotify"))

@@ -39,10 +39,9 @@ using namespace std;
  *
  * Or alternatively, create a specific query method for the information.
  **/
-UniValue getinfo(const JSONRPCRequest& request)
+UniValue getinfo(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 0)
+    if (fHelp || params.size() != 0)
         throw runtime_error(
             "getinfo\n"
             "Returns an object containing various state info.\n"
@@ -148,10 +147,9 @@ public:
 };
 #endif
 
-UniValue validateaddress(const JSONRPCRequest& request)
+UniValue validateaddress(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 1)
+    if (fHelp || params.size() != 1)
         throw runtime_error(
             "validateaddress \"bitcoinaddress\"\n"
             "\nReturn information about the given bitcoin address.\n"
@@ -207,10 +205,9 @@ UniValue validateaddress(const JSONRPCRequest& request)
     return ret;
 }
 
-UniValue validatepubkey(const JSONRPCRequest& request)
+UniValue validatepubkey(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || !params.size() || params.size() > 2)
+    if (fHelp || !params.size() || params.size() > 2)
         throw runtime_error(
             "validatepubkey <pubkey>\n"
             "Return information about a public key\n"
@@ -332,10 +329,9 @@ CScript _createmultisig_redeemScript(const UniValue& params)
     return result;
 }
 
-UniValue createmultisig(const JSONRPCRequest& request)
+UniValue createmultisig(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() < 2 || params.size() > 2)
+    if (fHelp || params.size() < 2 || params.size() > 2)
     {
         string msg = "createmultisig nrequired [\"key\",...]\n"
             "\nCreates a multi-signature address with n signature of m keys required.\n"
@@ -376,10 +372,9 @@ UniValue createmultisig(const JSONRPCRequest& request)
     return result;
 }
 
-UniValue verifymessage(const JSONRPCRequest& request)
+UniValue verifymessage(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 3)
+    if (fHelp || params.size() != 3)
         throw runtime_error(
             "verifymessage \"bitcoinaddress\" \"signature\" \"message\"\n"
             "\nVerify a signed message\n"
@@ -431,10 +426,9 @@ UniValue verifymessage(const JSONRPCRequest& request)
     return (pubkey.GetID() == keyID);
 }
 
-UniValue setmocktime(const JSONRPCRequest& request)
+UniValue setmocktime(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() != 1)
+    if (fHelp || params.size() != 1)
         throw runtime_error(
             "setmocktime timestamp\n"
             "\nSet the local time to given timestamp (-regtest only)\n"

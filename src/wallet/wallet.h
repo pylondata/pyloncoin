@@ -15,7 +15,6 @@
 #include "wallet/crypter.h"
 #include "wallet/wallet_ismine.h"
 #include "wallet/walletdb.h"
-#include "main.h"
 
 #include <algorithm>
 #include <map>
@@ -30,7 +29,7 @@
  * Settings
  */
 extern CFeeRate payTxFee;
-
+extern CAmount maxTxFee;
 extern unsigned int nTxConfirmTarget;
 extern bool bSpendZeroConfChange;
 extern bool fSendFreeTransactions;
@@ -98,9 +97,8 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        int nVersion = s.GetVersion();
-        if (!(s.GetType() & SER_GETHASH))
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        if (!(nType & SER_GETHASH))
             READWRITE(nVersion);
         READWRITE(nTime);
         READWRITE(vchPubKey);
@@ -159,14 +157,13 @@ struct COutputEntry
 };
 
 /** A transaction with a merkle branch linking it to the block chain. */
-class CMerkleTx
+class CMerkleTx : public CTransaction
 {
 private:
   /** Constant used in hashBlock to indicate tx has been abandoned */
     static const uint256 ABANDON_HASH;
 
 public:
-    CTransactionRef tx;
     uint256 hashBlock;
 
     /* An nIndex == -1 means that hashBlock (in nonzero) refers to the earliest
@@ -178,19 +175,13 @@ public:
 
     CMerkleTx()
     {
-        SetTx(MakeTransactionRef());
         Init();
     }
 
-    CMerkleTx(CTransactionRef arg)
+    CMerkleTx(const CTransaction& txIn) : CTransaction(txIn)
     {
-        SetTx(std::move(arg));
         Init();
     }
-
-    /** Helper conversion operator to allow passing CMerkleTx where CTransaction is expected.
-     *  TODO: adapt callers and remove this operator. */
-    operator const CTransaction&() const { return *tx; }
 
     void Init()
     {
@@ -198,23 +189,19 @@ public:
         nIndex = -1;
     }
 
-    void SetTx(CTransactionRef arg)
-    {
-        tx = std::move(arg);
-    }
-
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         std::vector<uint256> vMerkleBranch; // For compatibility with older versions.
-        READWRITE(tx);
+        READWRITE(*(CTransaction*)this);
+        nVersion = this->nVersion;
         READWRITE(hashBlock);
         READWRITE(vMerkleBranch);
         READWRITE(nIndex);
     }
 
-    void SetMerkleBranch(const CBlockIndex* pIndex, int posInBlock);
+    int SetMerkleBranch(const CBlock& block);
 
     /**
      * Return depth of transaction in blockchain:
@@ -226,16 +213,10 @@ public:
     int GetDepthInMainChain() const { const CBlockIndex *pindexRet; return GetDepthInMainChain(pindexRet); }
     bool IsInMainChain() const { const CBlockIndex *pindexRet; return GetDepthInMainChain(pindexRet) > 0; }
     int GetBlocksToMaturity() const;
-    /** Pass this transaction to the mempool. Fails if absolute fee exceeds absurd fee. */
-
-    bool AcceptToMemoryPool(const CAmount& nAbsurdFee, CValidationState& state);
-
+    bool AcceptToMemoryPool(bool fLimitFree=true, bool fRejectAbsurdFee=true);
     bool hashUnset() const { return (hashBlock.IsNull() || hashBlock == ABANDON_HASH); }
     bool isAbandoned() const { return (hashBlock == ABANDON_HASH); }
     void setAbandoned() { hashBlock = ABANDON_HASH; }
-
-    const uint256& GetHash() const { return tx->GetHash(); }
-    bool IsCoinBase() const { return tx->IsCoinBase(); }
 };
 
 /** 
@@ -281,8 +262,18 @@ public:
     {
         Init(NULL);
     }
-    
-    CWalletTx(const CWallet* pwalletIn, CTransactionRef arg) : CMerkleTx(std::move(arg))
+
+    CWalletTx(const CWallet* pwalletIn)
+    {
+        Init(pwalletIn);
+    }
+
+    CWalletTx(const CWallet* pwalletIn, const CMerkleTx& txIn) : CMerkleTx(txIn)
+    {
+        Init(pwalletIn);
+    }
+
+    CWalletTx(const CWallet* pwalletIn, const CTransaction& txIn) : CMerkleTx(txIn)
     {
         Init(pwalletIn);
     }
@@ -321,7 +312,7 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         if (ser_action.ForRead())
             Init(NULL);
         char fSpent = false;
@@ -436,10 +427,11 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         std::vector<uint256> vMerkleBranch; // For compatibility with older versions.
 
         READWRITE(this->nVersion);
+        nVersion = this->nVersion;
         READWRITE(nTime);
         READWRITE(vin);
         READWRITE(vout);
@@ -466,8 +458,9 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(*(CMerkleTxFC1*)this);
+        nVersion = this->nVersion;
         std::vector<CMerkleTxFC1> vUnused; //! Used to be vtxPrev
         READWRITE(vUnused);
         READWRITE(mapValue);
@@ -515,9 +508,8 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        int nVersion = s.GetVersion();
-        if (!(s.GetType() & SER_GETHASH))
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        if (!(nType & SER_GETHASH))
             READWRITE(nVersion);
         READWRITE(vchPrivKey);
         READWRITE(nTimeCreated);
@@ -719,9 +711,9 @@ public:
 
     void MarkDirty();
     bool AddToWallet(const CWalletTx& wtxIn, bool fFromLoadWallet, CWalletDB* pwalletdb);
-    void SyncTransaction(const CTransaction& tx, const CBlockIndex *pindex, int posInBlock);
-    bool AddToWalletIfInvolvingMe(const CTransaction& tx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate);
-    CBlockIndex* ScanForWalletTransactions(CBlockIndex* pindexStart, bool fUpdate = false);
+    void SyncTransaction(const CTransaction& tx, const CBlock* pblock);
+    bool AddToWalletIfInvolvingMe(const CTransaction& tx, const CBlock* pblock, bool fUpdate);
+    int ScanForWalletTransactions(CBlockIndex* pindexStart, bool fUpdate = false);
     void ReacceptWalletTransactions();
     void ResendWalletTransactions(int64_t nBestBlockTime);
     std::vector<uint256> ResendWalletTransactionsBefore(int64_t nTime);
@@ -930,9 +922,8 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        int nVersion = s.GetVersion();
-        if (!(s.GetType() & SER_GETHASH))
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        if (!(nType & SER_GETHASH))
             READWRITE(nVersion);
         READWRITE(vchPubKey);
     }
@@ -975,9 +966,7 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        int nVersion = s.GetVersion();
-        int nType = s.GetType();
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         if (!(nType & SER_GETHASH))
             READWRITE(nVersion);
         //! Note: strAccount is serialized as part of the key, not here.
@@ -991,7 +980,7 @@ public:
 
             if (!(mapValue.empty() && _ssExtra.empty()))
             {
-                CDataStream ss(s.GetType(), nVersion);
+                CDataStream ss(nType, nVersion);
                 ss.insert(ss.begin(), '\0');
                 ss << mapValue;
                 ss.insert(ss.end(), _ssExtra.begin(), _ssExtra.end());

@@ -37,11 +37,11 @@ bool GovernanceObject::HasMinimumAmount() {
         amount = GovernanceObject::MIN_VOTE_AMOUNT_CVN;
     }
     
-    CTransactionRef tx;
+    CTransaction tx;
     uint256 hashBlock;
     
     if (GetTransaction(txhash, tx, Params().GetConsensus(), hashBlock, true)) {
-        return tx->vout[this->txvout].nValue >= amount;
+        return tx.vout[this->txvout].nValue >= amount;
     }
     
     return false;
@@ -49,11 +49,11 @@ bool GovernanceObject::HasMinimumAmount() {
 }
 
 bool GovernanceObject::GetOutputAddress(CBitcoinAddress& address) {
-    CTransactionRef tx;
+    CTransaction tx;
     uint256 hashBlock;
     
     if (GetTransaction(txhash, tx, Params().GetConsensus(), hashBlock, true)) {
-        CTxOut txout = tx->vout[this->txvout];
+        CTxOut txout = tx.vout[this->txvout];
         
         CTxDestination dest;
         if (ExtractDestination(txout.scriptPubKey, dest)) {

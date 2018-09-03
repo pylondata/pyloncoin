@@ -271,8 +271,6 @@ extern void UpdateChainParameters(const CBlock* pblock);
 extern void UpdateChainAdmins(const CBlock* pblock);
 extern void SetCoinSupplyStatus(const CBlock* pblock);
 
-extern bool CheckDynamicChainParameters(const CDynamicChainParams& params);
-
 extern void POC_create_secp256k1_context();
 extern void POC_destroy_secp256k1_context();
 
