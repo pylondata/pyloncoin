@@ -10,7 +10,7 @@
 static const unsigned int MAX_TX_PER_BLOCK = 20000;
 
 /** The maximum allowed number of signature check operations in a block (network rule) */
-#define MAX_BLOCK_SIGOPS (dynParams.nMaxBlockSize/50)
+static const unsigned int MAX_BLOCK_SIGOPS = 30000;
 
 /** Coinbase transaction outputs can only be spent after this number of new blocks (network rule) */
 #define COINBASE_MATURITY (dynParams.nCoinbaseMaturity)

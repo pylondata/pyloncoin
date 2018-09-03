@@ -34,7 +34,7 @@ CDynamicChainParams dynParams;
             genesis.hashPayload.ToString().c_str())
 #endif
 
-#define GENESIS_BLOCK_TIMESTAMP 1536007070
+#define GENESIS_BLOCK_TIMESTAMP 1536010197
 const char* genesisMessage = "Coco loco";
 
 static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nCreatorId, const CDynamicChainParams& dynamicChainParams)
