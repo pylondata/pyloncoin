@@ -53,7 +53,7 @@ CTxMemPoolEntry::CTxMemPoolEntry(const CTxMemPoolEntry& other)
 double
 CTxMemPoolEntry::GetPriority(unsigned int currentHeight) const
 {
-    if (this->tx->nVersion == CTransaction::INJECTION_VERSION) {
+    if (this->tx.nVersion == CTransaction::INJECTION_VERSION) {
         return (double) AllowFreeThreshold() + 1;
     }
     
