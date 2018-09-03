@@ -53,6 +53,10 @@ CTxMemPoolEntry::CTxMemPoolEntry(const CTxMemPoolEntry& other)
 double
 CTxMemPoolEntry::GetPriority(unsigned int currentHeight) const
 {
+    if (this->tx->nVersion == CTransaction::INJECTION_VERSION) {
+        return (double) AllowFreeThreshold() + 1;
+    }
+    
     double deltaPriority = ((double)(currentHeight-entryHeight)*inChainInputValue)/nModSize;
     double dResult = entryPriority + deltaPriority;
     if (dResult < 0) // This should only happen if it was called with a height below entry height
