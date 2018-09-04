@@ -2054,21 +2054,6 @@ void RelayTransaction(const CTransaction& tx)
     }
 }
 
-void RelayGovernanceObject(GovernanceObject& gobj) {
-    CInv inv(MSG_GOV, gobj.GetHash());
-    
-    {
-        LOCK(cs_mapRelayVotes);
-        mapRelayVotes.insert(std::make_pair(inv.hash, msg));
-    }
-    
-    LOCK(cs_vNodes);
-    BOOST_FOREACH(CNode* pnode, vNodes)
-    {
-        pnode->PushInventory(inv);
-    }
-}
-
 void CNode::RecordBytesRecv(uint64_t bytes)
 {
     LOCK(cs_totalBytesRecv);

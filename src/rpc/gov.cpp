@@ -32,7 +32,7 @@ void GovernanceObjectToJSON(const GovernanceObject& gobj, UniValue& entry) {
     entry.push_back(Pair("txvout", gobj.txvout));
     entry.push_back(Pair("votetype", gobj.govType ? "CVN_VOTE" : "PROSUMER_VOTE"));
     entry.push_back(Pair("candidateid", gobj.candidateId));
-    entry.push_back(Pair("voterid", gobj.voterId));
+    entry.push_back(Pair("voterid", (uint64_t) gobj.voterId));
     entry.push_back(Pair("signature", EncodeBase64(&gobj.voterSignature[0], gobj.voterSignature.size())));
 }
 
@@ -159,6 +159,7 @@ UniValue makevote(const UniValue& params, bool fHelp)
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Sign failed");
         }
         
+        gobj->voterId = nCvnNodeId;
         gobj->voterSignature = vchSig;
         
         //Share vote

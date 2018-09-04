@@ -5403,12 +5403,22 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         mapAlreadyAskedFor.erase(inv.hash);
         
         if (!AlreadyHave(inv)) {
-            if (!voteDb->HasVote(msg)) {
+            if (!msg.CheckSignature()) {
+                std::string reason = "gov-invalid-signature";
+                pfrom->PushMessage(NetMsgType::REJECT, strCommand, REJECT_INVALID, reason, inv.hash);
+                return false;
+            } else if (msg.HasMinimumAmount()) {
+                std::string reason = "gov-no-min-amount";
+                pfrom->PushMessage(NetMsgType::REJECT, strCommand, REJECT_INVALID, reason, inv.hash);
+                return false;
+            } else if (!voteDb->HasVote(msg)) {
                 voteDb->AddVote(msg);
                 RelayGovernanceObject(msg);
             }
         }
-}
+        
+        return true;
+    }
 
 
     else if (strCommand == NetMsgType::HEADERS && !fImporting && !fReindex) // Ignore headers received while importing
@@ -6328,6 +6338,7 @@ bool SendMessages(CNode* pto)
                     }
                 }
             }
+            pto->vInventoryGovernanceDataToSend.clear();
             
             //
             // Handle: chain admin public nonces

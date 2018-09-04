@@ -165,6 +165,8 @@ extern map<uint256, CAdminNonce> mapRelayAdminNonces;
 extern CCriticalSection cs_mapRelayAdminNonces;
 extern map<uint256, CAdminPartialSignature> mapRelayAdminSigs;
 extern CCriticalSection cs_mapRelayAdminSigs;
+extern map<uint256, GovernanceObject> mapRelayVotes;
+extern CCriticalSection cs_mapRelayVotes;
 
 extern GovernanceObjectVoteDB* voteDb;
 
