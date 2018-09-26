@@ -278,13 +278,13 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
             int64_t totalEnergy = 0;
             
             for (InjectionData data : injectionMiners) {
-                totalEnergy += data.injection;
+                totalEnergy += data.ppow;
             }
             
             for (int x = 0; x < injectionMiners.size(); x++) {
                 InjectionData iData = injectionMiners[x];
                 
-                double percent = 100 * iData.injection / totalEnergy;
+                double percent = 100 * iData.ppow / totalEnergy;
                 
                 // Parse PylonCoin address
                 CBitcoinAddress addr(iData.address);

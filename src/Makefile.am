@@ -218,6 +218,7 @@ libbitcoin_server_a_SOURCES = \
   rpc/net.cpp \
   rpc/rawtransaction.cpp \
   rpc/gov.cpp \
+  rpc/injection.cpp \
   rpc/server.cpp \
   script/sigcache.cpp \
   timedata.cpp \
@@ -411,7 +412,7 @@ pyloncoind_LDADD = \
   $(LIBMEMENV) \
   $(LIBSECP256K1)
 
-pyloncoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
+pyloncoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(ZLIB_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
 
 # bitcoin-cli binary #
 pyloncoin_cli_SOURCES = bitcoin-cli.cpp
@@ -429,7 +430,7 @@ pyloncoin_cli_LDADD = \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_CRYPTO)
 
-pyloncoin_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
+pyloncoin_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(ZLIB_LIBS) $(EVENT_LIBS)
 #
 
 # bitcoin-tx binary #
@@ -450,7 +451,7 @@ pyloncoin_tx_LDADD = \
   $(LIBBITCOIN_CRYPTO) \
   $(LIBSECP256K1)
 
-pyloncoin_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
+pyloncoin_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) $(ZLIB_LIBS)
 #
 
 # bitcoinconsensus library #

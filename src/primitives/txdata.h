@@ -14,27 +14,45 @@
 #ifndef TXDATA_H
 #define TXDATA_H
 
+#include "serialize.h"
 #include <univalue.h>
+
+#include <string>
 
 using namespace std;
 
-class EnergyData {
-private:
-    UniValue root;
+class InjectionData {
 public:
-    EnergyData(char* data);
-    
-    UniValue GetData();
-};
-
-class InjectionData : EnergyData {
-public:
-    
-    char* id;
-    char* address;
-    int64_t injection;
+    int32_t nVersion;
+    string id;
+    string idfab;
+    string timezone;
     int64_t timestamp;
-    InjectionData(char *data);
+    int64_t consD;    
+    int64_t consH;
+    int64_t prodD;
+    int64_t prodH;
+    double ppow;
+    string address;
+    
+    InjectionData(std::string& data);
+    
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
+        READWRITE(nVersion);
+        READWRITE(id);
+        READWRITE(idfab);
+        READWRITE(timezone);
+        READWRITE(timestamp);
+        READWRITE(consD);
+        READWRITE(consH);
+        READWRITE(prodD);
+        READWRITE(prodH);
+        READWRITE(ppow);
+        READWRITE(address);
+    }
     
     bool operator == (const InjectionData &ref) const {
         return ref.id == this->id;

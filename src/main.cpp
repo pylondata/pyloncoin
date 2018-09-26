@@ -48,6 +48,7 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/math/distributions/poisson.hpp>
 #include <boost/thread.hpp>
+#include <zlib.h>
 
 using namespace std;
 
@@ -3112,7 +3113,32 @@ bool CheckBlock(const CBlock& block, CValidationState& state, bool fCheckPOC, bo
                     try {
                         string str = ScriptToAsmStr(vout.scriptPubKey);
                         str.replace(0, 9, ""); //DELETE 'OP_RETURN ' CHARS
-                        InjectionData iData(const_cast<char*>(str.c_str())); //PARSE DATA
+                        vector<unsigned char> data = ParseHex(str);
+                        vector<char> dataSigned(data.begin(), data.end());
+                        
+                        vector<char> finalData;
+                        if (data[0]) {
+                            //Compressed data
+                            char output[1024 *1024]; //1 MB
+                            char* d = dataSigned.data();
+                            if (!Uncompress(d +1, output)) {
+                                return error("CheckBlock(): CheckTransaction of %s failed to uncompress data",
+                                        tx.GetHash().ToString());
+                            }
+                            
+                            size_t len = strlen(output);
+                            finalData.resize(len);
+                            finalData.insert(finalData.end(), output, output+len);
+                        } else {
+                            //Uncompressed data
+                            char* d = dataSigned.data();
+                            size_t len = strlen(d);
+                            finalData.resize(len);                            
+                            finalData.insert(finalData.end(), d, d + len);
+                        }
+                        
+                        std::string stringData(finalData.data());
+                        InjectionData iData(stringData); //PARSE DATA
                         
                         //Find if this prominer is already in injectionMiners
                         if (std::find(injectionMiners.begin(), injectionMiners.end(), iData) == injectionMiners.end()) {

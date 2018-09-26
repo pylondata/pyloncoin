@@ -260,6 +260,9 @@ static const CRPCCommand vRPCCommands[] =
     { "control",            "help",                   &help,                   true  },
     { "control",            "stop",                   &stop,                   true  },
 
+    /* Injection*/
+    { "injection",         "sendinjectiondata",       &sendinjectiondata,    true },
+    
     /* Governance*/
     { "governance",         "getvotescountfromid",    &getvotescountfromid,    true },
     { "governance",         "makevote",               &makevote,               true },

@@ -223,6 +223,8 @@ void promptForPassword(const std::string &strPrompt, std::string &strPassword);
 void SetThreadPriority(int nPriority);
 void RenameThread(const char* name);
 
+bool Compress(char* data, char* output);
+bool Uncompress(char* data, char* output);
 /**
  * .. and a wrapper that just calls func once
  */

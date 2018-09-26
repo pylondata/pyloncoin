@@ -278,6 +278,8 @@ extern UniValue reconsiderblock(const UniValue& params, bool fHelp);
 extern UniValue getvotescountfromid(const UniValue& request, bool fHelp); //in gov.cpp
 extern UniValue makevote(const UniValue& request, bool fHelp);
 
+extern UniValue sendinjectiondata(const UniValue& request, bool fHelp); //in injection.cpp
+
 bool StartRPC();
 void InterruptRPC();
 void StopRPC();
