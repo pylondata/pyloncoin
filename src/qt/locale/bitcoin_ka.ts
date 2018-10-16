@@ -1752,7 +1752,7 @@
         <translation>Pyloncoin Core</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>Pyloncoin Core-ს ავტორები</translation>
     </message>
     <message>

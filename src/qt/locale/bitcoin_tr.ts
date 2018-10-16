@@ -2418,7 +2418,7 @@
         <translation>Pyloncoin Çekirdeği</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>Pyloncoin Çekirdeği geliştiricileri</translation>
     </message>
     <message>
@@ -3316,7 +3316,7 @@
         <translation>SOCKS5 vekil sunucusu vasıtasıyla bağlan</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Pyloncoin Core Developers</source>
+        <source>Copyright (C) 2009-%i The Faircoin Core developers</source>
         <translation>Telif hakkı 2009-%i Pyloncoin Çekirdeği Geliştiricileri</translation>
     </message>
     <message>

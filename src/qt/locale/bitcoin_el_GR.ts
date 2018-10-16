@@ -2062,7 +2062,7 @@
         <translation>Pyloncoin Core</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>Οι προγραμματιστές του Pyloncoin Core</translation>
     </message>
     <message>
@@ -2652,7 +2652,7 @@
         <translation>Σύνδεση μέσω διαμεσολαβητή SOCKS5</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Pyloncoin Core Developers</source>
+        <source>Copyright (C) 2009-%i The Faircoin Core developers</source>
         <translation>Πνευματικά δικαιώματα 2009-%i Οι προγραμματιστές του Pyloncoin Core</translation>
     </message>
     <message>

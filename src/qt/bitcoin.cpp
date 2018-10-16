@@ -170,7 +170,7 @@ class BitcoinCore: public QObject
 {
     Q_OBJECT
 public:
-    explicit BitcoinCore(std::string const * strFasitoPassword);
+    explicit BitcoinCore(std::string const * strPylonkeyPassword);
 
 public Q_SLOTS:
     void initialize();
@@ -184,7 +184,7 @@ Q_SIGNALS:
 private:
     boost::thread_group threadGroup;
     CScheduler scheduler;
-    std::string const * strFasitoPassword;
+    std::string const * strPylonkeyPassword;
 
     /// Pass fatal exception message to UI thread
     void handleRunawayException(const std::exception *e);
@@ -204,10 +204,10 @@ public:
 #endif
     /// parameter interaction/setup based on rules
     void parameterSetup();
-    /// set the Fasito password
-    void setFasitoPassword(const std::string &strFasitoPassword);
-    /// clear the Fasito password
-    void clearFasitoPassword();
+    /// set the Pylonkey password
+    void setPylonkeyPassword(const std::string &strPylonkeyPassword);
+    /// clear the Pylonkey password
+    void clearPylonkeyPassword();
     /// Create options model
     void createOptionsModel(bool resetSettings);
     /// Create main window
@@ -251,15 +251,15 @@ private:
     int returnValue;
     const PlatformStyle *platformStyle;
 
-    std::string strFasitoPassword;
+    std::string strPylonkeyPassword;
 
     void startThread();
 };
 
 #include "bitcoin.moc"
 
-BitcoinCore::BitcoinCore(std::string const * strFasitoPassword):
-    QObject(), strFasitoPassword(strFasitoPassword)
+BitcoinCore::BitcoinCore(std::string const * strPylonkeyPassword):
+    QObject(), strPylonkeyPassword(strPylonkeyPassword)
 {
 }
 
@@ -274,7 +274,7 @@ void BitcoinCore::initialize()
     try
     {
         qDebug() << __func__ << ": Running AppInit2 in thread";
-        int rv = AppInit2(threadGroup, scheduler, *strFasitoPassword);
+        int rv = AppInit2(threadGroup, scheduler, *strPylonkeyPassword);
         Q_EMIT initializeResult(rv);
     } catch (const std::exception& e) {
         handleRunawayException(&e);
@@ -325,7 +325,7 @@ BitcoinApplication::BitcoinApplication(int &argc, char **argv):
         platformStyle = PlatformStyle::instantiate("other");
     assert(platformStyle);
 
-    strFasitoPassword = "";
+    strPylonkeyPassword = "";
 }
 
 BitcoinApplication::~BitcoinApplication()
@@ -348,7 +348,7 @@ BitcoinApplication::~BitcoinApplication()
     optionsModel = 0;
     delete platformStyle;
     platformStyle = 0;
-    strFasitoPassword = "###############";
+    strPylonkeyPassword = "###############";
 }
 
 #ifdef ENABLE_WALLET
@@ -387,7 +387,7 @@ void BitcoinApplication::startThread()
     if(coreThread)
         return;
     coreThread = new QThread(this);
-    BitcoinCore *executor = new BitcoinCore(&strFasitoPassword);
+    BitcoinCore *executor = new BitcoinCore(&strPylonkeyPassword);
     executor->moveToThread(coreThread);
 
     /*  communication to and from thread */
@@ -409,17 +409,17 @@ void BitcoinApplication::parameterSetup()
     InitParameterInteraction();
 }
 
-void BitcoinApplication::setFasitoPassword(const std::string &strFasitoPassword)
+void BitcoinApplication::setPylonkeyPassword(const std::string &strPylonkeyPassword)
 {
-    this->strFasitoPassword = strFasitoPassword;
+    this->strPylonkeyPassword = strPylonkeyPassword;
 }
 
-void BitcoinApplication::clearFasitoPassword()
+void BitcoinApplication::clearPylonkeyPassword()
 {
-    if (!strFasitoPassword.length())
+    if (!strPylonkeyPassword.length())
         return;
 
-    memset(&strFasitoPassword.begin()[0], 0, strFasitoPassword.length());
+    memset(&strPylonkeyPassword.begin()[0], 0, strPylonkeyPassword.length());
 }
 
 void BitcoinApplication::requestInitialize()
@@ -456,7 +456,7 @@ void BitcoinApplication::initializeResult(int retval)
 {
     qDebug() << __func__ << ": Initialization result: " << retval;
 
-    clearFasitoPassword();
+    clearPylonkeyPassword();
 
     // Set exit result: 0 if successful, 1 if failure
     returnValue = retval ? 0 : 1;
@@ -684,8 +684,8 @@ int main(int argc, char *argv[])
     if (mapArgs.count("-cvn")) {
         std::string secret;
         //TODO: we should prompt for a password using a QT dialog
-        promptForPassword("Enter Fasito PIN: ", secret);
-        app.setFasitoPassword(secret);
+        promptForPassword("Enter Pylonkey PIN: ", secret);
+        app.setPylonkeyPassword(secret);
         if (secret.length())
             memset(&secret.begin()[0], 0 , secret.length());
     }

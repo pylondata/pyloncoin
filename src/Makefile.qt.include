@@ -380,8 +380,8 @@ qt_pyloncoin_qt_LDADD = qt/libbitcoinqt.a $(LIBBITCOIN_SERVER)
 if ENABLE_WALLET
 qt_pyloncoin_qt_LDADD += $(LIBBITCOIN_WALLET)
 endif
-if USE_FASITO
-qt_pyloncoin_qt_LDADD += $(LIBBITCOIN_FASITO)
+if USE_PYLONKEY
+qt_pyloncoin_qt_LDADD += $(LIBBITCOIN_PYLONKEY)
 endif
 if ENABLE_ZMQ
 qt_pyloncoin_qt_LDADD += $(LIBBITCOIN_ZMQ) $(ZMQ_LIBS)

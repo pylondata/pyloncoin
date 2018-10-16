@@ -36,7 +36,7 @@
 #include "utilstrencodings.h"
 #include "validationinterface.h"
 #include "poc.h"
-#include "fasito/cert.h"
+#include "pylonkey/cert.h"
 #include "base58.h"
 #ifdef ENABLE_WALLET
 #include "wallet/db.h"
@@ -65,8 +65,8 @@
 #include "zmq/zmqnotificationinterface.h"
 #endif
 
-#ifdef USE_FASITO
-#include "fasito/fasito.h"
+#ifdef USE_PYLONKEY
+#include "pylonkey/pylonkey.h"
 #endif
 
 using namespace std;
@@ -262,8 +262,8 @@ void Shutdown()
     globalVerifyHandle.reset();
     ECC_Stop();
     POC_destroy_secp256k1_context();
-#ifdef USE_FASITO
-    fasito.close();
+#ifdef USE_PYLONKEY
+    pylonkey.close();
 #endif
 
     LogPrintf("%s: done\n", __func__);
@@ -534,7 +534,7 @@ std::string HelpMessage(HelpMessageMode mode)
 std::string LicenseInfo()
 {
     // todo: remove urls from translations on next change
-    return FormatParagraph(strprintf(_("Copyright (C) 2016-%i The Pyloncoin Core Developers"), COPYRIGHT_YEAR)) + "\n" +
+    return FormatParagraph(strprintf(_("Copyright (C) 2016-%i The Faircoin Core developers"), COPYRIGHT_YEAR)) + "\n" +
            "\n" +
            FormatParagraph(_("Copyright (C) 2009-2016 The Bitcoin Core Developers")) + "\n" +
            "\n" +
@@ -810,7 +810,7 @@ void InitLogging()
 /** Initialize bitcoin.
  *  @pre Parameters should be parsed and config file should be read.
  */
-bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const string &strFasitoPassword)
+bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const string &strPylonkeyPassword)
 {
     // ********************************************************* Step 1: setup
 #ifdef _MSC_VER
@@ -1117,18 +1117,18 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
 
     if (mapArgs.count("-cvn")) {
 #ifdef USE_CVN
-        if (GetArg("-cvn", "") == "fasito") {
-#ifdef USE_FASITO
-            LogPrintf("Initializing fasito\n");
-            uiInterface.InitMessage(_("Initializing fasito..."));
-            nCvnNodeId = InitCVNWithFasito(strFasitoPassword);
+        if (GetArg("-cvn", "") == "pylonkey") {
+#ifdef USE_PYLONKEY
+            LogPrintf("Initializing pylonkey\n");
+            uiInterface.InitMessage(_("Initializing pylonkey..."));
+            nCvnNodeId = InitCVNWithPylonkey(strPylonkeyPassword);
 #else
-            LogPrintf("ERROR: invalid parameter -cvn=fasito. This wallet version was not compiled with fasito support\n");
-#endif // USE_FASITO
+            LogPrintf("ERROR: invalid parameter -cvn=pylonkey. This wallet version was not compiled with pylonkey support\n");
+#endif // USE_PYLONKEY
         } else if (GetArg("-cvn", "") == "file") {
-            nCvnNodeId = InitCVNWithCertificate(strFasitoPassword);
+            nCvnNodeId = InitCVNWithCertificate(strPylonkeyPassword);
         } else
-            return InitError("-cvn configuration invalid. Parameter must be 'fasito' or 'file'\n");
+            return InitError("-cvn configuration invalid. Parameter must be 'pylonkey' or 'file'\n");
 
         if (!nCvnNodeId)
             return InitError("could not find a vaild CVN node ID\n");

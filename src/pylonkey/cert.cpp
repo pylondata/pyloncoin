@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2017 The Pyloncoin Core developers
+// Copyright (c) 2016-2017 The Faircoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -145,7 +145,7 @@ static uint32_t ExtractIdFromCertificate(X509 *x509Cert, const bool fChainAdmin)
     return lnCvnNodeId;
 }
 
-uint32_t InitCVNWithCertificate(const string &strFasitoPassword)
+uint32_t InitCVNWithCertificate(const string &strPylonkeyPassword)
 {
     boost::filesystem::path privkeyFile = GetDataDir() / GetArg("-cvnkeyfile", "cvn.pem");
     FILE* file = fopen(privkeyFile.string().c_str(), "r");
@@ -154,7 +154,7 @@ uint32_t InitCVNWithCertificate(const string &strFasitoPassword)
         return 0;
     }
 
-    X509 *x509Cert = ParseCertificate(file, false, strFasitoPassword);
+    X509 *x509Cert = ParseCertificate(file, false, strPylonkeyPassword);
 
     if (x509Cert) {
         cvnPubKey = cvnPrivKey.GetRawPubKey();

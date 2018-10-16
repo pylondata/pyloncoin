@@ -668,7 +668,7 @@
         <translation>Craidd Pyloncoin</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>Datblygwyr Graidd Pyloncoin</translation>
     </message>
     <message>

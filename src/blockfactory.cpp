@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2015 The Bitcoin Core developers
-// Copyright (c) 2016-2017 The Pyloncoin Core developers
+// Copyright (c) 2016-2017 The Faircoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -32,8 +32,8 @@
 #include "primitives/txdata.h"
 //#include "cvn.h"
 
-#ifdef USE_FASITO
-#include "fasito/fasito.h"
+#ifdef USE_PYLONKEY
+#include "pylonkey/pylonkey.h"
 #endif
 
 #include <secp256k1.h>

@@ -1524,7 +1524,7 @@
         <translation>Core de Pyloncoin</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>Os desarrolladores de Pyloncoin Core</translation>
     </message>
     <message>

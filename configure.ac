@@ -103,10 +103,10 @@ AC_ARG_WITH([cvn],
   [use_cvn=$withval],
   [use_cvn=no])
 
-AC_ARG_WITH([fasito],
-  [AS_HELP_STRING([--with-fasito], [enable use of Fasito (Pyloncoin signature token) - (default is yes)])],
-  [use_fasito=$withval],
-  [use_fasito=yes])
+AC_ARG_WITH([pylonkey],
+  [AS_HELP_STRING([--with-pylonkey], [enable use of Pylonkey (Pyloncoin signature token) - (default is yes)])],
+  [use_pylonkey=$withval],
+  [use_pylonkey=yes])
 
 AC_ARG_WITH([miniupnpc],
   [AS_HELP_STRING([--with-miniupnpc],
@@ -1066,14 +1066,14 @@ if test x$use_cvn != xno; then
   AC_DEFINE_UNQUOTED([USE_CVN],[$use_cvn],[CVN support])
 else
   AC_MSG_RESULT(no)
-  use_fasito=no
+  use_pylonkey=no
 fi
 
-dnl enable Fasito
-AC_MSG_CHECKING([whether to build with Fasito support])
-if test x$use_fasito != xno; then
-  AC_MSG_RESULT(yes ($use_fasito))
-  AC_DEFINE_UNQUOTED([USE_FASITO],[$use_fasito],[Fasito support])
+dnl enable Pylonkey
+AC_MSG_CHECKING([whether to build with Pylonkey support])
+if test x$use_pylonkey != xno; then
+  AC_MSG_RESULT(yes ($use_pylonkey))
+  AC_DEFINE_UNQUOTED([USE_PYLONKEY],[$use_pylonkey],[Pylonkey support])
 else
   AC_MSG_RESULT(no)
 fi
@@ -1150,13 +1150,13 @@ AM_CONDITIONAL([ENABLE_QT_TESTS],[test x$BUILD_TEST_QT = xyes])
 AM_CONDITIONAL([ENABLE_BENCH],[test x$use_bench = xyes])
 AM_CONDITIONAL([USE_QRCODE], [test x$use_qr = xyes])
 AM_CONDITIONAL([USE_CVN], [test x$use_cvn = xyes])
-AM_CONDITIONAL([USE_FASITO], [test x$use_fasito != xno])
+AM_CONDITIONAL([USE_PYLONKEY], [test x$use_pylonkey != xno])
 AM_CONDITIONAL([USE_LCOV],[test x$use_lcov = xyes])
 AM_CONDITIONAL([GLIBC_BACK_COMPAT],[test x$use_glibc_compat = xyes])
 AM_CONDITIONAL([HARDEN],[test x$use_hardening = xyes])
 
 AC_SUBST(USE_CVN,$use_cvn)
-AC_SUBST(USE_FASITO,$use_fasito)
+AC_SUBST(USE_PYLONKEY,$use_pylonkey)
 
 AC_DEFINE(CLIENT_VERSION_MAJOR, _CLIENT_VERSION_MAJOR, [Major version])
 AC_DEFINE(CLIENT_VERSION_MINOR, _CLIENT_VERSION_MINOR, [Minor version])
@@ -1273,7 +1273,7 @@ if test x$bitcoin_enable_qt != xno; then
     echo "    with qr     = $use_qr"
 fi
 echo "  with CVN      = $use_cvn"
-echo "  with fasito   = $use_fasito"
+echo "  with pylonkey   = $use_pylonkey"
 echo "  with zmq      = $use_zmq"
 echo "  with test     = $use_tests"
 echo "  with bench    = $use_bench"

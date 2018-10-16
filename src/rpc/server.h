@@ -184,17 +184,17 @@ extern UniValue importwallet(const UniValue& params, bool fHelp);
 
 extern UniValue getgenerate(const UniValue& params, bool fHelp); // in rpc/cvn.cpp
 extern UniValue setgenerate(const UniValue& params, bool fHelp);
-extern UniValue fasitologin(const UniValue& params, bool fHelp);
-extern UniValue fasitologout(const UniValue& params, bool fHelp);
-extern UniValue fasitoinitkey(const UniValue& params, bool fHelp);
-extern UniValue fasitononce(const UniValue& params, bool fHelp);
-extern UniValue fasitosign(const UniValue& params, bool fHelp);
+extern UniValue pylonkeylogin(const UniValue& params, bool fHelp);
+extern UniValue pylonkeylogout(const UniValue& params, bool fHelp);
+extern UniValue pylonkeyinitkey(const UniValue& params, bool fHelp);
+extern UniValue pylonkeynonce(const UniValue& params, bool fHelp);
+extern UniValue pylonkeysign(const UniValue& params, bool fHelp);
 extern UniValue addcvn(const UniValue& params, bool fHelp);
 extern UniValue removecvn(const UniValue& params, bool fHelp);
-extern UniValue fasitoschnorr(const UniValue& params, bool fHelp);
-extern UniValue fasitoschnorrverify(const UniValue& params, bool fHelp);
-extern UniValue fasitohash(const UniValue& params, bool fHelp);
-extern UniValue fasitocmd(const UniValue& params, bool fHelp);
+extern UniValue pylonkeyschnorr(const UniValue& params, bool fHelp);
+extern UniValue pylonkeyschnorrverify(const UniValue& params, bool fHelp);
+extern UniValue pylonkeyhash(const UniValue& params, bool fHelp);
+extern UniValue pylonkeycmd(const UniValue& params, bool fHelp);
 extern UniValue getcvninfo(const UniValue& params, bool fHelp);
 extern UniValue bancvn(const UniValue& params, bool fHelp);
 extern UniValue getchainparameters(const UniValue& params, bool fHelp);

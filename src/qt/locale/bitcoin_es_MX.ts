@@ -852,7 +852,7 @@
         <translation>Pyloncoin Core</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>Los desarrolladores de Pyloncoin Core</translation>
     </message>
     </context>

@@ -1894,7 +1894,7 @@
         <translation>비트코인 코어</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>비트코인코어 개발자들</translation>
     </message>
     <message>

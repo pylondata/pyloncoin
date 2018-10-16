@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2017 The FairCoin Core developers
+// Copyright (c) 2016-2017 The Faircoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -8,8 +8,8 @@
 #include "main.h"
 #include "utilstrencodings.h"
 #include "poc.h"
-#include "fasito/fasito.h"
-#include "fasito/cert.h"
+#include "pylonkey/pylonkey.h"
+#include "pylonkey/cert.h"
 #include "core_io.h"
 #include "timedata.h"
 #include "validationinterface.h"
@@ -486,20 +486,20 @@ UniValue setgenerate(const UniValue& params, bool fHelp)
     return NullUniValue;
 }
 
-UniValue fasitologin(const UniValue& params, bool fHelp)
+UniValue pylonkeylogin(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() < 2 || params.size() > 3)
         throw runtime_error(
-            "fasitologin type PIN\n"
-            "\nLogin to Fasito or read the admin certificate file.\n"
+            "pylonkeylogin type PIN\n"
+            "\nLogin to Pylonkey or read the admin certificate file.\n"
             "\nArguments:\n"
-            "1. method      (string, required) Signing method: 'fasito' or 'file'.\n"
-            "2. PIN         (string, required) The PIN to unlock the Fasito or to decrypt the private key file.\n"
-            "3. key index   (numeric, optinal) The index of the key on Fasito. (default is 0)\n"
+            "1. method      (string, required) Signing method: 'pylonkey' or 'file'.\n"
+            "2. PIN         (string, required) The PIN to unlock the Pylonkey or to decrypt the private key file.\n"
+            "3. key index   (numeric, optinal) The index of the key on Pylonkey. (default is 0)\n"
             "\nExamples:\n"
-            "\nLogin to Fasito\n"
-            + HelpExampleCli("fasitologin", "fasito 123456 0")
-            + HelpExampleCli("fasitologin", "file mySecretPassword")
+            "\nLogin to Pylonkey\n"
+            + HelpExampleCli("pylonkeylogin", "pylonkey 123456 0")
+            + HelpExampleCli("pylonkeylogin", "file mySecretPassword")
         );
 
     LOCK(cs_main);
@@ -513,16 +513,16 @@ UniValue fasitologin(const UniValue& params, bool fHelp)
     const string strPassword = params[1].get_str();
 
     string strErrorMsg;
-    if (method == "fasito") {
+    if (method == "pylonkey") {
         if (params.size() < 2) {
-            throw JSONRPCError(RPC_INVALID_PARAMS, "Fasito PIN not supplied\n");
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Pylonkey PIN not supplied\n");
         }
-#ifdef USE_FASITO
-        LogPrintf("Initializing fasito for chain adminstration\n");
+#ifdef USE_PYLONKEY
+        LogPrintf("Initializing pylonkey for chain adminstration\n");
         const uint32_t nKeyIndex = params.size() == 3 ? params[2].get_int() : 0;
-        nChainAdminId = InitChainAdminWithFasito(strPassword, nKeyIndex, strErrorMsg);
+        nChainAdminId = InitChainAdminWithPylonkey(strPassword, nKeyIndex, strErrorMsg);
 #else
-        return "ERROR: This wallet version was not compiled with fasito support\n";
+        return "ERROR: This wallet version was not compiled with pylonkey support\n";
 #endif
     } else if (method == "file") {
         string strOldAdminKeyFile;
@@ -541,12 +541,12 @@ UniValue fasitologin(const UniValue& params, bool fHelp)
             mapArgs["-admincertfile"] = strOldAdminCertFile;
         }
     } else {
-        throw JSONRPCError(RPC_INVALID_PARAMS, "invalid signing method. Must be one of 'fasito' or 'file'\n");
+        throw JSONRPCError(RPC_INVALID_PARAMS, "invalid signing method. Must be one of 'pylonkey' or 'file'\n");
     }
 
     if (!nChainAdminId) {
         if (strErrorMsg.size())
-            throw JSONRPCError(RPC_INTERNAL_ERROR, "Fasito login error: " + strErrorMsg + "\n");
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Pylonkey login error: " + strErrorMsg + "\n");
         else
             throw JSONRPCError(RPC_INTERNAL_ERROR, "could not find a vaild chain admin ID\n");
     }
@@ -558,30 +558,30 @@ UniValue fasitologin(const UniValue& params, bool fHelp)
     return "OK";
 }
 
-UniValue fasitologout(const UniValue& params, bool fHelp)
+UniValue pylonkeylogout(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size())
         throw runtime_error(
-            "fasitologout\n"
-            "\nLogout from Fasito.\n"
+            "pylonkeylogout\n"
+            "\nLogout from Pylonkey.\n"
             "\nArguments:\n"
             "none\n"
             "\nExample:\n"
-            "\nLogout from Fasito\n"
-            "fasitologout"
+            "\nLogout from Pylonkey\n"
+            "pylonkeylogout"
         );
 
     LOCK(cs_main);
 
-    if (strMethod == "fasito") {
-#ifdef USE_FASITO
+    if (strMethod == "pylonkey") {
+#ifdef USE_PYLONKEY
         if (!nCvnNodeId) {
-            fasito.close();
+            pylonkey.close();
         } else {
             throw JSONRPCError(RPC_MISC_ERROR, "cannot log off because the node is configured as a CVN\n");
         }
 #else
-        return "ERROR: This wallet version was not compiled with fasito support\n";
+        return "ERROR: This wallet version was not compiled with pylonkey support\n";
 #endif
     }
 
@@ -595,19 +595,19 @@ UniValue fasitologout(const UniValue& params, bool fHelp)
     return "OK";
 }
 
-UniValue fasitoinitkey(const UniValue& params, bool fHelp)
+UniValue pylonkeyinitkey(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() != 3)
         throw runtime_error(
-            "fasitoinitkey PIN slot\n"
-            "\nInitialise a private key slot on Fasito.\n"
+            "pylonkeyinitkey PIN slot\n"
+            "\nInitialise a private key slot on Pylonkey.\n"
             "\nArguments:\n"
-            "1. PIN            (string, required) The PIN to log on to the Fasito\n"
+            "1. PIN            (string, required) The PIN to log on to the Pylonkey\n"
             "2. slot number    (numberic, required) The number of the key slot to initialise (0-6)\n"
             "3. CVN/Admin ID   (string, required) The CVN or Admin ID in hex notation. E.g. 0x12345678\n"
             "\nExample:\n"
             "\nInit key slot 0\n"
-            "fasitoinitkey 123456 0 0x12345678"
+            "pylonkeyinitkey 123456 0 0x12345678"
         );
 
     const string strPIN = params[0].get_str();
@@ -626,44 +626,44 @@ UniValue fasitoinitkey(const UniValue& params, bool fHelp)
     ss << hex << params[2].get_str();
     ss >> nId;
 
-#ifndef USE_FASITO
-    return error("This wallet version was not compiled with Fasito support\n");
+#ifndef USE_PYLONKEY
+    return error("This wallet version was not compiled with Pylonkey support\n");
 #else
 
     bool fWasInitialised = true;
     string strErrorMsg;
-    if (!fasito.fInitialized) {
-        if (!InitFasito(strPIN, strErrorMsg)) {
-            fasito.close();
-            return error("could not init Fasito: %s", strErrorMsg);
+    if (!pylonkey.fInitialized) {
+        if (!InitPylonkey(strPIN, strErrorMsg)) {
+            pylonkey.close();
+            return error("could not init Pylonkey: %s", strErrorMsg);
         }
 
         fWasInitialised = false;
     } else
-        LogPrintf("Fasito was already initialised\n");
+        LogPrintf("Pylonkey was already initialised\n");
 
-    if (fasito.mapKeys[nSlotNumber].status == CONFIGURED) {
+    if (pylonkey.mapKeys[nSlotNumber].status == CONFIGURED) {
         if (!fWasInitialised)
-            fasito.close();
+            pylonkey.close();
         return error("slot #%u already configured", nSlotNumber);
     }
 
-    if (fasito.mapKeys[nSlotNumber].status != SEEDED) {
+    if (pylonkey.mapKeys[nSlotNumber].status != SEEDED) {
         if (!fWasInitialised)
-            fasito.close();
+            pylonkey.close();
         return error("slot #%u not seeded", nSlotNumber);
     }
 
     secret.MakeNewKey(false);
 
-    if (!FasitoInitPrivKey(secret, nSlotNumber, nId)) {
+    if (!PylonkeyInitPrivKey(secret, nSlotNumber, nId)) {
         if (!fWasInitialised)
-            fasito.close();
+            pylonkey.close();
         return error("could not initialise private key #%u", nSlotNumber);
     }
 
     if (!fWasInitialised)
-        fasito.close();
+        pylonkey.close();
 
     UniValue result(UniValue::VOBJ);
     result.push_back(Pair("slot", nSlotNumber));
@@ -671,25 +671,25 @@ UniValue fasitoinitkey(const UniValue& params, bool fHelp)
     result.push_back(Pair("recoveryHash", HexStr(secret.begin(), secret.end())));
 
     return result;
-#endif // USE_FASITO
+#endif // USE_PYLONKEY
 }
 
-UniValue fasitononce(const UniValue& params, bool fHelp)
+UniValue pylonkeynonce(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size())
         throw runtime_error(
-            "fasitononce\n"
+            "pylonkeynonce\n"
             "\nCreates a nonce pair and publishes the public part on the network.\n"
             "\nArguments:\n"
             "none\n"
             "\nExample:\n"
             "\nCreate a nonce pair\n"
-            "fasitononce"
+            "pylonkeynonce"
         );
 
-    bool fFasito = strMethod == "fasito";
+    bool fPylonkey = strMethod == "pylonkey";
 
-    if (!nChainAdminId || (!fFasito && !adminPrivKey.IsValid()))
+    if (!nChainAdminId || (!fPylonkey && !adminPrivKey.IsValid()))
         return "ERROR: wallet not configured for chain administration";
 
     LOCK(cs_main);
@@ -704,13 +704,13 @@ UniValue fasitononce(const UniValue& params, bool fHelp)
     uint256 hashData;
     GetStrongRandBytes(&hashData.begin()[0], 32);
     unsigned char privateData[32];
-    if (!CreateNoncePairForHash(adminPublicNonce, privateData, hashData, nChainAdminId, fFasito, true)) {
+    if (!CreateNoncePairForHash(adminPublicNonce, privateData, hashData, nChainAdminId, fPylonkey, true)) {
         return "could not create nonce";
     }
 
     msg.publicNonce = adminPublicNonce;
 
-    if (fFasito) {
+    if (fPylonkey) {
         uint32_t *nHandle = (uint32_t *) &privateData[0];
         nAdminNonceHandle = *nHandle;
     } else {
@@ -720,7 +720,7 @@ UniValue fasitononce(const UniValue& params, bool fHelp)
 
     // sign the message
     CSchnorrSig msgSig;
-    if (!AdminSignHash(msg.GetHash(), msgSig, fFasito)) {
+    if (!AdminSignHash(msg.GetHash(), msgSig, fPylonkey)) {
         return strprintf("%s : could not sign signature message\n", __func__);
     }
 
@@ -735,22 +735,22 @@ UniValue fasitononce(const UniValue& params, bool fHelp)
     return msg.ToString();
 }
 
-UniValue fasitosign(const UniValue& params, bool fHelp)
+UniValue pylonkeysign(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() != 1)
         throw runtime_error(
-            "fasitosign\n"
+            "pylonkeysign\n"
             "\nCreate a partial signature using the received nonces.\n"
             "\nArguments:\n"
             "1. chain data hash      (string, required) The hash of the chain data to be signed\n"
             "\nExample:\n"
             "\nCreate a partial signature for the hash\n"
-            + HelpExampleCli("fasitosign", "9afdc03617091ac720958a47dee67fea38c40396594996531564c445f2c7603a")
+            + HelpExampleCli("pylonkeysign", "9afdc03617091ac720958a47dee67fea38c40396594996531564c445f2c7603a")
         );
 
-    bool fFasito = strMethod == "fasito";
+    bool fPylonkey = strMethod == "pylonkey";
 
-    if (!nChainAdminId || (!fFasito && !adminPrivKey.IsValid()))
+    if (!nChainAdminId || (!fPylonkey && !adminPrivKey.IsValid()))
         return error("wallet not configured for chain administration");
 
     LOCK(cs_main);
@@ -759,7 +759,7 @@ UniValue fasitosign(const UniValue& params, bool fHelp)
     uint256 hashToSign = ParseHashV(params[0], "chain data hash");
 
     CAdminPartialSignatureUnsinged signature;
-    if (!AdminSignPartial(hashToSign, signature, nChainAdminId, fFasito ? NULL : &adminPrivNonce, nAdminNonceHandle)) {
+    if (!AdminSignPartial(hashToSign, signature, nChainAdminId, fPylonkey ? NULL : &adminPrivNonce, nAdminNonceHandle)) {
         string err = strprintf("%s : could not create sig by 0x%08x, hash %s\n", __func__,
                 nChainAdminId, hashToSign.ToString());
         result.push_back(Pair("status", err));
@@ -769,7 +769,7 @@ UniValue fasitosign(const UniValue& params, bool fHelp)
     CAdminPartialSignature msg(signature);
 
     CSchnorrSig msgSig;
-    if (!AdminSignHash(msg.GetHash(), msgSig, fFasito)) {
+    if (!AdminSignHash(msg.GetHash(), msgSig, fPylonkey)) {
         string err = strprintf("%s : could not sign signature message\n", __func__);
         result.push_back(Pair("status", err));
         return result;
@@ -800,7 +800,7 @@ UniValue addcvn(const UniValue& params, bool fHelp)
     if (fHelp || params.size() != 3)
         throw runtime_error(
             "addcvn \"type\" \"node Id\" \"pubkey\"\n"
-            "\nAdd a new CVN or admin to the FairCoin network\n"
+            "\nAdd a new CVN or admin to the Pyloncoin network\n"
             "\nArguments:\n"
             "1. \"type\"               (string, required) c=CVNInfo, a=ChainAdmin\n"
             "2. \"Id\"                 (string, required) The ID (in hex) of the new CVN or admin.\n"
@@ -810,7 +810,7 @@ UniValue addcvn(const UniValue& params, bool fHelp)
                 "  \"type\":\"type of added info\",             (string) The type of the added info (c=CVNInfo, a=ChainAdmin)\n"
                 "  \"Id\":\"ID in hex\",                        (hex) The ID of the new CVN (or admin) in hexadecimal form\n"
                 "  \"prevBlockHash\":\"hash (hex)\",            (string) The timestamp of the block\n"
-                "  \"address\":\"faircoin address\",            (string) The FairCoin address of the new CVN.\n"
+                "  \"address\":\"pyloncoin address\",            (string) The Pyloncoin address of the new CVN.\n"
                 "  \"pubKey\":\"public key\",                   (string) The public key of the new CVN (in hex).\n"
                 "  \"signatures\":\"number of signatures\"      (string) The number of admin signatures that signed the CvnInfo.\n"
                 "  \"chainParams\":\"serialized params\"        (string) The serialized representation of CDynamicChainParams.\n"
@@ -899,7 +899,7 @@ UniValue removecvn(const UniValue& params, bool fHelp)
     if (fHelp || params.size() != 2)
         throw runtime_error(
             "removecvn \"type\" \"Id\"\n"
-            "\nRemove a CVN or and admin from the FairCoin network\n"
+            "\nRemove a CVN or and admin from the Pyloncoin network\n"
             "\nArguments:\n"
             "1. \"type\"         (string, required) c=CVNInfo, a=ChainAdmin\n"
             "2. \"Id\"           (string, required) The ID (in hex) of the CVN or admin to remove.\n"
@@ -988,17 +988,17 @@ UniValue removecvn(const UniValue& params, bool fHelp)
     return result;
 }
 
-UniValue fasitoschnorr(const UniValue& params, bool fHelp)
+UniValue pylonkeyschnorr(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() != 1)
         throw runtime_error(
-            "fasitoschnorr \"dataHash\"\n"
+            "pylonkeyschnorr \"dataHash\"\n"
             "\nCreates an EC Schnorr signature of the given hash\n"
             "\nArguments:\n"
             "1. \"data hash\"   (string, required) The hash of the data to sign.\n"
             "\nExamples:\n"
             "\nCreate a signature\n"
-            + HelpExampleCli("fasitoschnorr", "a1b5..9093")
+            + HelpExampleCli("pylonkeyschnorr", "a1b5..9093")
         );
 
     LOCK(cs_main);
@@ -1025,11 +1025,11 @@ UniValue fasitoschnorr(const UniValue& params, bool fHelp)
     return result;
 }
 
-UniValue fasitoschnorrverify(const UniValue& params, bool fHelp)
+UniValue pylonkeyschnorrverify(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() < 2 || params.size() > 3)
         throw runtime_error(
-            "fasitoschnorrverify \"dataHash\" \"signature\"\n"
+            "pylonkeyschnorrverify \"dataHash\" \"signature\"\n"
             "\nVerifies an EC Schnorr signature for the given hash\n"
             "\nArguments:\n"
             "1. \"data hash\"   (string, required) The hash of the signed data.\n"
@@ -1037,7 +1037,7 @@ UniValue fasitoschnorrverify(const UniValue& params, bool fHelp)
             "3. \"public key\"  (string, optional) An optional public key to use to verify the signature.\n"
             "\nExamples:\n"
             "\nCreate a signature\n"
-            + HelpExampleCli("fasitoschnorrverify", "a1b5..9093 99cafecafe55..33224457")
+            + HelpExampleCli("pylonkeyschnorrverify", "a1b5..9093 99cafecafe55..33224457")
         );
 
     LOCK(cs_main);
@@ -1074,17 +1074,17 @@ UniValue fasitoschnorrverify(const UniValue& params, bool fHelp)
     return result;
 }
 
-UniValue fasitohash(const UniValue& params, bool fHelp)
+UniValue pylonkeyhash(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() != 1)
         throw runtime_error(
-            "fasitohash \"data\"\n"
+            "pylonkeyhash \"data\"\n"
             "\nCreates a SHA256 (single) hash of the data\n"
             "\nArguments:\n"
             "1. \"data\"   (hex, required) The hash of the signed data.\n"
             "\nExamples:\n"
             "\nCreate a hash\n"
-            + HelpExampleCli("fasitohash", "a1b5..9093")
+            + HelpExampleCli("pylonkeyhash", "a1b5..9093")
         );
 
     vector<uint8_t> vData = ParseHex(params[0].get_str());
@@ -1103,31 +1103,31 @@ UniValue fasitohash(const UniValue& params, bool fHelp)
     return hash.ToString();
 }
 
-UniValue fasitocmd(const UniValue& params, bool fHelp)
+UniValue pylonkeycmd(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() != 1)
         throw runtime_error(
-            "fasitocmd \"command string\"\n"
-            "\nExecute a generic command on Fasito\n"
+            "pylonkeycmd \"command string\"\n"
+            "\nExecute a generic command on Pylonkey\n"
             "\nArguments:\n"
             "1. \"command\"   (string, required) The command string.\n"
             "\nExamples:\n"
-            "\nShow Fasito information\n"
-            + HelpExampleCli("fasito", "INFO")
+            "\nShow Pylonkey information\n"
+            + HelpExampleCli("pylonkey", "INFO")
         );
 
     bool fWasInitialised = true;
-    if (!fasito.fInitialized) {
-        const string strDevice = GetArg("-fasitodevice", "/dev/ttyACM0");
+    if (!pylonkey.fInitialized) {
+        const string strDevice = GetArg("-pylonkeydevice", "/dev/ttyACM0");
 
-        fasito.open(strDevice);
-        fasito.setTimeout(boost::posix_time::seconds(2));
+        pylonkey.open(strDevice);
+        pylonkey.setTimeout(boost::posix_time::seconds(2));
         fWasInitialised = false;
     } else
-        LogPrintf("Fasito was alreday initialised.\n");
+        LogPrintf("Pylonkey was alreday initialised.\n");
 
     vector<string> res;
-    fasito.sendAndReceive(params[0].get_str(), res);
+    pylonkey.sendAndReceive(params[0].get_str(), res);
 
     string result;
     for (const string & line : res) {
@@ -1135,7 +1135,7 @@ UniValue fasitocmd(const UniValue& params, bool fHelp)
     }
 
     if (!fWasInitialised)
-        fasito.close();
+        pylonkey.close();
 
     return result;
 }
@@ -1206,7 +1206,7 @@ UniValue setchainparameters(const UniValue& params, bool fHelp)
     if (fHelp || params.size() != 1)
         throw runtime_error(
             "setchainparameters {\"nParam1\":123,\"nParam2\":456} [\"n:sigs\",...]\n"
-            "\nSet new dynamic chain parameters for FairCoin network\n"
+            "\nSet new dynamic chain parameters for Pyloncoin network\n"
             "\nArguments:\n"
             "1. \"{\"key\":\"val\"}]\" (string, required) The dynamic chain parameters to set\n"
             "\nResult:\n"
@@ -1403,10 +1403,10 @@ UniValue addcoinsupply(const UniValue& params, bool fHelp)
 {
     if (fHelp || params.size() != 4)
         throw runtime_error(
-            "addcoinsupply \"faircoinaddress\" \"amount\" \"isFinal\" \"comment\"\n"
-            "\nAdd instructions to increase the coin supply to the FairCoin network\n"
+            "addcoinsupply \"pyloncoinaddress\" \"amount\" \"isFinal\" \"comment\"\n"
+            "\nAdd instructions to increase the coin supply to the Pyloncoin network\n"
             "\nArguments:\n"
-            "1. \"faircoinaddress\"  (string, required) The FairCoin address to send to.\n"
+            "1. \"pyloncoinaddress\"  (string, required) The Pyloncoin address to send to.\n"
             "2. \"amount\"           (numeric or string, required) The amount in " + CURRENCY_UNIT + " to send. E.g. 33.1234 " + CURRENCY_UNIT + ".\n"
             "3. \"isFinal\"          (bool, required) Whether this is the last coin supply that can be added to the blockchain.\n"
             "4. \"description\"      (string, required) A description of the coin supply.\n"
@@ -1432,7 +1432,7 @@ UniValue addcoinsupply(const UniValue& params, bool fHelp)
 
     CBitcoinAddress address(params[0].get_str());
     if (!address.IsValid())
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid FairCoin address");
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Pyloncoin address");
 
     // Amount
     CAmount nAmount = AmountFromValue(params[1]);

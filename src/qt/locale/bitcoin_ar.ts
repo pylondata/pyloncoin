@@ -1348,7 +1348,7 @@
         <translation>جوهر البيت كوين</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>مطوري جوهر البيت كوين</translation>
     </message>
     <message>

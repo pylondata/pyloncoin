@@ -1,4 +1,4 @@
-// Copyright (c) 2017 The Pyloncoin Core developers
+// Copyright (c) 2017 The Faircoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,7 +9,7 @@
 #include "primitives/block.h"
 #include "poc.h"
 #include "init.h"
-#include "fasito.h"
+#include "pylonkey.h"
 
 #include <secp256k1.h>
 #include <openssl/ssl.h>
@@ -19,9 +19,9 @@
 
 #include <boost/algorithm/string/predicate.hpp> // for startswith() and endswith()
 
-#define FASITO_DEBUG 0
+#define PYLONKEY_DEBUG 0
 
-CFasito fasito;
+CPylonkey pylonkey;
 
 static string bin2hex(const uint8_t *buf, const size_t len)
 {
@@ -37,10 +37,10 @@ static string bin2hex(const uint8_t *buf, const size_t len)
     return res;
 }
 
-bool CreateNonceWithFasito(const uint256& hashData, const uint8_t nKey, unsigned char *pPrivateData, CSchnorrNonce& noncePublic, const CSchnorrPubKey& pubKey)
+bool CreateNonceWithPylonkey(const uint256& hashData, const uint8_t nKey, unsigned char *pPrivateData, CSchnorrNonce& noncePublic, const CSchnorrPubKey& pubKey)
 {
-    if (!fasito.mapKeys.count(nKey) || fasito.mapKeys[nKey].pubKey != pubKey) {
-        LogPrintf("CreateNonceWithFasito : public key in Fasito does not match cvnInfo in blockchain: %s != %s\n", fasito.mapKeys[nKey].pubKey.ToString(), pubKey.ToString());
+    if (!pylonkey.mapKeys.count(nKey) || pylonkey.mapKeys[nKey].pubKey != pubKey) {
+        LogPrintf("CreateNonceWithPylonkey : public key in Pylonkey does not match cvnInfo in blockchain: %s != %s\n", pylonkey.mapKeys[nKey].pubKey.ToString(), pubKey.ToString());
         return false;
     }
 
@@ -52,8 +52,8 @@ bool CreateNonceWithFasito(const uint256& hashData, const uint8_t nKey, unsigned
 
     vector<string> res;
     try {
-        if (!fasito.sendAndReceive(s.str(), res)) {
-            LogPrintf("CreateNonceWithFasito : could not create nonce pair: %s\n", (!res.empty() ? res[0] : "error not available"));
+        if (!pylonkey.sendAndReceive(s.str(), res)) {
+            LogPrintf("CreateNonceWithPylonkey : could not create nonce pair: %s\n", (!res.empty() ? res[0] : "error not available"));
             return false;
         }
         int nHandle = atoi(res[0].substr(0,2).c_str());
@@ -66,20 +66,20 @@ bool CreateNonceWithFasito(const uint256& hashData, const uint8_t nKey, unsigned
         return false;
     }
 
-#if FASITO_DEBUG
-    LogPrintf("CreateNonceWithFasito : OK\n  Hash: %s\n  pubk: %s\n  nKey: %d\n   sig: %s\n",
+#if PYLONKEY_DEBUG
+    LogPrintf("CreateNonceWithPylonkey : OK\n  Hash: %s\n  pubk: %s\n  nKey: %d\n   sig: %s\n",
             hashData.ToString(),
-            fasito.mapKeys[nKey].pubKey.ToString(),
+            pylonkey.mapKeys[nKey].pubKey.ToString(),
             nKey,
             noncePublic.ToString());
 #endif
     return true;
 }
 
-bool CvnSignWithFasito(const uint256 &hashToSign, const uint8_t nKey, CSchnorrSig& signature)
+bool CvnSignWithPylonkey(const uint256 &hashToSign, const uint8_t nKey, CSchnorrSig& signature)
 {
-    if (!fasito.mapKeys.count(nKey)) {
-        LogPrintf("CvnSignWithFasito : public key #%d not found\n", nKey);
+    if (!pylonkey.mapKeys.count(nKey)) {
+        LogPrintf("CvnSignWithPylonkey : public key #%d not found\n", nKey);
         return false;
     }
 
@@ -89,8 +89,8 @@ bool CvnSignWithFasito(const uint256 &hashToSign, const uint8_t nKey, CSchnorrSi
     vector<string> res;
     vector<uint8_t> vSig;
     try {
-        if (!fasito.sendAndReceive(s.str(), res)) {
-            LogPrintf("CvnSignWithFasito : could not sign hash: %s\n", (!res.empty() ? res[0] : "error not available"));
+        if (!pylonkey.sendAndReceive(s.str(), res)) {
+            LogPrintf("CvnSignWithPylonkey : could not sign hash: %s\n", (!res.empty() ? res[0] : "error not available"));
             return false;
         }
         vSig = ParseHex(res[0]);
@@ -101,36 +101,36 @@ bool CvnSignWithFasito(const uint256 &hashToSign, const uint8_t nKey, CSchnorrSi
         return false;
     }
 
-    if (!CvnVerifySignature(hashToSign, signature, fasito.mapKeys[nKey].pubKey)) {
-        LogPrintf("CvnSignWithFasito : created invalid signature\n");
+    if (!CvnVerifySignature(hashToSign, signature, pylonkey.mapKeys[nKey].pubKey)) {
+        LogPrintf("CvnSignWithPylonkey : created invalid signature\n");
         return false;
     }
 
-#if FASITO_DEBUG
-    LogPrintf("CvnSignWithFasito : OK\n  Hash: %s\n  pubk: %s\n  nKey: %d\n   sig: %s\nrawsig: %s\nhexstr: %s\n",
+#if PYLONKEY_DEBUG
+    LogPrintf("CvnSignWithPylonkey : OK\n  Hash: %s\n  pubk: %s\n  nKey: %d\n   sig: %s\nrawsig: %s\nhexstr: %s\n",
             hashToSign.ToString(),
-            fasito.mapKeys[nKey].pubKey.ToString(),
+            pylonkey.mapKeys[nKey].pubKey.ToString(),
             nKey, signature.ToString(), res[0], HexStr(vSig));
 #endif
    return true;
 }
 
-bool CvnSignPartialWithFasito(const uint256& hashToSign, const uint8_t nKey, const CSchnorrPubKey& sumPublicNoncesOthers, CSchnorrSig& signature, const int nPoolOffset)
+bool CvnSignPartialWithPylonkey(const uint256& hashToSign, const uint8_t nKey, const CSchnorrPubKey& sumPublicNoncesOthers, CSchnorrSig& signature, const int nPoolOffset)
 {
-    if (!fasito.mapKeys.count(nKey)) {
-        LogPrintf("CvnSignPartialWithFasito : public key #%d not found.\n", nKey);
+    if (!pylonkey.mapKeys.count(nKey)) {
+        LogPrintf("CvnSignPartialWithPylonkey : public key #%d not found.\n", nKey);
         return false;
     }
 
-    uint8_t nHandle = fasito.vNonceHandles[nPoolOffset];
+    uint8_t nHandle = pylonkey.vNonceHandles[nPoolOffset];
 
     std::stringstream s;
     s << strprintf("PARTSIG %d %d %s %s", nKey, nHandle, bin2hex(&hashToSign.begin()[0], 32), bin2hex(&sumPublicNoncesOthers.begin()[0], 64));
     vector<string> res;
 
     try {
-        if (!fasito.sendAndReceive(s.str(), res)) {
-            LogPrintf("CvnSignPartialWithFasito : could not partial sign hash: %s\nCOMMAND: %s\n", (!res.empty() ? res[0] : "error not available"), s.str());
+        if (!pylonkey.sendAndReceive(s.str(), res)) {
+            LogPrintf("CvnSignPartialWithPylonkey : could not partial sign hash: %s\nCOMMAND: %s\n", (!res.empty() ? res[0] : "error not available"), s.str());
             return false;
         }
         vector<uint8_t> vSig = ParseHex(res[0]);
@@ -141,17 +141,17 @@ bool CvnSignPartialWithFasito(const uint256& hashToSign, const uint8_t nKey, con
         return false;
     }
 
-#if FASITO_DEBUG
-    LogPrintf("CvnSignPartialWithFasito : OK\n  Hash: %s\nsigner: 0x%08x\n   sum: %s\n   sig: %s\n",
+#if PYLONKEY_DEBUG
+    LogPrintf("CvnSignPartialWithPylonkey : OK\n  Hash: %s\nsigner: 0x%08x\n   sum: %s\n   sig: %s\n",
             hashToSign.ToString(), signature.nSignerId,
             sumPublicNoncesOthers.ToString(), signature.ToString());
 #endif
     return true;
 }
 
-bool AdminSignPartialWithFasito(const uint256& hashToSign, const uint8_t nKey, const CSchnorrPubKey& sumPublicNoncesOthers, CSchnorrSig& signature, const uint8_t nHandle)
+bool AdminSignPartialWithPylonkey(const uint256& hashToSign, const uint8_t nKey, const CSchnorrPubKey& sumPublicNoncesOthers, CSchnorrSig& signature, const uint8_t nHandle)
 {
-    if (!fasito.mapKeys.count(nKey)) {
+    if (!pylonkey.mapKeys.count(nKey)) {
         LogPrintf("%s : public key #%d not found.\n", __func__, nKey);
         return false;
     }
@@ -161,7 +161,7 @@ bool AdminSignPartialWithFasito(const uint256& hashToSign, const uint8_t nKey, c
     vector<string> res;
 
     try {
-        if (!fasito.sendAndReceive(s.str(), res)) {
+        if (!pylonkey.sendAndReceive(s.str(), res)) {
             LogPrintf("%s : could not partial sign hash: %s\nCOMMAND: %s\n", __func__, (!res.empty() ? res[0] : "error not available"), s.str());
             return false;
         }
@@ -173,7 +173,7 @@ bool AdminSignPartialWithFasito(const uint256& hashToSign, const uint8_t nKey, c
         return false;
     }
 
-#if FASITO_DEBUG
+#if PYLONKEY_DEBUG
     LogPrintf("%s : OK\n  Hash: %s\nsigner: 0x%08x\n   sum: %s\n   sig: %s\n", __func__,
             hashToSign.ToString(), signature.nSignerId,
             sumPublicNoncesOthers.ToString(), signature.ToString());
@@ -181,10 +181,10 @@ bool AdminSignPartialWithFasito(const uint256& hashToSign, const uint8_t nKey, c
     return true;
 }
 
-string CFasitoKey::ToString() const
+string CPylonKey::ToString() const
 {
     std::stringstream s;
-    s << strprintf("CFasitoKey(cvnId=0x%08x, CFasitoKeyStatus=%u, nKeyIndex=%u, protected=%S) : %s",
+    s << strprintf("CPylonKey(cvnId=0x%08x, CPylonkeyKeyStatus=%u, nKeyIndex=%u, protected=%S) : %s",
         nCvnId,
         status, nKeyIndex,
         (fProtected ? "true" : "false"), pubKey.ToString()
@@ -192,7 +192,7 @@ string CFasitoKey::ToString() const
     return s.str();
 }
 
-bool CFasito::login(const string& strPassword, string &strError)
+bool CPylonkey::login(const string& strPassword, string &strError)
 {
     if (!fInitialized)
         return false;
@@ -203,7 +203,7 @@ bool CFasito::login(const string& strPassword, string &strError)
     fLoggedIn = false;
     vector<string> res;
     try {
-        if (!fasito.sendAndReceive("LOGIN " + strPassword, res)) {
+        if (!pylonkey.sendAndReceive("LOGIN " + strPassword, res)) {
             strError = !res.empty() ? res[0] : "error not available";
             return false;
         }
@@ -216,7 +216,7 @@ bool CFasito::login(const string& strPassword, string &strError)
     return true;
 }
 
-bool CFasito::logout()
+bool CPylonkey::logout()
 {
     if (!fInitialized)
         return false;
@@ -226,11 +226,11 @@ bool CFasito::logout()
 
     try {
         fLoggedIn = false;
-        LogPrintf("logging out from Fasito.\n");
-        if (fasito.sendCommand("LOGOUT"))
+        LogPrintf("logging out from Pylonkey.\n");
+        if (pylonkey.sendCommand("LOGOUT"))
             return true;
         else
-            LogPrintf("Could not logout from Fasito\n");
+            LogPrintf("Could not logout from Pylonkey\n");
     } catch(const std::exception &e) {
         LogPrintf("failed to send login command: %s\n", e.what());
     }
@@ -239,7 +239,7 @@ bool CFasito::logout()
     return false;
 }
 
-void CFasito::emtpyInputBuffer()
+void CPylonkey::emtpyInputBuffer()
 {
     setTimeout(boost::posix_time::millisec(200));
     writeString("\r");
@@ -274,7 +274,7 @@ Key #7            : 0x00000000 (CONFIGURED, protected)
 
 #define VALUE_OFFSET 20
 
-void CFasito::open(const string &devname)
+void CPylonkey::open(const string &devname)
 {
     LOCK(cs_connection);
     SerialConnection::open(devname, 230400);
@@ -284,11 +284,11 @@ void CFasito::open(const string &devname)
     int i = 0;
     vector<string> res;
     if (!sendAndReceive("INFO", res)) {
-        LogPrintf("CFasito::open : could not get device info: %s\n", (!res.empty() ? res[0] : "error not available"));
+        LogPrintf("CPylonkey::open : could not get device info: %s\n", (!res.empty() ? res[0] : "error not available"));
         fInitialized = false;
         return;
     }
-    strFasitoVersion    = res[i++].substr(VALUE_OFFSET);
+    strPylonkeyVersion    = res[i++].substr(VALUE_OFFSET);
     strSerialNumber     = res[i++].substr(VALUE_OFFSET);
     strTokenStatus      = res[i++].substr(VALUE_OFFSET);
     strProtectionStatus = res[i++].substr(VALUE_OFFSET);
@@ -307,7 +307,7 @@ void CFasito::open(const string &devname)
 
         string keyStatus = line.substr(VALUE_OFFSET);
 
-        CFasitoKey key;
+        CPylonKey key;
         stringstream ss;
         ss << hex << keyStatus.substr(0, 10);
         ss >> key.nCvnId;
@@ -333,7 +333,7 @@ void CFasito::open(const string &devname)
     fInitialized = true;
 }
 
-void CFasito::close()
+void CPylonkey::close()
 {
     LOCK(cs_connection);
 
@@ -349,12 +349,12 @@ void CFasito::close()
 static void RetrievePubKeys()
 {
     string strGetPubKey  = "GETPBKY #";
-    BOOST_FOREACH(PAIRTYPE(const uint8_t, CFasitoKey) &entry, fasito.mapKeys) {
-        CFasitoKey& k = entry.second;
+    BOOST_FOREACH(PAIRTYPE(const uint8_t, CPylonKey) &entry, pylonkey.mapKeys) {
+        CPylonKey& k = entry.second;
         if (k.status == CONFIGURED && !k.fProtected) {
             strGetPubKey[8] = '0' + (char)k.nKeyIndex;
             vector<string> res;
-            if (!fasito.sendAndReceive(strGetPubKey, res)) {
+            if (!pylonkey.sendAndReceive(strGetPubKey, res)) {
                 LogPrintf("RetrievePubKeys : could not retrieve public key: %s\n", (!res.empty() ? res[0] : "error not available"));
                 continue;
             }
@@ -362,34 +362,34 @@ static void RetrievePubKeys()
 
             CPubKey testKey(derKey);
             if (!testKey.IsFullyValid()) {
-                LogPrintf("Fasito key #%d is invalid: %s\n", k.nKeyIndex, res[0]);
+                LogPrintf("Pylonkey key #%d is invalid: %s\n", k.nKeyIndex, res[0]);
                 continue;
             }
 
             k.pubKey = CSchnorrPubKeyDER(res[0]);
-            LogPrint("fasito", "public key #%d: %s\n", k.nKeyIndex, k.ToString());
+            LogPrint("pylonkey", "public key #%d: %s\n", k.nKeyIndex, k.ToString());
         }
     }
 }
 
-bool InitFasito(const string& strPassword, string& strError)
+bool InitPylonkey(const string& strPassword, string& strError)
 {
-    const string strDevice = GetArg("-fasitodevice", "/dev/ttyACM0");
+    const string strDevice = GetArg("-pylonkeydevice", "/dev/ttyACM0");
 
     try {
-        fasito.open(strDevice);
-        fasito.setTimeout(boost::posix_time::seconds(2));
+        pylonkey.open(strDevice);
+        pylonkey.setTimeout(boost::posix_time::seconds(2));
 
-        LogPrintf("detected Fasito %s, serial number: %s, user-PIN status: %s, protection status: %s\n",
-                fasito.strFasitoVersion, fasito.strSerialNumber, fasito.strPinStatus, fasito.strProtectionStatus);
+        LogPrintf("detected Pylonkey %s, serial number: %s, user-PIN status: %s, protection status: %s\n",
+                pylonkey.strPylonkeyVersion, pylonkey.strSerialNumber, pylonkey.strPinStatus, pylonkey.strProtectionStatus);
 
-        if (fasito.strTokenStatus != "CONFIGURED") {
-            strError = "Fasito not configured";
+        if (pylonkey.strTokenStatus != "CONFIGURED") {
+            strError = "Pylonkey not configured";
             return false;
         }
 
-        if (boost::algorithm::starts_with(fasito.strPinStatus, "LOCKED")) {
-            strError = "Fasito is locked";
+        if (boost::algorithm::starts_with(pylonkey.strPinStatus, "LOCKED")) {
+            strError = "Pylonkey is locked";
             return false;
         }
 
@@ -404,7 +404,7 @@ bool InitFasito(const string& strPassword, string& strError)
             return false;
         }
 
-        if (!fasito.login(strPassword, strError)) {
+        if (!pylonkey.login(strPassword, strError)) {
             return false;
         }
 
@@ -413,58 +413,58 @@ bool InitFasito(const string& strPassword, string& strError)
     } catch (const std::exception& e) {
         strError = "could not open device: " + strDevice;
 
-        if (fasito.fInitialized)
-            fasito.close();
+        if (pylonkey.fInitialized)
+            pylonkey.close();
         return false;
     }
 
     return true;
 }
 
-uint32_t InitCVNWithFasito(const string &strFasitoPassword)
+uint32_t InitCVNWithPylonkey(const string &strPylonkeyPassword)
 {
     string strError;
-    if (!InitFasito(strFasitoPassword, strError)) {
+    if (!InitPylonkey(strPylonkeyPassword, strError)) {
         LogPrintf("%s: %s\n", __func__, strError);
         return 0;
     }
 
-    uint32_t nKeyIndex = GetArg("-fasitocvnkeyindex", 0);
+    uint32_t nKeyIndex = GetArg("-pylonkeycvnkeyindex", 0);
     if (nKeyIndex > 6) {
-        LogPrintf("invalid value for -fasitocvnkeyindex\n");
-        fasito.close();
+        LogPrintf("invalid value for -pylonkeycvnkeyindex\n");
+        pylonkey.close();
         return 0;
     }
 
-    if (!fasito.mapKeys.count(nKeyIndex)) {
-        LogPrintf("key #%d not found on Fasito\n", nKeyIndex);
-        fasito.close();
+    if (!pylonkey.mapKeys.count(nKeyIndex)) {
+        LogPrintf("key #%d not found on Pylonkey\n", nKeyIndex);
+        pylonkey.close();
         return 0;
     }
 
-    CFasitoKey &fasitoKeys = fasito.mapKeys[nKeyIndex];
-    if (fasitoKeys.status != CONFIGURED) {
-        LogPrintf("key #%d not configured on Fasito\n", nKeyIndex);
-        fasito.close();
+    CPylonKey &pylonKeys = pylonkey.mapKeys[nKeyIndex];
+    if (pylonKeys.status != CONFIGURED) {
+        LogPrintf("key #%d not configured on Pylonkey\n", nKeyIndex);
+        pylonkey.close();
         return 0;
     }
-    fasito.nCVNKeyIndex = nKeyIndex;
-    CFasitoKey fKey = fasito.mapKeys[nKeyIndex];
+    pylonkey.nCVNKeyIndex = nKeyIndex;
+    CPylonKey fKey = pylonkey.mapKeys[nKeyIndex];
 
     vector<unsigned char> vPubKey;
     fKey.pubKey.GetPubKeyDER(vPubKey);
 
-    LogPrintf("Using Fasito for CVN ID 0x%08x with public key %s\n", fKey.nCvnId, HexStr(vPubKey));
+    LogPrintf("Using Pylonkey for CVN ID 0x%08x with public key %s\n", fKey.nCvnId, HexStr(vPubKey));
     return fKey.nCvnId;
 }
 
-uint32_t InitChainAdminWithFasito(const string& strPassword, const uint32_t nKeyIndex, string &strError)
+uint32_t InitChainAdminWithPylonkey(const string& strPassword, const uint32_t nKeyIndex, string &strError)
 {
     bool fWasInitialised = true;
-    if (!fasito.fInitialized) {
-        if (!InitFasito(strPassword, strError)) {
+    if (!pylonkey.fInitialized) {
+        if (!InitPylonkey(strPassword, strError)) {
             LogPrintf("%s\n", strError);
-            fasito.close();
+            pylonkey.close();
             return 0;
         }
 
@@ -475,45 +475,45 @@ uint32_t InitChainAdminWithFasito(const string& strPassword, const uint32_t nKey
         strError = strprintf("invalid value for adminkeyindex: %d", nKeyIndex);
         LogPrintf("%s\n", strError);
         if (!fWasInitialised)
-            fasito.close();
+            pylonkey.close();
         return 0;
     }
 
-    if (!fasito.mapKeys.count(nKeyIndex)) {
-        strError = strprintf("key #%d not found on Fasito", nKeyIndex);
+    if (!pylonkey.mapKeys.count(nKeyIndex)) {
+        strError = strprintf("key #%d not found on Pylonkey", nKeyIndex);
         LogPrintf("%s\n", strError);
         if (!fWasInitialised)
-            fasito.close();
+            pylonkey.close();
         return 0;
     }
 
-    CFasitoKey &fasitoKeys = fasito.mapKeys[nKeyIndex];
-    if (fasitoKeys.status != CONFIGURED) {
-        strError = strprintf("key #%d not configured on Fasito", nKeyIndex);
+    CPylonKey &pylonKeys = pylonkey.mapKeys[nKeyIndex];
+    if (pylonKeys.status != CONFIGURED) {
+        strError = strprintf("key #%d not configured on Pylonkey", nKeyIndex);
         LogPrintf("%s\n", strError);
         if (!fWasInitialised)
-            fasito.close();
+            pylonkey.close();
         return 0;
     }
 
-    fasito.nADMINKeyIndex = nKeyIndex;
-    CFasitoKey fKey = fasito.mapKeys[nKeyIndex];
+    pylonkey.nADMINKeyIndex = nKeyIndex;
+    CPylonKey fKey = pylonkey.mapKeys[nKeyIndex];
 
     vector<unsigned char> vPubKey;
     fKey.pubKey.GetPubKeyDER(vPubKey);
 
-    LogPrintf("Using Fasito for ADMIN ID 0x%08x with public key %s\n", fKey.nCvnId, HexStr(vPubKey));
+    LogPrintf("Using Pylonkey for ADMIN ID 0x%08x with public key %s\n", fKey.nCvnId, HexStr(vPubKey));
     return fKey.nCvnId;
 }
 
-bool FasitoInitPrivKey(const CKey& privKey, const uint32_t nKeyIndex, const uint32_t nId)
+bool PylonkeyInitPrivKey(const CKey& privKey, const uint32_t nKeyIndex, const uint32_t nId)
 {
     std::stringstream strInitKeyCmd;
     strInitKeyCmd << strprintf("INITKEY %d 0x%08x %s", nKeyIndex, nId, bin2hex(&privKey.begin()[0], 32));
 
     vector<string> res;
-    if (!fasito.sendAndReceive(strInitKeyCmd.str(), res)) {
-        LogPrintf("FasitoInitPrivKey : could not initialise private key: %s\n", (!res.empty() ? res[0] : "error not available"));
+    if (!pylonkey.sendAndReceive(strInitKeyCmd.str(), res)) {
+        LogPrintf("PylonkeyInitPrivKey : could not initialise private key: %s\n", (!res.empty() ? res[0] : "error not available"));
         return false;
     }
 

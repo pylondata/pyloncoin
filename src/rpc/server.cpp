@@ -242,11 +242,11 @@ UniValue stop(const UniValue& params, bool fHelp)
     if (fHelp || params.size() > 1)
         throw runtime_error(
             "stop\n"
-            "\nStop FairCoin server.");
+            "\nStop Pyloncoin server.");
     // Event loop will exit after current HTTP requests have been handled, so
     // this reply will get back to the client.
     StartShutdown();
-    return "FairCoin server stopping";
+    return "Pyloncoin server stopping";
 }
 
 /**
@@ -304,16 +304,16 @@ static const CRPCCommand vRPCCommands[] =
 #ifdef USE_CVN
     { "cvn",                "addcvn",                 &addcvn,                 false },
     { "cvn",                "removecvn",              &removecvn,              false },
-    { "cvn",                "fasitoschnorr",          &fasitoschnorr,          true  },
-    { "cvn",                "fasitoschnorrverify",    &fasitoschnorrverify,    true  },
-    { "cvn",                "fasitohash",             &fasitohash,             true  },
+    { "cvn",                "pylonkeyschnorr",          &pylonkeyschnorr,          true  },
+    { "cvn",                "pylonkeyschnorrverify",    &pylonkeyschnorrverify,    true  },
+    { "cvn",                "pylonkeyhash",             &pylonkeyhash,             true  },
     { "cvn",                "getcvninfo",             &getcvninfo,             true  },
-    { "cvn",                "fasitologin",            &fasitologin,            true  },
-    { "cvn",                "fasitologout",           &fasitologout,           true  },
-    { "cvn",                "fasitononce",            &fasitononce,            true  },
-    { "cvn",                "fasitosign",             &fasitosign,             true  },
-    { "cvn",                "fasitoinitkey",          &fasitoinitkey,          true  },
-    { "cvn",                "fasitocmd",              &fasitocmd,              true  },
+    { "cvn",                "pylonkeylogin",            &pylonkeylogin,            true  },
+    { "cvn",                "pylonkeylogout",           &pylonkeylogout,           true  },
+    { "cvn",                "pylonkeynonce",            &pylonkeynonce,            true  },
+    { "cvn",                "pylonkeysign",             &pylonkeysign,             true  },
+    { "cvn",                "pylonkeyinitkey",          &pylonkeyinitkey,          true  },
+    { "cvn",                "pylonkeycmd",              &pylonkeycmd,              true  },
     { "cvn",                "bancvn",                 &bancvn,                 true  },
     { "cvn",                "setchainparameters",     &setchainparameters,     true  },
     { "cvn",                "relaynoncepool",         &relaynoncepool,         true  },
@@ -558,7 +558,7 @@ UniValue CRPCTable::execute(const std::string &strMethod, const UniValue &params
 
 std::string HelpExampleCli(const std::string& methodname, const std::string& args)
 {
-    return "> faircoin-cli " + methodname + " " + args + "\n";
+    return "> pyloncoin-cli " + methodname + " " + args + "\n";
 }
 
 std::string HelpExampleRpc(const std::string& methodname, const std::string& args)

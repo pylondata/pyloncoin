@@ -5,7 +5,7 @@ This document describes the requirements for setting up and operating a CVN (coo
 For online discussion and support please join the Pyloncoin CVN Operators telegram group here: https://telegram.me/joinchat/Bumu8gbZmAhnXoxCBr3WHg
 
 ## 1 About CVNs
-The aim of a CVN is to secure the network by validating all the transactions that had been sent to the network and put them into a transaction block chain. Blocks are created every 3 minutes (180 sec.). Transactions are confirmed after they have been added to a block. A CVN is a standard Pyloncoin core client configured to use a signature token (Fasito) for continuously signing certain pieces of data of the Pyloncoin network. Every node will be assigned a unique id called the CVN ID in the form of 0x12345678.
+The aim of a CVN is to secure the network by validating all the transactions that had been sent to the network and put them into a transaction block chain. Blocks are created every 3 minutes (180 sec.). Transactions are confirmed after they have been added to a block. A CVN is a standard Pyloncoin core client configured to use a signature token (Pylonkey) for continuously signing certain pieces of data of the Pyloncoin network. Every node will be assigned a unique id called the CVN ID in the form of 0x12345678.
 
 ## 2 Technical information for running a CVN
 
@@ -17,7 +17,7 @@ A secure and stable operating system is crucial for reliably running a CVN. Ther
 3. The Pyloncoin wallet software needs be updated as official releases are made available by the development team.
 4. The system must be connected to the Internet all the time (24/7) and the TCP port 40404 must be reachable by all remote nodes from the Internet. You must not use a wireless connection as this would result in additional network latency and potential unstable internet connection.
 5. The system must use a public NTP server to synchronize its system time to, e.g. pool.ntp.org to ensure that the system time is always correct. NTP means Networking Time Protocol and is intended to synchronize the system time to an accurate clock source.
-6. The hardware must provide a USB 2.0 port which takes up the Fasito USB token. Please avoid using a USB-hub for the token.
+6. The hardware must provide a USB 2.0 port which takes up the Pylonkey USB token. Please avoid using a USB-hub for the token.
 7. Although not absolutely necessary, a UPS (uninterruptible power supply) would be appreciated. Note that all network related equipment should also be hooked up to the UPS to keep the network connection up in the event of a power outage.
 
 ### 2.2 Preparing your system
@@ -30,7 +30,7 @@ Please note that the package names and/or versions can differ depending on your 
 After package installation has completed successfully proceed by following the instructions provided here:
 https://github.com/pyloncoin/pyloncoin/blob/master/doc/build-CVN.md
 
-Make sure your Fasito is connected to your system and is working properly. You can test it by execute the following commands:
+Make sure your Pylonkey is connected to your system and is working properly. You can test it by execute the following commands:
 ```
 minicom -D /dev/ttyACM0
 ```
@@ -47,14 +47,14 @@ cat > ~/.pyloncoin2/pyloncoin.conf <<EOF
 logtimestamps=1
 logips=1
 gen=1
-cvn=fasito
+cvn=pylonkey
 EOF
 ```
 
-In order to connect to Fasito the wallet opens the device located here: /dev/ttyACM0. If this path is already assigned to a different device on your system you can change the default value using the following option in the config file. E.g.:
+In order to connect to Pylonkey the wallet opens the device located here: /dev/ttyACM0. If this path is already assigned to a different device on your system you can change the default value using the following option in the config file. E.g.:
 ```
 ...
-fasitodevice=/dev/ttyACM1
+pylonkeydevice=/dev/ttyACM1
 ...
 ```
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2017 The Pyloncoin Core developers
+// Copyright (c) 2016-2017 The Faircoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -225,7 +225,7 @@ extern bool AddToCvnInfoCache(const CBlock *pblock, const uint32_t nHeight);
 extern uint32_t GetNumChainSigs(const CBlockIndex *pindex);
 extern uint32_t GetNumChainSigs(const CBlock *pblock);
 extern bool CvnSignHash(const uint256 &hashToSign, CSchnorrSig& signature);
-extern bool AdminSignHash(const uint256 &hashToSign, CSchnorrSig& signature, bool fFasito);
+extern bool AdminSignHash(const uint256 &hashToSign, CSchnorrSig& signature, bool fPylonkey);
 extern bool AdminSignPartial(const uint256 &hashToSign, CAdminPartialSignatureUnsinged &signature, const uint32_t &nAdminId, const CSchnorrPrivNonce *privNonce, const uint8_t nHandle);
 extern bool CvnSignPartial(const uint256 &hashPrevBlock, CCvnPartialSignatureUnsinged &signature, const uint32_t &nNextCreator, const uint32_t &nNodeId, const vector<uint32_t> &vMissingCvnIds, const int nPoolOffset);
 extern int CombinePartialSignatures(CSchnorrSig& allsig, uint8_t *sigs[], int nSignatures);
@@ -247,7 +247,7 @@ extern bool VerifyPartialSignature(const uint256 &hash, const CSchnorrSig &sig, 
 extern bool CheckAdminSignature(const vector<uint32_t> &vAdminIds, const uint256 &hashAdmin, const CSchnorrSig &sig, const bool fCoinSupply);
 extern void RelayChainData(const CChainDataMsg& msg);
 extern void RelayCvnSignature(const CCvnPartialSignature& msg);
-extern bool CreateNoncePairForHash(CSchnorrNonce& noncePublic, unsigned char *pPrivateData, const uint256& hashData, const uint32_t& nNodeId, const bool fUseFasito, const bool fAdmin);
+extern bool CreateNoncePairForHash(CSchnorrNonce& noncePublic, unsigned char *pPrivateData, const uint256& hashData, const uint32_t& nNodeId, const bool fUsePylonkey, const bool fAdmin);
 
 extern bool AddNonceAdmin(const CAdminNonce& msg);
 extern void RelayNonceAdmin(const CAdminNonce& msg);

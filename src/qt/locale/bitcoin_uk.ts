@@ -2418,7 +2418,7 @@
         <translation>Pyloncoin Core</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>Розробники Pyloncoin Core</translation>
     </message>
     <message>
@@ -3316,7 +3316,7 @@
         <translation>Підключитись через SOCKS5-проксі</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Pyloncoin Core Developers</source>
+        <source>Copyright (C) 2009-%i The Faircoin Core developers</source>
         <translation>(C) 2009-%i Розробники Pyloncoin Core</translation>
     </message>
     <message>
