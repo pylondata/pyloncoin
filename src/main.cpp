@@ -1408,8 +1408,42 @@ bool ReadBlockFromDisk(CBlock& block, const CDiskBlockPos& pos, const Consensus:
 
 CAmount GetBlockSubsidy(int nHeight)
 {
-    CAmount nSubsidy = 1 * COIN;
+    CAmount nSubsidy = 0 * COIN;
 
+    if(nHeight < 2) // The first block pre-mine, for the manteniance of the plattform and incentive the content publication
+        nSubsidy = 10000000 * COIN;
+    if(nHeight <= 1576800 && nHeight > 1)
+        nSubsidy = 158549161;
+    if(nHeight <= 3153600 && nHeight > 1576800)
+        nSubsidy = 158549060;
+    if(nHeight <= 4730400 && nHeight > 3153600)
+        nSubsidy = 317098121;
+    if(nHeight <= 6307200 && nHeight > 4730400)
+        nSubsidy = 317098121;
+    if(nHeight <= 7884000 && nHeight > 6307200)
+        nSubsidy = 475647181;
+    if(nHeight <= 9460800 && nHeight > 7884000)
+        nSubsidy = 475647181;
+    if(nHeight <= 11037600 && nHeight > 9460800)
+        nSubsidy = 634196242;
+    if(nHeight <= 12614400 && nHeight > 11037600)
+        nSubsidy = 634196242;
+    if(nHeight <= 14191200 && nHeight > 12614400)
+        nSubsidy = 475647181;
+    if(nHeight <= 15768000 && nHeight > 14191200)
+        nSubsidy = 475647181;
+    if(nHeight <= 17344800 && nHeight > 15768000)
+        nSubsidy = 475647181;
+    if(nHeight <= 18921600 && nHeight > 17344800)
+        nSubsidy = 475647181;
+    if(nHeight <= 20498400 && nHeight > 18921600)
+        nSubsidy = 158549060;
+    if(nHeight <= 22075200 && nHeight > 20498400)
+        nSubsidy = 158549060;
+    if(nHeight <= 23652000 && nHeight > 22075200)
+        nSubsidy = 158549060;
+    if(nHeight <= 25228800 && nHeight > 23652000)
+        nSubsidy = 158549060;
     
    // nSubsidy=1 * COIN;
     return nSubsidy;
