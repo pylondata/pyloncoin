@@ -86,8 +86,8 @@ public:
         nPruneAfterHeight = 100000;
 
         CDynamicChainParams dynParams;
-        dynParams.nBlockSpacing                = 1 * 60; // 1 min.
-        dynParams.nBlockSpacingGracePeriod     = 60;
+        dynParams.nBlockSpacing                = 20; // 20 seg.
+        dynParams.nBlockSpacingGracePeriod     = 20;
         dynParams.nMaxAdminSigs                = 11;
         dynParams.nMinAdminSigs                = 1;
         dynParams.nTransactionFee              = 0 * CENT; // 0 PLN per Kb
@@ -95,10 +95,10 @@ public:
         dynParams.nMinSuccessiveSignatures     = 1;
         dynParams.nBlocksToConsiderForSigCheck = 1;
         dynParams.nPercentageOfSignaturesMean  = 70; // 70%
-        dynParams.nMaxBlockSize                = 1500000; // 1.5Mb
-        dynParams.nBlockPropagationWaitTime    = 50; // 50 sec.
-        dynParams.nRetryNewSigSetInterval      = 15; // 15 sec.
-        dynParams.nCoinbaseMaturity            = 10; // 10 blocks = 30 min.
+        dynParams.nMaxBlockSize                = 21000000; // 1.5Mb
+        dynParams.nBlockPropagationWaitTime    = 18; // 50 sec.
+        dynParams.nRetryNewSigSetInterval      = 5; // 15 sec.
+        dynParams.nCoinbaseMaturity            = 90; // 90 blocks = 30 min.
         dynParams.strDescription               = "#00001 https://pylon-network.org/ The genesis dynamic chain parameters";
 
         genesis = CreateGenesisBlock(GENESIS_BLOCK_TIMESTAMP, GENESIS_NODE_ID, dynParams);
