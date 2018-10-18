@@ -1445,7 +1445,6 @@ CAmount GetBlockSubsidy(int nHeight)
     if(nHeight <= 25228800 && nHeight > 23652000)
         nSubsidy = 158549060;
     
-   // nSubsidy=1 * COIN;
     return nSubsidy;
 }
 
