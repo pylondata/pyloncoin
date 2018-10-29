@@ -17,12 +17,12 @@
 #include <boost/filesystem.hpp>
 #include <secp256k1.h>
 
-#define GENESIS_NODE_ID  0xccaaffee
-#define GENESIS_ADMIN_ID 0xccaaffee
+#define GENESIS_NODE_ID  0x11111111
+#define GENESIS_ADMIN_ID 0xcafecafe
 
 /** dynamic chain parameters range checks */
 #define MAX_BLOCK_SPACING 3600
-#define MIN_BLOCK_SPACING 30
+#define MIN_BLOCK_SPACING 10
 #define MAX_DUST_THRESHOLD 1 * COIN
 #define MIN_DUST_THRESHOLD 0
 #define MAX_TX_FEE_THRESHOLD 1 * COIN
