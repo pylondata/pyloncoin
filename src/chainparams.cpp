@@ -212,7 +212,9 @@ public:
 #endif
         vFixedSeeds.clear();
         vSeeds.clear();
-        // vSeeds.push_back(CDNSSeedData("1.pylon-network.org", "pyloncoin2-testnet-seed1.pylon-network.org")); // Thomas König
+        vSeeds.push_back(CDNSSeedData("seed1.pylon.network", "seed1-testnet.pylon.network"));
+        vSeeds.push_back(CDNSSeedData("seed2.pylon.network", "seed2-testnet.pylon.network"));
+        vSeeds.push_back(CDNSSeedData("seed3.pylon.network", "seed3-testnet.pylon.network"));
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,87);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
