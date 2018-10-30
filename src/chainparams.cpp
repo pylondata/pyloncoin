@@ -125,8 +125,9 @@ public:
         assert(genesis.hashMerkleRoot == uint256S("f3d5bd47f1db4b40516d76fa91b1707096a2e4c749e67819cee1001a45fadea3"));
         assert(genesis.hashPayload == uint256S("7bba5c806bcbc6fc0b0edb959886ee099afeb6ddfd90609ae8beea321200e94f"));
 #endif
-        // vSeeds.push_back(CDNSSeedData("1.pylon-network.org", "pyloncoin2-seed1.pylon-network.org")); // Thomas König
-        // vSeeds.push_back(CDNSSeedData("2.pylon-network.org", "pyloncoin2-seed2.pylon-network.org")); // Thomas König
+        vSeeds.push_back(CDNSSeedData("seed1.pylon.network", "seed1.pylon.network"));
+        vSeeds.push_back(CDNSSeedData("seed2.pylon.network", "seed2.pylon.network"));
+        vSeeds.push_back(CDNSSeedData("seed3.pylon.network", "seed3.pylon.network"));
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,55);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,53);
@@ -212,9 +213,9 @@ public:
 #endif
         vFixedSeeds.clear();
         vSeeds.clear();
-        vSeeds.push_back(CDNSSeedData("seed1.pylon.network", "seed1-testnet.pylon.network"));
-        vSeeds.push_back(CDNSSeedData("seed2.pylon.network", "seed2-testnet.pylon.network"));
-        vSeeds.push_back(CDNSSeedData("seed3.pylon.network", "seed3-testnet.pylon.network"));
+        vSeeds.push_back(CDNSSeedData("seed1-testnet.pylon.network", "seed1-testnet.pylon.network"));
+        vSeeds.push_back(CDNSSeedData("seed2-testnet.pylon.network", "seed2-testnet.pylon.network"));
+        vSeeds.push_back(CDNSSeedData("seed3-testnet.pylon.network", "seed3-testnet.pylon.network"));
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,87);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
