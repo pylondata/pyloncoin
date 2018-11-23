@@ -34,17 +34,17 @@ Most of the core PoC logic is located in the file src/poc.cpp.  The classes of m
 ### The PoC thread
 The PoC thread is started in src/poc.cpp by the function POCThread().  This thread implements a state machine that handles the different states between two blocks.  The state is kept in the class POCStateHolder.
 
-### Fasito (Pyloncoin signature token)
+### Pylonkey (Pyloncoin signature token)
 This is a hardware device which contains the non-retrievable private key and is able to create EC-Schnorr partial signatures that form the PoC proof.  It is based on the Teensy3.2 USB development board[3] which features a 32 bit ARM processor and memory protection.  Our firmware is open source and available on Github[4].
 
 ### EC-Schnorr signing
-The private key is generated on the Fasito hardware device (see below) and is non-retrievable.  This is mostly for two reasons:
+The private key is generated on the Pylonkey hardware device (see below) and is non-retrievable.  This is mostly for two reasons:
 * First, to prevent accidentally or maliciously starting more than one CVN with the same credentials which would interfere with the network.
 * Second, to prevent key cancellation attacks.
 
 The EC-Schnorr multi-signature system is processed in 3 phases:
 
-1. All CVNs use a random nonce pair, exchange the public part to every other CVN, and keep the private part secret on the Fasito.
+1. All CVNs use a random nonce pair, exchange the public part to every other CVN, and keep the private part secret on the Pylonkey.
 
 2. All CVNs combine the public nonce of all other CVNs and create their partial signature for the current chain tip.
 
@@ -71,6 +71,6 @@ Notes
 [1] https://pylon-network.org/pyloncoin2.html  
 [2] https://github.com/pyloncoin/pyloncoin.git  
 [3] https://www.pjrc.com/teensy/  
-[4] https://github.com/pyloncoin/Fasito.git  
+[4] https://github.com/pyloncoin/Pylonkey.git  
 [5] https://github.com/pyloncoin/secp256k1-mc-arm.git  
 

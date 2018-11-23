@@ -103,8 +103,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "addcoinsupply", 2 },
     { "setchainparameters", 0 },
     { "setchainparameters", 1 },
-    { "fasitologin", 2 },
-    { "fasitoinitkey", 1 },
+    { "pylonkeylogin", 2 },
+    { "pylonkeyinitkey", 1 },
     { "relaynoncepool", 0 },
     { "relaynoncepool", 1 },
 };

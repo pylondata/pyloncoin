@@ -2419,7 +2419,7 @@ Var vänlig och försök igen.</translation>
         <translation>Pyloncoin Kärna</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>Pyloncoin Core-utvecklarna</translation>
     </message>
     <message>
@@ -3317,7 +3317,7 @@ Var vänlig och försök igen.</translation>
         <translation>Anslut genom SOCKS5 proxy</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Pyloncoin Core Developers</source>
+        <source>Copyright (C) 2009-%i The Faircoin Core developers</source>
         <translation>Copyright (C) 2009-%i Pyloncoin Core Utvecklarna</translation>
     </message>
     <message>

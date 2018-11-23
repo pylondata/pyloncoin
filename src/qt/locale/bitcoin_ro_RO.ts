@@ -2226,7 +2226,7 @@
         <translation>Nucleul Pyloncoin</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>Dezvoltatorii Nucleului Pyloncoin</translation>
     </message>
     <message>
@@ -2920,7 +2920,7 @@
         <translation>Conectare prin proxy SOCKS5</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Pyloncoin Core Developers</source>
+        <source>Copyright (C) 2009-%i The Faircoin Core developers</source>
         <translation>Copyright (C) 2009-%i Dezvoltatorii Pyloncoin</translation>
     </message>
     <message>

@@ -74,8 +74,7 @@ namespace {
 //
 bool fDiscover = true;
 bool fListen = true;
-bool fRelayTxes = true;
-uint64_t nLocalServices = NODE_NETWORK | NODE_POC_DATA | NODE_WITNESS;
+uint64_t nLocalServices = NODE_NETWORK | NODE_POC_DATA;
 CCriticalSection cs_mapLocalHost;
 map<CNetAddr, LocalServiceInfo> mapLocalHost;
 static bool vfLimited[NET_MAX] = {};
@@ -2048,15 +2047,6 @@ instance_of_cnetcleanup;
 void RelayTransaction(const CTransaction& tx)
 {
     CInv inv(MSG_TX, tx.GetHash());
-    LOCK(cs_vNodes);
-    BOOST_FOREACH(CNode* pnode, vNodes)
-    {
-        pnode->PushInventory(inv);
-    }
-}
-
-void RelayGovernanceObject(GovernanceObject& gobj) {
-    CInv inv(MSG_GOVERNANCE_DATA, gobj.GetHash());
     LOCK(cs_vNodes);
     BOOST_FOREACH(CNode* pnode, vNodes)
     {

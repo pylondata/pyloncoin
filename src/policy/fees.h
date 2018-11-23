@@ -221,18 +221,18 @@ public:
     /** Create new BlockPolicyEstimator and initialize stats tracking classes with default values */
     CBlockPolicyEstimator(const CFeeRate& minRelayFee);
 
-     /** Process all the transactions that have been included in a block */
+    /** Process all the transactions that have been included in a block */
     void processBlock(unsigned int nBlockHeight,
-                      std::vector<const CTxMemPoolEntry*>& entries);
+                      std::vector<CTxMemPoolEntry>& entries, bool fCurrentEstimate);
 
     /** Process a transaction confirmed in a block*/
-    bool processBlockTx(unsigned int nBlockHeight, const CTxMemPoolEntry* entry);
+    void processBlockTx(unsigned int nBlockHeight, const CTxMemPoolEntry& entry);
 
     /** Process a transaction accepted to the mempool*/
     void processTransaction(const CTxMemPoolEntry& entry, bool fCurrentEstimate);
 
     /** Remove a transaction from the mempool tracking stats*/
-    bool removeTx(uint256 hash);
+    void removeTx(uint256 hash);
 
     /** Is this transaction likely included in a block because of its fee?*/
     bool isFeeDataPoint(const CFeeRate &fee, double pri);
@@ -285,8 +285,5 @@ private:
     /** Breakpoints to help determine whether a transaction was confirmed by priority or Fee */
     CFeeRate feeLikely, feeUnlikely;
     double priLikely, priUnlikely;
-    
-    unsigned int trackedTxs;
-    unsigned int untrackedTxs;
 };
 #endif /*BITCOIN_POLICYESTIMATOR_H */

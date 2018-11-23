@@ -17,7 +17,6 @@ namespace Consensus {
  */
 struct Params {
     uint256 hashGenesisBlock;
-    uint256 nMinimumChainWork;
 };
 } // namespace Consensus
 

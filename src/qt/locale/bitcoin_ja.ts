@@ -2418,7 +2418,7 @@
         <translation>Pyloncoin のコア</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>ビットコインコアの開発者</translation>
     </message>
     <message>
@@ -3317,7 +3317,7 @@
         <translation>SOCKS5 プロキシ経由で接続する</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Pyloncoin Core Developers</source>
+        <source>Copyright (C) 2009-%i The Faircoin Core developers</source>
         <translation>Copyright (C) 2009-%i Pyloncoin Core 開発者</translation>
     </message>
     <message>

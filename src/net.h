@@ -45,8 +45,8 @@ static const int TIMEOUT_INTERVAL = 20 * 60;
 static const unsigned int MAX_INV_SZ = 50000;
 /** The maximum number of new addresses to accumulate before announcing. */
 static const unsigned int MAX_ADDR_TO_SEND = 1000;
-/** Maximum length of incoming protocol messages (no message over 2 MiB is currently acceptable). */
-static const unsigned int MAX_PROTOCOL_MESSAGE_LENGTH = 2 * 1024 * 1024;
+/** Maximum length of incoming protocol messages (no message over 55 MiB is currently acceptable). */
+static const unsigned int MAX_PROTOCOL_MESSAGE_LENGTH = 55 * 1024 * 1024;
 /** Maximum length of strSubVer in `version` message */
 static const unsigned int MAX_SUBVERSION_LENGTH = 256;
 /** -listen default */
@@ -153,8 +153,6 @@ CAddress GetLocalAddress(const CNetAddr *paddrPeer = NULL);
 
 extern bool fDiscover;
 extern bool fListen;
-extern bool fRelayTxes;
-
 extern uint64_t nLocalServices;
 extern uint64_t nLocalHostNonce;
 extern CAddrMan addrman;
@@ -280,8 +278,9 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(this->nVersion);
+        nVersion = this->nVersion;
         READWRITE(nCreateTime);
         READWRITE(nBanUntil);
         READWRITE(banReason);
@@ -417,10 +416,6 @@ public:
     // Used for BIP35 mempool sending, also protected by cs_inventory
     bool fSendMempool;
 
-    // Block and TXN accept times
-    std::atomic<int64_t> nLastBlockTime;
-    std::atomic<int64_t> nLastTXTime;
-    
     // Ping time measurement:
     // The pong reply we're expecting, or 0 if no pong expected.
     uint64_t nPingNonceSent;
@@ -546,7 +541,7 @@ public:
             vInventoryAdminSignaturesToSend.insert(inv.hash);
         } else if (inv.type == MSG_POC_CHAIN_DATA) {
             vInventoryChainDataToSend.insert(inv.hash);
-        } else if (inv.type == MSG_GOVERNANCE_DATA) {
+        } else if(inv.type == MSG_GOV) {
             vInventoryGovernanceDataToSend.insert(inv.hash);
         }
     }
@@ -799,11 +794,8 @@ public:
 
 
 class CTransaction;
-class GovernanceObject;
 
 void RelayTransaction(const CTransaction& tx);
-
-void RelayGovernanceObject(GovernanceObject& gobj);
 
 /** Access to the (IP) address database (peers.dat) */
 class CAddrDB

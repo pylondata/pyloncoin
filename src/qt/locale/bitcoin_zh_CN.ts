@@ -2414,7 +2414,7 @@
         <translation>比特币核心</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>Pyloncoin Core 的开发者</translation>
     </message>
     <message>
@@ -3289,7 +3289,7 @@
         <translation>通过 SOCKS5 代理连接</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Pyloncoin Core Developers</source>
+        <source>Copyright (C) 2009-%i The Faircoin Core developers</source>
         <translation>版权所有 (C) 2009-%i Pyloncoin Core 开发者</translation>
     </message>
     <message>

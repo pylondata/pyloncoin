@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2015 The Bitcoin Core developers
-// Copyright (c) 2016-2017 The Pyloncoin Core developers
+// Copyright (c) 2016-2017 The Faircoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -32,8 +32,8 @@
 #include "primitives/txdata.h"
 //#include "cvn.h"
 
-#ifdef USE_FASITO
-#include "fasito/fasito.h"
+#ifdef USE_PYLONKEY
+#include "pylonkey/pylonkey.h"
 #endif
 
 #include <secp256k1.h>
@@ -87,11 +87,11 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
     CMutableTransaction txNew;
     txNew.vin.resize(1);
     txNew.vin[0].prevout.SetNull();
+    txNew.vout.resize(1);
     txNew.vout.resize(injectionMiners.size() + 1);
 
     // Add dummy coinbase tx as first transaction
-    CTransactionRef tx = MakeTransactionRef();
-    pblock->vtx.push_back(tx);
+    pblock->vtx.push_back(CTransaction());
 
     // Largest block we can create according to the dynamic chain parameters
     unsigned int nBlockMaxSize = dynParams.nMaxBlockSize - 7000;
@@ -209,7 +209,7 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
             if (!IsFinalTx(tx, nHeight, nLockTimeCutoff))
                 continue;
 
-            unsigned int nTxSigOps = iter->GetSigOpCost();
+            unsigned int nTxSigOps = iter->GetSigOpCount();
             if (nBlockSigOps + nTxSigOps >= MAX_BLOCK_SIGOPS) {
                 if (nBlockSigOps > MAX_BLOCK_SIGOPS - 2) {
                     break;
@@ -219,7 +219,7 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
 
             CAmount nTxFees = iter->GetFee();
             // Added
-            pblock->vtx.push_back(MakeTransactionRef(tx));
+            pblock->vtx.push_back(tx);
             nBlockSize += nTxSize;
             ++nBlockTx;
             nBlockSigOps += nTxSigOps;
@@ -266,30 +266,30 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
 
         // Send reward to prosumers and CVNs
         CAmount subsidy = nFees + GetBlockSubsidy(blocktemplate.pindexPrev->nHeight + 1);
-
+        
         txNew.vout[0].scriptPubKey = blocktemplate.feeScript.reserveScript;
-
+        
         if (!injectionMiners.empty()) {
             CAmount cvnSubsisdy = subsidy * CDynamicChainParams::CVN_REWARD_PERCENT;
             txNew.vout[0].nValue = cvnSubsisdy; //10% TO CVN
-
+            
             CAmount prosumerSubsidy = subsidy - cvnSubsisdy;
-
+            
             int64_t totalEnergy = 0;
-
+            
             for (InjectionData data : injectionMiners) {
-                totalEnergy += data.injection;
+                totalEnergy += data.ppow;
             }
-
+            
             for (int x = 0; x < injectionMiners.size(); x++) {
                 InjectionData iData = injectionMiners[x];
-
-                double percent = 100 * iData.injection / totalEnergy;
-
+                
+                double percent = 100 * iData.ppow / totalEnergy;
+                
                 // Parse PylonCoin address
                 CBitcoinAddress addr(iData.address);
                 CScript scriptPubKey = GetScriptForDestination(addr.Get());
-
+                
                 //Put % of reward in coinbase tx
                 txNew.vout[x + 1].scriptPubKey = scriptPubKey;
                 txNew.vout[x + 1].nValue = prosumerSubsidy * percent;
@@ -298,28 +298,26 @@ static void PopulateBlock(CBlockTemplate& blocktemplate)
             //If not injectionData, all subsidy for CVN's
             txNew.vout[0].nValue = subsidy;
         }
-
-
+        
         // don't spam the CVNs wallet with zero value transactions
         if (txNew.vout[0].nValue == 0) {
             txNew.vout[0].scriptPubKey = CScript() << OP_RETURN;
             LogPrint("cvn", "creating OP_RETURN coinbase transaction for zero fee block\n");
         }
 
-        CTransactionRef txr = MakeTransactionRef(std::move(txNew));
-        pblock->vtx[0] = txr;
+        pblock->vtx[0] = txNew;
+
         // Fill in header
         pblock->hashPrevBlock = pindexPrev->GetBlockHash();
     }
 }
-
 
 static bool ProcessCVNBlock(const CBlock* pblock, const CChainParams& chainparams)
 {
     if (GetBoolArg("-printcreatedblock", true))
         LogPrintf("%s", pblock->ToString());
 
-    LogPrintf("Reward collected: %s\n", FormatMoney(pblock->vtx[0]->vout[0].nValue));
+    LogPrintf("fees collected: %s\n", FormatMoney(pblock->vtx[0].vout[0].nValue));
 
     {
         LOCK(cs_main);
@@ -387,10 +385,10 @@ static bool AddChainDataToBlock(CBlock *pblock, const CChainDataMsg& msg)
             pblock->nVersion |= CBlock::COIN_SUPPLY_PAYLOAD;
             pblock->coinSupply = msg.coinSupply;
 
-            CMutableTransaction tx(*pblock->vtx[0]);
+            CMutableTransaction tx(pblock->vtx[0]);
             tx.vout.push_back(CTxOut(msg.coinSupply.nValue, msg.coinSupply.scriptDestination));
 
-            pblock->vtx[0] = MakeTransactionRef(tx);
+            pblock->vtx[0] = tx;
         }
     }
 
@@ -592,7 +590,7 @@ static bool CreateNewBlock(CBlockTemplate& blockTemplate)
         LogPrintf("CreateNewBlock : TestBlockValidity failed: %s\n", FormatStateMessage(state));
         return false;
     }
-    
+
     if (!ProcessCVNBlock(pblock, blockTemplate.chainparams)) {
         LogPrintf("CreateNewBlock : block not accepted %s\n", pblock->GetHash().ToString());
         return false;

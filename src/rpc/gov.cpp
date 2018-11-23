@@ -14,30 +14,32 @@
 #include "rpc/server.h"
 #include "governance/governance.h"
 #include "governance/governance-votedb.h"
-#include "fasito/fasito.h"
-#include "fasito/cert.h"
+#include "pylonkey/pylonkey.h"
+#include "pylonkey/cert.h"
 #include "net.h"
 #include "init.h"
 #include "main.h"
 #include "poc.h"
 #include "base58.h"
+#include "wallet/wallet.h"
 
 #include <univalue.h>
 
 void GovernanceObjectToJSON(const GovernanceObject& gobj, UniValue& entry) {
+    //entry.push_back(Pair("hash", gobj.GetHash().GetHex()));
     entry.push_back(Pair("version", gobj.nVersion));
     entry.push_back(Pair("txhash", gobj.txhash.GetHex()));
     entry.push_back(Pair("txvout", gobj.txvout));
     entry.push_back(Pair("votetype", gobj.govType ? "CVN_VOTE" : "PROSUMER_VOTE"));
     entry.push_back(Pair("candidateid", gobj.candidateId));
-    entry.push_back(Pair("voterid", gobj.voterId));
+    entry.push_back(Pair("voterid", (uint64_t) gobj.voterId));
     entry.push_back(Pair("signature", EncodeBase64(&gobj.voterSignature[0], gobj.voterSignature.size())));
 }
 
-UniValue getvotescountfromid(const JSONRPCRequest& request)
+UniValue getvotescountfromid(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() < 1){
+
+    if (fHelp || params.size() < 1){
         throw runtime_error(
             "getvotescountfromid \"candidateid\"\n"
             "Return the number of success votes of the candidate\n"
@@ -66,10 +68,9 @@ UniValue getvotescountfromid(const JSONRPCRequest& request)
         
 }
 
-UniValue makevote(const JSONRPCRequest& request)
+UniValue makevote(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    if (request.fHelp || params.size() < 5){
+    if (fHelp || params.size() < 5){
         throw runtime_error(
             "makevote \"candidateid\" \"votetype\" \"txhash\" \"vout\" \"vote\"\n"
             "Votes the candidate\n"
@@ -131,7 +132,7 @@ UniValue makevote(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_PARSE_ERROR, "The param \"vote\" must be a number.");
     }
     
-    if (gobj->HasMinimumAmount()) {
+    if (!gobj->HasMinimumAmount()) {
         throw JSONRPCError(RPC_INVALID_REQUEST, "The transaction output does not reach the minimum required.");
     }
     
@@ -158,6 +159,7 @@ UniValue makevote(const JSONRPCRequest& request)
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Sign failed");
         }
         
+        gobj->voterId = nCvnNodeId;
         gobj->voterSignature = vchSig;
         
         //Share vote

@@ -2278,7 +2278,7 @@
         <translation>Pyloncoin Core</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>Pyloncoin Core razvijalci</translation>
     </message>
     <message>
@@ -3020,8 +3020,8 @@
         <translation>Poveži se preko posredniškega strežnika SOCKS5</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Pyloncoin Core Developers</source>
-        <translation>Copyright (C) 2009-%i The Pyloncoin Core Developers</translation>
+        <source>Copyright (C) 2009-%i The Faircoin Core developers</source>
+        <translation>Copyright (C) 2009-%i The Faircoin Core developers</translation>
     </message>
     <message>
         <source>Information</source>

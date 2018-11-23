@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2017 The Pyloncoin Core developers
+// Copyright (c) 2016-2017 The Faircoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -24,15 +24,13 @@ static X509* ParseCertificate(FILE* file, const bool fChainAdmin, const string& 
     OpenSSL_add_all_algorithms(); // needed to load encrypted private keys
 
     EVP_PKEY *privkey = EVP_PKEY_new();
-    char *key = strdup(strPassword.c_str());
 
-    if (!PEM_read_PrivateKey(file, &privkey, NULL, strPassword.length() ? key : NULL)) {
+    if (!PEM_read_PrivateKey(file, &privkey, NULL, strPassword.length() ? (char *)strPassword.c_str() : NULL)) {
         fclose(file);
         LogPrintf("ERROR: could not open certificate file.\n");
         return NULL;
     }
 
-    free(key);
     fclose(file);
 
     const EC_KEY* eckey = EVP_PKEY_get1_EC_KEY(privkey);
@@ -147,7 +145,7 @@ static uint32_t ExtractIdFromCertificate(X509 *x509Cert, const bool fChainAdmin)
     return lnCvnNodeId;
 }
 
-uint32_t InitCVNWithCertificate(const string &strFasitoPassword)
+uint32_t InitCVNWithCertificate(const string &strPylonkeyPassword)
 {
     boost::filesystem::path privkeyFile = GetDataDir() / GetArg("-cvnkeyfile", "cvn.pem");
     FILE* file = fopen(privkeyFile.string().c_str(), "r");
@@ -156,7 +154,7 @@ uint32_t InitCVNWithCertificate(const string &strFasitoPassword)
         return 0;
     }
 
-    X509 *x509Cert = ParseCertificate(file, false, strFasitoPassword);
+    X509 *x509Cert = ParseCertificate(file, false, strPylonkeyPassword);
 
     if (x509Cert) {
         cvnPubKey = cvnPrivKey.GetRawPubKey();
@@ -171,7 +169,7 @@ uint32_t InitChainAdminWithCertificate(const string& strPassword, string &strErr
     boost::filesystem::path privkeyFile = GetDataDir() / GetArg("-adminkeyfile", "admin.pem");
     FILE* file = fopen(privkeyFile.string().c_str(), "r");
     if (!file) {
-        strprintf(strError, "key file not found: %s, is -adminkeyfile set correctly?", privkeyFile);
+        strError = strprintf("key file not found: %s, is -adminkeyfile set correctly?", privkeyFile);
         LogPrintf("%s\n", strError);
         return 0;
     }

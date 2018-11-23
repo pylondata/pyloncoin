@@ -17,6 +17,7 @@
 #include "utiltime.h"
 
 #include <stdarg.h>
+#include <zlib.h>
 #ifdef USE_CVN
 #include <termios.h>
 #endif // USE_CVN
@@ -116,7 +117,7 @@ string strMiscWarning;
 bool fLogTimestamps = DEFAULT_LOGTIMESTAMPS;
 bool fLogTimeMicros = DEFAULT_LOGTIMEMICROS;
 bool fLogIPs = DEFAULT_LOGIPS;
-volatile bool fReopenDebugLog = false;
+std::atomic<bool> fReopenDebugLog(false);
 CTranslationInterface translationInterface;
 
 /** Init OpenSSL library multithreading support */
@@ -858,6 +859,66 @@ int GetNumCores()
 #else // Must fall back to hardware_concurrency, which unfortunately counts virtual cores
     return boost::thread::hardware_concurrency();
 #endif
+}
+
+bool Compress(char* data, char* output) {
+
+    try {
+            // STEP 1.
+    // deflate a into b. (that is, compress a into b)
+    
+    // zlib struct
+    z_stream defstream;
+    defstream.zalloc = Z_NULL;
+    defstream.zfree = Z_NULL;
+    defstream.opaque = Z_NULL;
+    // setup "a" as the input and "b" as the compressed output
+    defstream.avail_in = (uInt)strlen(data)+1; // size of input, string + terminator
+    defstream.next_in = (Bytef *)data; // input char array
+    defstream.avail_out = (uInt)sizeof(output); // size of output
+    defstream.next_out = (Bytef *)output; // output char array
+    
+    // the actual compression work.
+    deflateInit(&defstream, Z_BEST_COMPRESSION);
+    deflate(&defstream, Z_FINISH);
+    deflateEnd(&defstream);
+    
+    return true;
+    } catch (exception& e) {
+        
+    }
+    
+    return false;
+
+}
+
+bool Uncompress(char* data, char* output) {
+    try {
+        // STEP 2.
+        // inflate b into c
+        // zlib struct
+        z_stream infstream;
+        infstream.zalloc = Z_NULL;
+        infstream.zfree = Z_NULL;
+        infstream.opaque = Z_NULL;
+        // setup "b" as the input and "c" as the compressed output
+        infstream.avail_in = (uInt)strlen(data)+1; // size of input
+        infstream.next_in = (Bytef *)data; // input char array
+        infstream.avail_out = (uInt)sizeof(output); // size of output
+        infstream.next_out = (Bytef *)output; // output char array
+        
+        // the actual DE-compression work.
+        inflateInit(&infstream);
+        inflate(&infstream, Z_NO_FLUSH);
+        inflateEnd(&infstream);
+        return true;
+        
+    } catch (exception& e) {
+        
+    }
+    
+    return false;
+
 }
 
 #ifdef USE_CVN

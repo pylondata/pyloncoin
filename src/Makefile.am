@@ -42,8 +42,8 @@ endif
 if ENABLE_WALLET
 LIBBITCOIN_WALLET=libbitcoin_wallet.a
 endif
-if USE_FASITO
-LIBBITCOIN_FASITO=libbitcoin_fasito.a
+if USE_PYLONKEY
+LIBBITCOIN_PYLONKEY=libbitcoin_pylonkey.a
 endif
 
 $(LIBSECP256K1): $(wildcard secp256k1/src/*) $(wildcard secp256k1/include/*)
@@ -60,7 +60,7 @@ EXTRA_LIBRARIES += \
   $(LIBBITCOIN_CLI) \
   $(LIBBITCOIN_WALLET) \
   $(LIBBITCOIN_ZMQ) \
-  $(LIBBITCOIN_FASITO)
+  $(LIBBITCOIN_PYLONKEY)
 
 lib_LTLIBRARIES = $(LIBBITCOINCONSENSUS)
 
@@ -177,9 +177,9 @@ BITCOIN_CORE_H = \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
   zmq/zmqpublishnotifier.h \
-  fasito/fasito.h \
-  fasito/cert.h \
-  fasito/SerialConnection.h
+  pylonkey/pylonkey.h \
+  pylonkey/cert.h \
+  pylonkey/SerialConnection.h
 
 
 obj/build.h: FORCE
@@ -218,6 +218,7 @@ libbitcoin_server_a_SOURCES = \
   rpc/net.cpp \
   rpc/rawtransaction.cpp \
   rpc/gov.cpp \
+  rpc/injection.cpp \
   rpc/server.cpp \
   script/sigcache.cpp \
   timedata.cpp \
@@ -252,13 +253,13 @@ libbitcoin_wallet_a_SOURCES = \
   policy/rbf.cpp \
   $(BITCOIN_CORE_H)
 
-if USE_FASITO
-libbitcoin_fasito_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
-libbitcoin_fasito_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libbitcoin_fasito_a_SOURCES = \
-  fasito/fasito.cpp \
-  fasito/SerialConnection.cpp \
-  fasito/cert.cpp
+if USE_PYLONKEY
+libbitcoin_pylonkey_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
+libbitcoin_pylonkey_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libbitcoin_pylonkey_a_SOURCES = \
+  pylonkey/pylonkey.cpp \
+  pylonkey/SerialConnection.cpp \
+  pylonkey/cert.cpp
 endif
 
 # crypto primitives library
@@ -404,14 +405,14 @@ pyloncoind_LDADD = \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_WALLET) \
   $(LIBBITCOIN_ZMQ) \
-  $(LIBBITCOIN_FASITO) \
+  $(LIBBITCOIN_PYLONKEY) \
   $(LIBBITCOIN_CONSENSUS) \
   $(LIBBITCOIN_CRYPTO) \
   $(LIBLEVELDB) \
   $(LIBMEMENV) \
   $(LIBSECP256K1)
 
-pyloncoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
+pyloncoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(ZLIB_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
 
 # bitcoin-cli binary #
 pyloncoin_cli_SOURCES = bitcoin-cli.cpp
@@ -429,7 +430,7 @@ pyloncoin_cli_LDADD = \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_CRYPTO)
 
-pyloncoin_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
+pyloncoin_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(ZLIB_LIBS) $(EVENT_LIBS)
 #
 
 # bitcoin-tx binary #
@@ -450,7 +451,7 @@ pyloncoin_tx_LDADD = \
   $(LIBBITCOIN_CRYPTO) \
   $(LIBSECP256K1)
 
-pyloncoin_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
+pyloncoin_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) $(ZLIB_LIBS)
 #
 
 # bitcoinconsensus library #

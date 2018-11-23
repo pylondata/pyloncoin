@@ -36,7 +36,7 @@
 #include "utilstrencodings.h"
 #include "validationinterface.h"
 #include "poc.h"
-#include "fasito/cert.h"
+#include "pylonkey/cert.h"
 #include "base58.h"
 #ifdef ENABLE_WALLET
 #include "wallet/db.h"
@@ -65,8 +65,8 @@
 #include "zmq/zmqnotificationinterface.h"
 #endif
 
-#ifdef USE_FASITO
-#include "fasito/fasito.h"
+#ifdef USE_PYLONKEY
+#include "pylonkey/pylonkey.h"
 #endif
 
 using namespace std;
@@ -134,7 +134,7 @@ CClientUIInterface uiInterface; // Declared but not defined in ui_interface.h
 // shutdown thing.
 //
 
-volatile bool fRequestShutdown = false;
+std::atomic<bool> fRequestShutdown(false);
 
 void StartShutdown()
 {
@@ -262,8 +262,8 @@ void Shutdown()
     globalVerifyHandle.reset();
     ECC_Stop();
     POC_destroy_secp256k1_context();
-#ifdef USE_FASITO
-    fasito.close();
+#ifdef USE_PYLONKEY
+    pylonkey.close();
 #endif
 
     LogPrintf("%s: done\n", __func__);
@@ -534,7 +534,7 @@ std::string HelpMessage(HelpMessageMode mode)
 std::string LicenseInfo()
 {
     // todo: remove urls from translations on next change
-    return FormatParagraph(strprintf(_("Copyright (C) 2016-%i The Pyloncoin Core Developers"), COPYRIGHT_YEAR)) + "\n" +
+    return FormatParagraph(strprintf(_("Copyright (C) 2016-%i The Faircoin Core developers"), COPYRIGHT_YEAR)) + "\n" +
            "\n" +
            FormatParagraph(_("Copyright (C) 2009-2016 The Bitcoin Core Developers")) + "\n" +
            "\n" +
@@ -810,7 +810,7 @@ void InitLogging()
 /** Initialize bitcoin.
  *  @pre Parameters should be parsed and config file should be read.
  */
-bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const string &strFasitoPassword)
+bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const string &strPylonkeyPassword)
 {
     // ********************************************************* Step 1: setup
 #ifdef _MSC_VER
@@ -1117,18 +1117,18 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
 
     if (mapArgs.count("-cvn")) {
 #ifdef USE_CVN
-        if (GetArg("-cvn", "") == "fasito") {
-#ifdef USE_FASITO
-            LogPrintf("Initializing fasito\n");
-            uiInterface.InitMessage(_("Initializing fasito..."));
-            nCvnNodeId = InitCVNWithFasito(strFasitoPassword);
+        if (GetArg("-cvn", "") == "pylonkey") {
+#ifdef USE_PYLONKEY
+            LogPrintf("Initializing pylonkey\n");
+            uiInterface.InitMessage(_("Initializing pylonkey..."));
+            nCvnNodeId = InitCVNWithPylonkey(strPylonkeyPassword);
 #else
-            LogPrintf("ERROR: invalid parameter -cvn=fasito. This wallet version was not compiled with fasito support\n");
-#endif // USE_FASITO
+            LogPrintf("ERROR: invalid parameter -cvn=pylonkey. This wallet version was not compiled with pylonkey support\n");
+#endif // USE_PYLONKEY
         } else if (GetArg("-cvn", "") == "file") {
-            nCvnNodeId = InitCVNWithCertificate(strFasitoPassword);
+            nCvnNodeId = InitCVNWithCertificate(strPylonkeyPassword);
         } else
-            return InitError("-cvn configuration invalid. Parameter must be 'fasito' or 'file'\n");
+            return InitError("-cvn configuration invalid. Parameter must be 'pylonkey' or 'file'\n");
 
         if (!nCvnNodeId)
             return InitError("could not find a vaild CVN node ID\n");
@@ -1145,35 +1145,23 @@ bool AppInit2(boost::thread_group& threadGroup, CScheduler& scheduler, const str
     UpdateCvnInfo(&genesisBlock, 0);
     UpdateChainAdmins(&genesisBlock);
 
-std::string error;
-#ifdef USE_FASITO
-    LogPrintf("Using fasito\n");
-    nChainAdminId = InitChainAdminWithFasito(strFasitoPassword, 0, error);
-#else
-    LogPrintf("not using fasito \n");
-    nChainAdminId = InitChainAdminWithCertificate(strFasitoPassword, error);
-#endif
-
+    string strError;
+    nChainAdminId = InitChainAdminWithCertificate("123456", strError);
     LogPrintf("\n");
     CCvnPartialSignature chainSig;
     vector<uint32_t> vMissingSignatures;
-    CvnSignPartial(genesisBlock.hashPrevBlock, chainSig, GENESIS_NODE_ID, GENESIS_NODE_ID, vMissingSignatures,0);
-    LogPrintf("Genesis chainMultiSig    : %s \n", chainSig.signature.ToString());
+    CvnSignPartial(genesisBlock.hashPrevBlock, chainSig, GENESIS_NODE_ID, GENESIS_NODE_ID, vMissingSignatures, 0);
+    LogPrintf("Genesis chainMultiSig    : %s\n", chainSig.signature.ToString());
 
-CSchnorrSig chainAdminSig;
-#ifdef USE_FASITO
-    if (!CvnSignWithFasito(genesisBlock.GetPayloadHash(true), 0, chainAdminSig))
-        return InitError("could not create chain admin signature");
-#else
+    CSchnorrSig chainAdminSig;
     if (!adminPrivKey.SchnorrSign(genesisBlock.GetPayloadHash(true), chainAdminSig))
         return InitError("could not create chain admin signature");
 
+    LogPrintf("Genesis adminMultiSig    : %s\n", chainAdminSig.ToString());
     if (!CPubKey::VerifySchnorr(genesisBlock.GetPayloadHash(true), chainAdminSig, adminPubKey)) {
         return InitError("could not verify chain admin signature");
     }
-#endif
-    LogPrintf("Genesis adminMultiSig    : %s\n", chainAdminSig.ToString());
-    
+
     CvnSignBlock(genesisBlock);
     LogPrintf("Genesis creatorSignature : %s\n", genesisBlock.creatorSignature.ToString());
     LogPrintf("\n");
@@ -1303,7 +1291,6 @@ CSchnorrSig chainAdminSig;
     fListen = GetBoolArg("-listen", DEFAULT_LISTEN);
     fDiscover = GetBoolArg("-discover", true);
     fNameLookup = GetBoolArg("-dns", DEFAULT_NAME_LOOKUP);
-    fRelayTxes = !GetBoolArg("-blocksonly", DEFAULT_BLOCKSONLY);
 
     bool fBound = false;
     if (fListen) {
@@ -1466,7 +1453,7 @@ CSchnorrSig chainAdminSig;
                     strLoadError = _("You need to rebuild the database using -reindex to go back to unpruned mode.  This will redownload the entire blockchain");
                     break;
                 }
-                
+
                 uiInterface.InitMessage(_("Verifying blocks..."));
                 if (fHavePruned && GetArg("-checkblocks", DEFAULT_CHECKBLOCKS) > MIN_BLOCKS_TO_KEEP) {
                     LogPrintf("Prune: pruned datadir may not have more than %d blocks; -checkblocks=%d may fail\n",
@@ -1726,7 +1713,6 @@ CSchnorrSig chainAdminSig;
         }
     }
 
-    nLocalServices |= NODE_WITNESS;
     // ********************************************************* Step 10: import blocks
 
     if (mapArgs.count("-blocknotify"))

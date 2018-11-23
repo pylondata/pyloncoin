@@ -2250,7 +2250,7 @@
         <translation>Jadro Pyloncoin</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>Vývojári jadra Pyloncoin</translation>
     </message>
     <message>
@@ -2990,7 +2990,7 @@ The network does not appear to fully agree! Some miners appear to be experiencin
         <translation>Pripojiť cez proxy server SOCKS5</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Pyloncoin Core Developers</source>
+        <source>Copyright (C) 2009-%i The Faircoin Core developers</source>
         <translation>Autorské práva (C) 2009-%i Vývojári jadra Pyloncoin</translation>
     </message>
     <message>

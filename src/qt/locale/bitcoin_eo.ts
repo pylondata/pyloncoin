@@ -1772,7 +1772,7 @@
         <translation>Kerno de Bitmono</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>La programistoj de Bitmona Kerno</translation>
     </message>
     <message>

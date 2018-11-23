@@ -18,6 +18,7 @@
 #include "tinyformat.h"
 #include "utiltime.h"
 
+#include <atomic>
 #include <exception>
 #include <map>
 #include <stdint.h>
@@ -27,8 +28,6 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/signals2/signal.hpp>
 #include <boost/thread/exceptions.hpp>
-
-#define DBG( x )
 
 static const bool DEFAULT_LOGTIMEMICROS = false;
 static const bool DEFAULT_LOGIPS        = false;
@@ -52,7 +51,7 @@ extern std::string strMiscWarning;
 extern bool fLogTimestamps;
 extern bool fLogTimeMicros;
 extern bool fLogIPs;
-extern volatile bool fReopenDebugLog;
+extern std::atomic<bool> fReopenDebugLog;
 extern CTranslationInterface translationInterface;
 
 extern const char * const BITCOIN_CONF_FILENAME;
@@ -224,6 +223,8 @@ void promptForPassword(const std::string &strPrompt, std::string &strPassword);
 void SetThreadPriority(int nPriority);
 void RenameThread(const char* name);
 
+bool Compress(char* data, char* output);
+bool Uncompress(char* data, char* output);
 /**
  * .. and a wrapper that just calls func once
  */

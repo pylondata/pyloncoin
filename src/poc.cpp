@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2017 The Pyloncoin Core developers
+// Copyright (c) 2016-2017 The Faircoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -11,14 +11,13 @@
 #include "base58.h"
 #include "net.h"
 #include "init.h"
-#include "fasito/cert.h"
+#include "pylonkey/cert.h"
 #include "clientversion.h"
 #include "validationinterface.h"
 #include "blockfactory.h"
-#include "primitives/txdata.h"
 
-#ifdef USE_FASITO
-#include "fasito/fasito.h"
+#ifdef USE_PYLONKEY
+#include "pylonkey/pylonkey.h"
 #endif
 
 #include <secp256k1.h>
@@ -112,7 +111,7 @@ void printHex(const uint8_t *buf, const size_t len, const bool addLF = false)
 #endif
 
 bool AddToCvnInfoCache(const CBlock *pblock, const uint32_t nHeight)
-{   
+{
     if (!pblock->HasCvnInfo())
         return false;
 
@@ -128,11 +127,7 @@ bool AddToCvnInfoCache(const CBlock *pblock, const uint32_t nHeight)
     }
 
     secp256k1_pubkey sumOfAllSignersPubkeys;
-
-    if (count == 0){
-        LogPrint("cvn", "No CVN defined\n");
-        return false;
-    } else if (count == 1) {
+    if (count == 1) {
         memcpy(sumOfAllSignersPubkeys.data, &pblock->vCvns[0].pubKey.begin()[0], 64);
     } else {
         if (!secp256k1_ec_pubkey_combine(secp256k1_context_none, &sumOfAllSignersPubkeys, allSignersPubkeys, count))
@@ -509,49 +504,6 @@ bool CreateSumPublicNoncesOthers(CSchnorrPubKey &sumPublicNoncesOthers, const ui
     return true;
 }
 
-bool VerifyNoncePoolEntry(const int &nPoolOffset)
-{
-    CHashWriter hasher(SER_GETHASH, 0);
-
-    if (!nCvnNodeId) {
-        LogPrintf("%s : CVN node not initialised\n", __func__);
-        return false;
-    }
-
-    CvnMapType::iterator cvnInfoIter = mapCVNs.find(nCvnNodeId);
-
-    if (cvnInfoIter == mapCVNs.end()) {
-        LogPrintf("%s : # %d could not find CvnInfo for signer ID 0x%08x\n", __func__, nPoolOffset, nCvnNodeId);
-        return false;
-    }
-
-    CSchnorrPubKey dummySumPublicNoncesOthers = cvnInfoIter->second.pubKey;
-    hasher << dummySumPublicNoncesOthers;
-
-    uint256 hashToSign = hasher.GetHash();
-    CSchnorrSig signature;
-
-    if (GetArg("-cvn", "") == "fasito") {
-#ifdef USE_FASITO   
-        if (!fasito.fLoggedIn) {
-            LogPrint("cvn", "%s : not logged into Fasito. Cannot create partial signature.\n", __func__);
-            return false;
-        }
-
-        if (!CvnSignPartialWithFasito(hashToSign, fasito.nCVNKeyIndex, dummySumPublicNoncesOthers, signature, nPoolOffset))
-            return false;
-#else
-        LogPrintf("%s : this wallet was not compiled with Fasito support.\n", __func__);
-        return false;
-#endif
-    } else {
-        if (!CvnSignPartialWithKey(hashToSign, cvnPrivKey, dummySumPublicNoncesOthers, signature, nPoolOffset))
-            return false;
-    }
-
-    return VerifyPartialSignature(hashToSign, signature, dummySumPublicNoncesOthers, dummySumPublicNoncesOthers);
-}
-
 static void UpdateHashWithMissingIDs(CHashWriter &hasher, const vector<uint32_t> &vMissingSignerIds)
 {
     if (vMissingSignerIds.empty())
@@ -576,6 +528,7 @@ bool CvnVerifyChainSignature(const CBlock& block)
 {
     CHashWriter hasher(SER_GETHASH, 0);
     hasher << block.hashPrevBlock << block.nCreatorId;
+
     /* special case when bootstrapping the blockchain we only have one CVN ID */
     if (mapCVNs.size() == 1) {
         if (!mapCVNs.count(block.nCreatorId)) {
@@ -961,67 +914,6 @@ void SetCoinSupplyStatus(const CBlock* pblock)
     }
 }
 
-bool CheckDynamicChainParameters(const CDynamicChainParams& params)
-{
-    if (params.nBlockSpacing > MAX_BLOCK_SPACING || params.nBlockSpacing < MIN_BLOCK_SPACING) {
-        LogPrintf("%s : block spacing %u exceeds limit\n",__func__ , params.nBlockSpacing);
-        return false;
-    }
-
-    if (params.nTransactionFee > MAX_TX_FEE_THRESHOLD || params.nTransactionFee < MIN_TX_FEE_THRESHOLD) {
-        LogPrintf("%s : tx fee threshold %u exceeds limit\n",__func__ , params.nTransactionFee);
-        return false;
-    }
-
-    if (params.nDustThreshold > MAX_DUST_THRESHOLD || params.nDustThreshold < MIN_DUST_THRESHOLD) {
-        LogPrintf("%s : dust threshold %u exceeds limit\n",__func__ , params.nDustThreshold);
-        return false;
-    }
-
-    if (!params.nMinAdminSigs || params.nMinAdminSigs > params.nMaxAdminSigs) {
-        LogPrintf("%s : number of CVN signers %u/%u exceeds limit\n",__func__ , params.nMinAdminSigs, params.nMaxAdminSigs);
-        return false;
-    }
-
-    if (params.nBlocksToConsiderForSigCheck < MIN_BLOCKS_TO_CONSIDER_FOR_SIG_CHECK || params.nBlocksToConsiderForSigCheck > MAX_BLOCKS_TO_CONSIDER_FOR_SIG_CHECK) {
-        LogPrintf("%s : %u blocksToConsiderForSigCheck is out of bounds\n",__func__ , params.nBlocksToConsiderForSigCheck);
-        return false;
-    }
-
-    if (params.nPercentageOfSignaturesMean < MIN_PERCENTAGE_OF_SIGNATURES_MEAN || params.nPercentageOfSignaturesMean > MAX_PERCENTAGE_OF_SIGNATURES_MEAN) {
-        LogPrintf("%s : %u nPercentageOfSignatureMean is out of bounds\n",__func__ , params.nPercentageOfSignaturesMean);
-        return false;
-    }
-
-    if (params.nMaxBlockSize < MIN_SIZE_OF_BLOCK || params.nMaxBlockSize > MAX_SIZE_OF_BLOCK) {
-        LogPrintf("%s : %u nMaxBlockSize is out of bounds\n",__func__ , params.nMaxBlockSize);
-        return false;
-    }
-
-    if (params.nBlockPropagationWaitTime < MIN_BLOCK_PROPAGATION_WAIT_TIME || params.nBlockPropagationWaitTime > MAX_BLOCK_PROPAGATION_WAIT_TIME ||
-            params.nBlockPropagationWaitTime >= params.nBlockSpacing) {
-        LogPrintf("%s : %u nBlockPropagationWaitTime is out of bounds\n",__func__ , params.nBlockPropagationWaitTime);
-        return false;
-    }
-
-    if (params.nRetryNewSigSetInterval < MIN_RETRY_NEW_SIG_SET_INTERVAL || params.nRetryNewSigSetInterval > MAX_RETRY_NEW_SIG_SET_INTERVAL) {
-        LogPrintf("%s : %u nRetryNewSigSetInterval is out of bounds\n",__func__ , params.nRetryNewSigSetInterval);
-        return false;
-    }
-
-    if (params.nCoinbaseMaturity < MIN_COINBASE_MATURITY || params.nCoinbaseMaturity > MAX_COINBASE_MATURITY) {
-        LogPrintf("%s : %u nCoinbaseMaturity is out of bounds\n",__func__ , params.nCoinbaseMaturity);
-        return false;
-    }
-
-    if (params.strDescription.length() <= MIN_CHAIN_DATA_DESCRIPTION_LEN) {
-        LogPrintf("%s : chain data description is too short: %s\n",__func__ , params.strDescription);
-        return false;
-    }
-
-    return true;
-}
-
 void UpdateChainParameters(const CBlock* pblock)
 {
     LogPrint("cvn", "UpdateChainParameters : updating dynamic block chain parameters\n");
@@ -1054,7 +946,7 @@ void UpdateChainParameters(const CBlock* pblock)
 bool CheckProofOfCooperation(const CBlock& block, const Consensus::Params& params)
 {
     const uint256 hashBlock = block.GetHash();
-     
+
     if (!CheckForDuplicateMissingChainSigs(block))
         return false;
 
@@ -1220,6 +1112,7 @@ static uint32_t FindNewlyAddedCVN(const CBlockIndex* pindexStart)
         if (pindex->nVersion & CBlock::CVN_PAYLOAD) {
             vector<CCvnInfo> vCvnInfoFromBlock;
             CachedCvnType::iterator it = mapChachedCVNInfoBlocks.find(pindex->GetBlockHash());
+
             if (it == mapChachedCVNInfoBlocks.end()) {
                 CBlock block;
                 if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus())) {
@@ -1406,9 +1299,8 @@ uint32_t CheckNextBlockCreator(const CBlockIndex* pindexStart, const int64_t nTi
         }
     } while (nMinSignatures);
 
-    if (!nNextCreatorId) {
+    if (!nNextCreatorId)
         LogPrintf("%s : could not find any node ID that should create the next block #%u\n", __func__, pindexStart->nHeight + 1);
-    }
 
     LogPrint("cvnnext", "%s : NODE ID 0x%08x should create the next block #%u\n", __func__, nNextCreatorId, pindexStart->nHeight + 1);
 
@@ -1812,8 +1704,8 @@ void SaveNoncesPool()
 
     CNoncesPoolDB pooldb;
     vector<uint8_t> vNonceHandles;
-#ifdef USE_FASITO
-    vNonceHandles = fasito.vNonceHandles;
+#ifdef USE_PYLONKEY
+    vNonceHandles = pylonkey.vNonceHandles;
 #endif
     pooldb.Write(mapNoncePool[nCvnNodeId], vNoncePrivate, vNonceHandles);
 
@@ -1841,7 +1733,7 @@ bool static CreateNonceWithKey(const uint256& hashData, const CKey& privKey, uns
     return true;
 }
 
-bool CreateNoncePairForHash(CSchnorrNonce& noncePublic, unsigned char *pPrivateData, const uint256& hashData, const uint32_t& nNodeId, const bool fUseFasito, const bool fAdmin)
+bool CreateNoncePairForHash(CSchnorrNonce& noncePublic, unsigned char *pPrivateData, const uint256& hashData, const uint32_t& nNodeId, const bool fUsePylonkey, const bool fAdmin)
 {
     if (fAdmin) {
         if (!nNodeId) {
@@ -1872,18 +1764,18 @@ bool CreateNoncePairForHash(CSchnorrNonce& noncePublic, unsigned char *pPrivateD
 
     const CSchnorrPubKey& pubKey = fAdmin ? mapChainAdmins[nNodeId].pubKey : mapCVNs[nNodeId].pubKey;
 
-    if (fUseFasito) {
-#ifdef USE_FASITO
-        if (!fasito.fLoggedIn) {
-            LogPrint("cvn", "%s : Fasito is not ready.\n", __func__);
+    if (fUsePylonkey) {
+#ifdef USE_PYLONKEY
+        if (!pylonkey.fLoggedIn) {
+            LogPrint("cvn", "%s : Pylonkey is not ready.\n", __func__);
             return false;
         }
-        if (!CreateNonceWithFasito(hashData, fAdmin ? fasito.nADMINKeyIndex : fasito.nCVNKeyIndex, pPrivateData, noncePublic, pubKey)) {
+        if (!CreateNonceWithPylonkey(hashData, fAdmin ? pylonkey.nADMINKeyIndex : pylonkey.nCVNKeyIndex, pPrivateData, noncePublic, pubKey)) {
             noncePublic.SetNull();
             return false;
         }
 #else
-        LogPrintf("%s : this wallet was not compiled with Fasito support.\n", __func__);
+        LogPrintf("%s : this wallet was not compiled with Pylonkey support.\n", __func__);
         return false;
 #endif
     } else {
@@ -1956,15 +1848,15 @@ bool static CvnSignPartialWithKey(const uint256& hashToSign, const CKey& cvnPriv
 
 bool CvnSignHash(const uint256 &hashToSign, CSchnorrSig& signature)
 {
-    if (GetArg("-cvn", "") == "fasito") {
-#ifdef USE_FASITO
-        if (!fasito.fLoggedIn) {
-            LogPrintf("%s : Fasito is not ready.\n", __func__);
+    if (GetArg("-cvn", "") == "pylonkey") {
+#ifdef USE_PYLONKEY
+        if (!pylonkey.fLoggedIn) {
+            LogPrintf("%s : Pylonkey is not ready.\n", __func__);
             return false;
         }
-        return CvnSignWithFasito(hashToSign, fasito.nCVNKeyIndex, signature);
+        return CvnSignWithPylonkey(hashToSign, pylonkey.nCVNKeyIndex, signature);
 #else
-        LogPrintf("%s : this wallet was not compiled with Fasito support.\n", __func__);
+        LogPrintf("%s : this wallet was not compiled with Pylonkey support.\n", __func__);
         return false;
 #endif
     } else {
@@ -1973,17 +1865,17 @@ bool CvnSignHash(const uint256 &hashToSign, CSchnorrSig& signature)
 
 }
 
-bool AdminSignHash(const uint256 &hashToSign, CSchnorrSig& signature, bool fFasito)
+bool AdminSignHash(const uint256 &hashToSign, CSchnorrSig& signature, bool fPylonkey)
 {
-    if (fFasito) {
-#ifdef USE_FASITO
-        if (!fasito.fLoggedIn) {
-            LogPrintf("%s : Fasito is not ready.\n", __func__);
+    if (fPylonkey) {
+#ifdef USE_PYLONKEY
+        if (!pylonkey.fLoggedIn) {
+            LogPrintf("%s : Pylonkey is not ready.\n", __func__);
             return false;
         }
-        return CvnSignWithFasito(hashToSign, fasito.nADMINKeyIndex, signature);
+        return CvnSignWithPylonkey(hashToSign, pylonkey.nADMINKeyIndex, signature);
 #else
-        LogPrintf("%s : this wallet was not compiled with Fasito support.\n", __func__);
+        LogPrintf("%s : this wallet was not compiled with Pylonkey support.\n", __func__);
         return false;
 #endif
     } else {
@@ -2023,7 +1915,7 @@ bool AdminSignPartial(const uint256 &hashToSign, CAdminPartialSignatureUnsinged 
         return false;
     }
 
-    const bool fFasito = (privNonce == NULL);
+    const bool fPylonkey = (privNonce == NULL);
 
     signature.nAdminId      = nAdminId;
     signature.hashRootBlock = chainActive.Tip()->GetBlockHash();
@@ -2033,7 +1925,7 @@ bool AdminSignPartial(const uint256 &hashToSign, CAdminPartialSignatureUnsinged 
     /* create a plain EC-Schnorr signature in case only one admin ID is used */
     if (mapAdminNonces.size() == 1) {
         signature.vSignerIds.push_back(nAdminId);
-        return AdminSignHash(hashToSign, signature.signature, fFasito);
+        return AdminSignHash(hashToSign, signature.signature, fPylonkey);
     }
 
     CSchnorrPubKey sumPublicNoncesOthers;
@@ -2041,17 +1933,17 @@ bool AdminSignPartial(const uint256 &hashToSign, CAdminPartialSignatureUnsinged 
     if (!CreateSumPublicAdminNoncesOthers(sumPublicNoncesOthers, nAdminId, vAdminIds))
         return false;
 
-    if (fFasito) {
-#ifdef USE_FASITO
-        if (!fasito.fLoggedIn) {
-            LogPrint("cvn", "%s : not logged into Fasito. Cannot create partial signature.\n", __func__);
+    if (fPylonkey) {
+#ifdef USE_PYLONKEY
+        if (!pylonkey.fLoggedIn) {
+            LogPrint("cvn", "%s : not logged into Pylonkey. Cannot create partial signature.\n", __func__);
             return false;
         }
 
-        if (!AdminSignPartialWithFasito(hashToSign, fasito.nADMINKeyIndex, sumPublicNoncesOthers, signature.signature, nHandle))
+        if (!AdminSignPartialWithPylonkey(hashToSign, pylonkey.nADMINKeyIndex, sumPublicNoncesOthers, signature.signature, nHandle))
             return false;
 #else
-        LogPrintf("%s : this wallet was not compiled with Fasito support.\n", __func__);
+        LogPrintf("%s : this wallet was not compiled with Pylonkey support.\n", __func__);
         return false;
 #endif
     } else {
@@ -2101,17 +1993,17 @@ bool CvnSignPartial(const uint256 &hashPrevBlock, CCvnPartialSignatureUnsinged &
 
     uint256 hashToSign = hasher.GetHash();
 
-    if (GetArg("-cvn", "") == "fasito") {
-#ifdef USE_FASITO
-        if (!fasito.fLoggedIn) {
-            LogPrint("cvn", "%s : not logged into Fasito. Cannot create partial signature.\n", __func__);
+    if (GetArg("-cvn", "") == "pylonkey") {
+#ifdef USE_PYLONKEY
+        if (!pylonkey.fLoggedIn) {
+            LogPrint("cvn", "%s : not logged into Pylonkey. Cannot create partial signature.\n", __func__);
             return false;
         }
 
-        if (!CvnSignPartialWithFasito(hashToSign, fasito.nCVNKeyIndex, sumPublicNoncesOthers, signature.signature, nPoolOffset))
+        if (!CvnSignPartialWithPylonkey(hashToSign, pylonkey.nCVNKeyIndex, sumPublicNoncesOthers, signature.signature, nPoolOffset))
             return false;
 #else
-        LogPrintf("%s : this wallet was not compiled with Fasito support.\n", __func__);
+        LogPrintf("%s : this wallet was not compiled with Pylonkey support.\n", __func__);
         return false;
 #endif
     } else {
@@ -2201,14 +2093,57 @@ static bool SendCVNSignature(POCStateHolder &s, const vector<uint32_t> &vMissing
     return true;
 }
 
+static bool VerifyNoncePoolEntry(const int &nPoolOffset)
+{
+    CHashWriter hasher(SER_GETHASH, 0);
+
+    if (!nCvnNodeId) {
+        LogPrintf("%s : CVN node not initialised\n", __func__);
+        return false;
+    }
+
+    CvnMapType::iterator cvnInfoIter = mapCVNs.find(nCvnNodeId);
+
+    if (cvnInfoIter == mapCVNs.end()) {
+        LogPrintf("%s : # %d could not find CvnInfo for signer ID 0x%08x\n", __func__, nPoolOffset, nCvnNodeId);
+        return false;
+    }
+
+    CSchnorrPubKey dummySumPublicNoncesOthers = cvnInfoIter->second.pubKey;
+    hasher << dummySumPublicNoncesOthers;
+
+    uint256 hashToSign = hasher.GetHash();
+    CSchnorrSig signature;
+
+    if (GetArg("-cvn", "") == "pylonkey") {
+#ifdef USE_PYLONKEY
+        if (!pylonkey.fLoggedIn) {
+            LogPrint("cvn", "%s : not logged into Pylonkey. Cannot create partial signature.\n", __func__);
+            return false;
+        }
+
+        if (!CvnSignPartialWithPylonkey(hashToSign, pylonkey.nCVNKeyIndex, dummySumPublicNoncesOthers, signature, nPoolOffset))
+            return false;
+#else
+        LogPrintf("%s : this wallet was not compiled with Pylonkey support.\n", __func__);
+        return false;
+#endif
+    } else {
+        if (!CvnSignPartialWithKey(hashToSign, cvnPrivKey, dummySumPublicNoncesOthers, signature, nPoolOffset))
+            return false;
+    }
+
+    return VerifyPartialSignature(hashToSign, signature, dummySumPublicNoncesOthers, dummySumPublicNoncesOthers);
+}
+
 static bool SetUpNoncePool()
 {
-#ifdef USE_FASITO
-    bool fUseFasito = GetArg("-cvn", "fasito") == "fasito";
-    vector<uint8_t>& vNonceHandles = fasito.vNonceHandles;
+#ifdef USE_PYLONKEY
+    bool fUsePylonkey = GetArg("-cvn", "pylonkey") == "pylonkey";
+    vector<uint8_t>& vNonceHandles = pylonkey.vNonceHandles;
 #else
     vector<uint8_t> vNonceHandles;
-    bool fUseFasito = false;
+    bool fUsePylonkey = false;
 #endif
     CNoncesPoolDB pooldb;
     CNoncePool pool;
@@ -2221,12 +2156,12 @@ static bool SetUpNoncePool()
         return false;
     }
 
-    if (fUseFasito && vNonceHandles.size() != pool.vPublicNonces.size()) {
+    if (fUsePylonkey && vNonceHandles.size() != pool.vPublicNonces.size()) {
         LogPrintf("%s : number of private handle/public nonces mismatch: %d/%d\n", __func__, vNonceHandles.size(), pool.vPublicNonces.size());
         return false;
     }
 
-    if (!fUseFasito && vNoncePrivate.size() != pool.vPublicNonces.size()) {
+    if (!fUsePylonkey && vNoncePrivate.size() != pool.vPublicNonces.size()) {
         LogPrintf("%s : number of private/public nonces mismatch: %d/%d\n", __func__, vNoncePrivate.size(), pool.vPublicNonces.size());
         return false;
     }
@@ -2291,8 +2226,8 @@ static bool CreateNoncePoolFile(CNoncePool& pool, const uint16_t nPoolSize, CNon
     return true;
 }
 
-#ifdef USE_FASITO
-static bool CreateNoncePoolFasito(CNoncePool& pool, const uint16_t nPoolSize, CNoncePool * const oldPool)
+#ifdef USE_PYLONKEY
+static bool CreateNoncePoolPylonkey(CNoncePool& pool, const uint16_t nPoolSize, CNoncePool * const oldPool)
 {
     uint256 hash4noncePool;
     GetStrongRandBytes(&hash4noncePool.begin()[0], 32);
@@ -2304,8 +2239,8 @@ static bool CreateNoncePoolFasito(CNoncePool& pool, const uint16_t nPoolSize, CN
     int32_t nOldPoolAge = 0;
     if (oldPool) {
         nOldPoolAge = GetPoolAge(*oldPool, chainActive.Tip());
-        if (nOldPoolAge > 0 && fasito.vNonceHandles.size() == oldPool->vPublicNonces.size()) {
-            fasito.vNonceHandles.erase(fasito.vNonceHandles.begin(), fasito.vNonceHandles.begin() + nOldPoolAge);
+        if (nOldPoolAge > 0 && pylonkey.vNonceHandles.size() == oldPool->vPublicNonces.size()) {
+            pylonkey.vNonceHandles.erase(pylonkey.vNonceHandles.begin(), pylonkey.vNonceHandles.begin() + nOldPoolAge);
 
             vector<CSchnorrNonce> &nonces = oldPool->vPublicNonces;
             nonces.erase(nonces.begin(), nonces.begin() + nOldPoolAge);
@@ -2319,9 +2254,9 @@ static bool CreateNoncePoolFasito(CNoncePool& pool, const uint16_t nPoolSize, CN
     }
 
     if (fClearPool) {
-        fasito.vNonceHandles.clear();
-        if (!fasito.sendCommand("CLRPOOL")) {
-            LogPrintf("could not clear nonce pool on Fasito\n");
+        pylonkey.vNonceHandles.clear();
+        if (!pylonkey.sendCommand("CLRPOOL")) {
+            LogPrintf("could not clear nonce pool on Pylonkey\n");
             return false;
         }
     }
@@ -2338,9 +2273,9 @@ static bool CreateNoncePoolFasito(CNoncePool& pool, const uint16_t nPoolSize, CN
 
         uint8_t *nHandle = (uint8_t *) privateData;
 
-        fasito.vNonceHandles.push_back(*nHandle);
+        pylonkey.vNonceHandles.push_back(*nHandle);
         pool.vPublicNonces.push_back(nonce);
-        LogPrint("cvnsig", "CreateNoncePoolFasito : add to pool key #%d (handle: %d): %s\n", i, *nHandle, nonce.ToString());
+        LogPrint("cvnsig", "CreateNoncePoolPylonkey : add to pool key #%d (handle: %d): %s\n", i, *nHandle, nonce.ToString());
     }
 
     return false;
@@ -2369,13 +2304,13 @@ void CreateNewNoncePool(const POCStateHolder& s)
     if (GetArg("-cvn", "") == "file") {
         CreateNoncePoolFile(pool, nPoolSize, oldPool);
     }
-#ifdef USE_FASITO
+#ifdef USE_PYLONKEY
     else {
-        CreateNoncePoolFasito(pool, nPoolSize, oldPool);
+        CreateNoncePoolPylonkey(pool, nPoolSize, oldPool);
     }
 #else
     else {
-        LogPrintf("cannot create pool. Fasito support not compiled in.\n");
+        LogPrintf("cannot create pool. Pylonkey support not compiled in.\n");
         return;
     }
 #endif
@@ -2592,9 +2527,7 @@ static void handleInit(POCStateHolder& s)
             LogPrintf("Using saved nonces pool\n");
             RelayNoncePool(mapNoncePool[s.nNodeId]);
         } else {
-#ifdef USE_FASITO
-            fasito.vNonceHandles.clear();
-#endif
+            pylonkey.vNonceHandles.clear();
             vNoncePrivate.clear();
             CreateNewNoncePool(s);
         }

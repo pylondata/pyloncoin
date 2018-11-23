@@ -30,11 +30,11 @@ This is how to start the wallet software with GUI:
 ```/opt/pyloncoin/pyloncoin/src/qt/pyloncoin-qt ```
 
 There are two ways to run a CVN.  
-1. By using Fasito (Pyloncoin signature token) which contains all the information required  
+1. By using Pylonkey (Pyloncoin signature token) which contains all the information required  
 2. By using an x509 Key/certificate pair which containls all the information required (for testing only)  
 
-### 3.1 Using Fasito
-The Fasito is provided by the Pyloncoin development team. Once you have received the token plug it into a USB port and start the wallet using the parameters ```-cvn=fasito -gen=1 ```
+### 3.1 Using Pylonkey
+The Pylonkey is provided by the Pyloncoin development team. Once you have received the token plug it into a USB port and start the wallet using the parameters ```-cvn=pylonkey -gen=1 ```
 ### 3.2 Using an x509 Key/certificate pair
 The wallet searches for a file named cvn.pem in the Pyloncoin data directory (in Linux ~/.pyloncoin2)
 

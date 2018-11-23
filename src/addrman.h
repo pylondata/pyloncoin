@@ -54,7 +54,7 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action, int nType, int nVersion) {
         READWRITE(*(CAddress*)this);
         READWRITE(source);
         READWRITE(nLastSuccess);
@@ -277,7 +277,7 @@ public:
      * very little in common.
      */
     template<typename Stream>
-    void Serialize(Stream &s) const
+    void Serialize(Stream &s, int nType, int nVersionDummy) const
     {
         LOCK(cs);
 
@@ -327,7 +327,7 @@ public:
     }
 
     template<typename Stream>
-    void Unserialize(Stream& s)
+    void Unserialize(Stream& s, int nType, int nVersionDummy)
     {
         LOCK(cs);
 
@@ -345,14 +345,6 @@ public:
         s >> nUBuckets;
         if (nVersion != 0) {
             nUBuckets ^= (1 << 30);
-        }
-
-        if (nNew > ADDRMAN_NEW_BUCKET_COUNT * ADDRMAN_BUCKET_SIZE) {
-            throw std::ios_base::failure("Corrupt CAddrMan serialization, nNew exceeds limit.");
-        }
-
-        if (nTried > ADDRMAN_TRIED_BUCKET_COUNT * ADDRMAN_BUCKET_SIZE) {
-            throw std::ios_base::failure("Corrupt CAddrMan serialization, nTried exceeds limit.");
         }
 
         // Deserialize entries from the new table.

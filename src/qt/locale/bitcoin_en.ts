@@ -3124,7 +3124,7 @@
     </message>
     <message>
         <location line="+2"/>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4266,7 +4266,7 @@
     </message>
     <message>
         <location line="+3"/>
-        <source>Copyright (C) 2009-%i The Pyloncoin Core Developers</source>
+        <source>Copyright (C) 2009-%i The Faircoin Core developers</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

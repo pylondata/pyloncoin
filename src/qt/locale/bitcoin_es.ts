@@ -2414,7 +2414,7 @@
         <translation>Pyloncoin Core</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>Los desarrolladores de Pyloncoin Core</translation>
     </message>
     <message>
@@ -3311,8 +3311,8 @@
         <translation>Conectar usando SOCKS5 proxy</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Pyloncoin Core Developers</source>
-        <translation>Copyright (C) 2009-%i The Pyloncoin Core Developers</translation>
+        <source>Copyright (C) 2009-%i The Faircoin Core developers</source>
+        <translation>Copyright (C) 2009-%i The Faircoin Core developers</translation>
     </message>
     <message>
         <source>Error loading wallet.dat: Wallet requires newer version of Pyloncoin Core</source>

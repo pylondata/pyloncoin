@@ -14,6 +14,7 @@
 #include <vector>
 
 extern CDynamicChainParams dynParams;
+extern bool CheckDynamicChainParameters(const CDynamicChainParams& params);
 
 struct CDNSSeedData {
     std::string name, host;
@@ -89,7 +90,6 @@ protected:
     std::string strNetworkID;
     CBlock genesis;
     std::vector<SeedSpec6> vFixedSeeds;
-    basic_string<char> vPylonRewardAddress;
     bool fDefaultConsistencyChecks;
     bool fRequireStandard;
     bool fCreateBlocksOnDemand;

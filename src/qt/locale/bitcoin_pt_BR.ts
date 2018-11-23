@@ -2418,7 +2418,7 @@
         <translation>Pyloncoin</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>Programadores do Pyloncoin</translation>
     </message>
     <message>
@@ -3316,7 +3316,7 @@
         <translation>Connecte-se através de um proxy SOCKS5</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Pyloncoin Core Developers</source>
+        <source>Copyright (C) 2009-%i The Faircoin Core developers</source>
         <translation>Copyright (C) 2009-%i Desenvolvedores Pyloncoin Core</translation>
     </message>
     <message>

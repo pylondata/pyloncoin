@@ -2219,7 +2219,7 @@
         <translation>Pyloncoin Core</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>Os programadores do Pyloncoin Core</translation>
     </message>
     <message>
@@ -2921,7 +2921,7 @@
         <translation>Não foi possível resolver o endereço -whitebind: '%s'</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Pyloncoin Core Developers</source>
+        <source>Copyright (C) 2009-%i The Faircoin Core developers</source>
         <translation>Copyright (C) 2009-%i Os Programadores do Pyloncoin Core</translation>
     </message>
     <message>

@@ -126,11 +126,11 @@ bool AppInit(int argc, char* argv[])
         }
 
         // we need to do this early, just before daemonsing...
-        string strFasitoPassword = "";
+        string strPylonkeyPassword = "";
 #ifdef USE_CVN
         if (mapArgs.count("-cvn"))
         {
-            promptForPassword("Enter Fasito PIN: ", strFasitoPassword);
+            promptForPassword("Enter Pylonkey PIN: ", strPylonkeyPassword);
         }
 #endif
         if (GetBoolArg("-daemon", false))
@@ -153,8 +153,8 @@ bool AppInit(int argc, char* argv[])
         // Set this early so that parameter interactions go to console
         InitLogging();
         InitParameterInteraction();
-        fRet = AppInit2(threadGroup, scheduler, strFasitoPassword);
-        memset(&strFasitoPassword.begin()[0], 0, strFasitoPassword.length());
+        fRet = AppInit2(threadGroup, scheduler, strPylonkeyPassword);
+        memset(&strPylonkeyPassword.begin()[0], 0, strPylonkeyPassword.length());
     }
     catch (const std::exception& e) {
         PrintExceptionContinue(&e, "AppInit()");

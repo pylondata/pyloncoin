@@ -72,14 +72,12 @@ std::string DecodeDumpString(const std::string &str) {
     return ret.str();
 }
 
-UniValue importprivkey(const JSONRPCRequest& request)
+UniValue importprivkey(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    
-    if (!EnsureWalletIsAvailable(request.fHelp))
+    if (!EnsureWalletIsAvailable(fHelp))
         return NullUniValue;
     
-    if (request.fHelp || params.size() < 1 || params.size() > 3)
+    if (fHelp || params.size() < 1 || params.size() > 3)
         throw runtime_error(
             "importprivkey \"pyloncoinprivkey\" ( \"label\" rescan )\n"
             "\nAdds a private key (as returned by dumpprivkey) to your wallet.\n"
@@ -179,14 +177,12 @@ void ImportAddress(const CBitcoinAddress& address, const string& strLabel)
         pwalletMain->SetAddressBook(address.Get(), strLabel, "receive");
 }
 
-UniValue importaddress(const JSONRPCRequest& request)
+UniValue importaddress(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    
-    if (!EnsureWalletIsAvailable(request.fHelp))
+    if (!EnsureWalletIsAvailable(fHelp))
         return NullUniValue;
     
-    if (request.fHelp || params.size() < 1 || params.size() > 4)
+    if (fHelp || params.size() < 1 || params.size() > 4)
         throw runtime_error(
             "importaddress \"address\" ( \"label\" rescan p2sh )\n"
             "\nAdds a script (in hex) or address that can be watched as if it were in your wallet but cannot be used to spend.\n"
@@ -247,14 +243,12 @@ UniValue importaddress(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-UniValue importpubkey(const JSONRPCRequest& request)
+UniValue importpubkey(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    
-    if (!EnsureWalletIsAvailable(request.fHelp))
+    if (!EnsureWalletIsAvailable(fHelp))
         return NullUniValue;
 
-    if (request.fHelp || params.size() < 1 || params.size() > 4)
+    if (fHelp || params.size() < 1 || params.size() > 4)
         throw runtime_error(
             "importpubkey \"pubkey\" ( \"label\" rescan )\n"
             "\nAdds a public key (in hex) that can be watched as if it were in your wallet but cannot be used to spend.\n"
@@ -307,14 +301,12 @@ UniValue importpubkey(const JSONRPCRequest& request)
 }
 
 
-UniValue importwallet(const JSONRPCRequest& request)
+UniValue importwallet(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    
-    if (!EnsureWalletIsAvailable(request.fHelp))
+    if (!EnsureWalletIsAvailable(fHelp))
         return NullUniValue;
     
-    if (request.fHelp || params.size() != 1)
+    if (fHelp || params.size() != 1)
         throw runtime_error(
             "importwallet \"filename\"\n"
             "\nImports keys from a wallet dump file (see dumpwallet).\n"
@@ -416,14 +408,12 @@ UniValue importwallet(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-UniValue dumpprivkey(const JSONRPCRequest& request)
+UniValue dumpprivkey(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    
-    if (!EnsureWalletIsAvailable(request.fHelp))
+    if (!EnsureWalletIsAvailable(fHelp))
         return NullUniValue;
     
-    if (request.fHelp || params.size() != 1)
+    if (fHelp || params.size() != 1)
         throw runtime_error(
             "dumpprivkey \"pyloncoinaddress\"\n"
             "\nReveals the private key corresponding to 'pyloncoinaddress'.\n"
@@ -456,14 +446,12 @@ UniValue dumpprivkey(const JSONRPCRequest& request)
 }
 
 
-UniValue dumpwallet(const JSONRPCRequest& request)
+UniValue dumpwallet(const UniValue& params, bool fHelp)
 {
-    const UniValue params = request.params;
-    
-    if (!EnsureWalletIsAvailable(request.fHelp))
+    if (!EnsureWalletIsAvailable(fHelp))
         return NullUniValue;
     
-    if (request.fHelp || params.size() != 1)
+    if (fHelp || params.size() != 1)
         throw runtime_error(
             "dumpwallet \"filename\"\n"
             "\nDumps all wallet keys in a human-readable format.\n"

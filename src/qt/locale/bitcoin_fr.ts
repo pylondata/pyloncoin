@@ -2418,7 +2418,7 @@
         <translation>Pyloncoin Core</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>Les développeurs Pyloncoin Core</translation>
     </message>
     <message>
@@ -3316,7 +3316,7 @@
         <translation>Se connecter par un mandataire SOCKS5</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Pyloncoin Core Developers</source>
+        <source>Copyright (C) 2009-%i The Faircoin Core developers</source>
         <translation>Copyright © 2009-%i Les développeurs de Pyloncoin Core</translation>
     </message>
     <message>

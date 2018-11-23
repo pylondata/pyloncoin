@@ -2394,7 +2394,7 @@
         <translation>Pyloncoin-ydin</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>Pyloncoin Core kehittäjät</translation>
     </message>
     <message>
@@ -3136,7 +3136,7 @@
         <translation>Yhdistä SOCKS5 proxin kautta</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Pyloncoin Core Developers</source>
+        <source>Copyright (C) 2009-%i The Faircoin Core developers</source>
         <translation>Copyright (C) 2009-%i  Pyloncoin kehittäjät</translation>
     </message>
     <message>

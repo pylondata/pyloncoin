@@ -2418,7 +2418,7 @@
         <translation>比特幣核心</translation>
     </message>
     <message>
-        <source>The Pyloncoin Core developers</source>
+        <source>The Faircoin Core developers</source>
         <translation>比特幣核心開發人員</translation>
     </message>
     <message>
@@ -3317,7 +3317,7 @@
         <translation>透過 SOCKS5 代理伺服器連線</translation>
     </message>
     <message>
-        <source>Copyright (C) 2009-%i The Pyloncoin Core Developers</source>
+        <source>Copyright (C) 2009-%i The Faircoin Core developers</source>
         <translation>版權為比特幣核心開發人員自西元 2009 至 %i 年起所有</translation>
     </message>
     <message>
