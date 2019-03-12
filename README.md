@@ -61,7 +61,7 @@ Our blockchain technology has been adopted to the needs of the energy sector, co
 
 The operation of the Neutral Energy Database and the cooperative (while secure) environment within Pylon Network, allows for the decentralization of digital governance in the energy sector. By offering instantaneous exchange and settlement of energy-related data between energy stakeholders (e.g. consumption/production, certification of energy exchange, payments, etc.), we have set up the foundation for an open and diverse ecosystem of digital services, where cooperation is instigated by design.
 
-[![N|](  https://pylon-network.org/wp-content/uploads/2018/04/Capture-Figure-FAQ.jpg)
+![N|](  https://pylon-network.org/wp-content/uploads/2018/04/Capture-Figure-FAQ.jpg)
 
 Pylon Network’s Neutral Energy Database can accelerate the energy transition by driving innovation at all levels of the supply chain and induce social impact at scale. We have already seen the first signs of this, at the beginning of our commercialization stage in Spain while we are successfully coming out of the demonstration stage (see the demo platform [here](https://demo.pylon-network.org/angular/#/access/signin)).
 
