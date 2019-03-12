@@ -1,5 +1,3 @@
-<![endif]-->
-
 # PYLON NETWORK – Blockchain. Energy-Wise.
 
 ### Pylon Network is a neutral energy database by-design. 
