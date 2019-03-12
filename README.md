@@ -1,146 +1,110 @@
-![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura1-1.jpg)
-![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura2.jpg)
-![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura3.jpg)
-![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura4.jpg)
-![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura5.jpg)
-![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura6.jpg)
-![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura7.jpg)
-![N|](https://pylon-network.org/wp-content/uploads/2018/01/Captura8.jpg)
+<![endif]-->
+
+# PYLON NETWORK – Blockchain. Energy-Wise.
+
+### Pylon Network is a neutral energy database by-design. 
+#### Our objective: to instigate an ecosystem of cooperation in a digitalized energy sector.
+
+![N|]( https://pylon-network.org/wp-content/uploads/2019/03/Your-Energy.jpg)
+
+![N|]( https://pylon-network.org/wp-content/uploads/2019/03/Your-Voice.jpg)
+
+![N|]( https://pylon-network.org/wp-content/uploads/2019/03/Your-Future.jpg)
+
+By leveraging the immutability, traceability and transparency offered by blockchain and combining it with our **“energy-wise” blockchain technology** we are set to liberalize the digitalization transition process of our energy systems. With a **demonstrated, working technology**, our strategy is simple – and in full alignment with our core value: **empowering the transition to decarbonizing our energy systems**, as the best (and last) opportunity to combine economic / business growth with delivery of social impact.
 
 # LINKS
 
 - [WEB Pylon Network](http://pylon-network.org/)
-- [Download WhitePaper ENGLISH version](http://pylon-network.org/wp-content/uploads/2017/07/170730_WP-PYLNC_EN.pdf)
-- [Download WhitePaper SPANISH version](http://pylon-network.org/wp-content/uploads/2017/07/170730_WP-PYLNC_ES.pdf)
-- [BitcoinTalk Channel](https://bitcointalk.org/index.php?topic=2054297)
-- [BitcoinTalk Spanish Channel](https://bitcointalk.org/index.php?topic=2055169)
+
+- [WhitePaper ENGLISH]( https://pylon-network.org/wp-content/uploads/2019/02/WhitePaper_PYLON_v2_ENGLISH-1.pdf)
+
+- [TokenPaper ENGLISH]( https://pylon-network.org/wp-content/uploads/2019/02/TokenPaper_PYLON_ENGLISH-1.pdf)
+
 - [Telegram Official Channel](https://t.me/pylonnetworkofficialtelegram)
+
 - [Telegram Spanish Channel](https://t.me/pylonnetworkspanishchannel)
-- [Twitter](https://twitter.com/KlenergyTech)
-- [WEB Klenergy Tech](http://klenergy-tech.com/)
-- [METRON](http://metron.es)
-- [Facebook](https://www.facebook.com/KlenergyTechOfficial/s)
-- [LinkdIn]( https://www.linkedin.com/company-beta/10229571/)
-- [Medium](https://medium.com/@KlenergyTech)
+
+- [Twitter]( https://twitter.com/pylon_network)
+
+- [Facebook](https://www.facebook.com/pylonnetworkofficial)
+
+- [LinkedIn](https://www.linkedin.com/company/pylonnetwork/)
+
+- [Medium](https://medium.com/@PylonNetwork)
+
 - [Youtube](https://www.youtube.com/channel/UCZY7CDvy69VrsrBniETH9Sw)
-- [Steemit](https://steemit.com/@pylonnetwork)
-#                                 Say Hello! The Green Energy Economy is Here!
 
-# P2P Distributed Green Energy Market
-- Empowering communities... Produce, consume and sell green energy locally and efficiently.
+#  It’s the data, stupid!
 
-- Energy Cooperatives... The link between communities and the real electricity market.
+## The wave of energy digitalization
 
-# METRON 
+The energy sector is about to be taken by a wave of digitalization. Only in EU, by 2020 there will be 100s of millions of smart meters, installed in consumers home, generating a new stream of granular data (at the consumers level) for the first time in the energy sector.
 
-Trust, Transparency and Traceability.
+For ensuring that these data will be leveraged for the optimal value (economic, social & environmental) and not just for the benefit of a closed group of actors, Pylon Network creates an open, neutral, shared energy database for encouraging the exchange of digital services among ALL stakeholders.
 
-Certify who, when and where produces and consumes each kWh of green energy within Pylon Network.
+## Energy Data Neutrality: The Key to a Successful Energy Transition
 
-- Why METRON?
+Pylon Network guarantees the highest standards of data neutrality by leveraging our open source blockchain technology, which is designed in accordance to the high requirements of the energy sector (meaning that it also deals with the challenges of scalability and energy consumption, commonly faced by blockchain protocols).
 
-To have free access to the data that the current energy system does not offer.
+In this way, Pylon Network uniquely combines full transparency with full privacy for open energy data and unlocks a blue ocean of innovation around digital energy services.
 
-- What is METRON?
+Pylon Network is here to accelerate the energy transition process.
 
-METRON is the smart energy meter developed by Klenergy, which gives you access to the Pylon Network datalayer. It is based on blockchain technology and integrates its own digital payment method, the Pylon Coin, which allows you to trace / know the origin of your energy – .
+# Technology
 
-- What does METRON offer?
+Our technology is designed to help tackle the challenge by offering a neutral, efficient and transparent database with the ability to settle data and transactions, in a fast and secure manner.
 
-P2P transactions – traceability of electricity
-Full transparency and full privacy.
-Energy efficiency – saving up to 30% of electricity.
-Instantaneous payment method for green energy. 
-Full flexibility and adoptability to the needs of any regional/national/international markets.
-Open-source software to accommodate cooperation between all players and faster product development.
+With Pylon Network, interactions within multi-agent networks are possible – and encouraged – allowing to capitalize on the biggest asset we have available, for effectively reducing the carbon intensity of our energy systems: COOPERATION.
 
-- What role does METRON have within the Pylon Network?
+Our blockchain technology has been adopted to the needs of the energy sector, coming with the necessary flexibility to adopt to a very large range of applications and markets. All information about Pylon Network blockchain can be found here. If you want to contribute, feel free to get in touch with directly with the team via our official [Telegram channel](https://t.me/pylonnetworkofficialtelegram).
 
-The METRON are participants of the Pylon network, which means that all them contribute in the audit of the P2P transactions, creating an electricity and payments transactions database totally decentralized and totally transparent.
+## Real Value & Implementation
 
-- METRON models:
+The operation of the Neutral Energy Database and the cooperative (while secure) environment within Pylon Network, allows for the decentralization of digital governance in the energy sector. By offering instantaneous exchange and settlement of energy-related data between energy stakeholders (e.g. consumption/production, certification of energy exchange, payments, etc.), we have set up the foundation for an open and diverse ecosystem of digital services, where cooperation is instigated by design.
 
-We offer two models of Klenergy METRON which allow it to be applicable in all markets and regulations:
+[![N|](  https://pylon-network.org/wp-content/uploads/2018/04/Capture-Figure-FAQ.jpg)
 
-METRON.Home , Smart meter – is a replacement for the existing utility meter.
+Pylon Network’s Neutral Energy Database can accelerate the energy transition by driving innovation at all levels of the supply chain and induce social impact at scale. We have already seen the first signs of this, at the beginning of our commercialization stage in Spain while we are successfully coming out of the demonstration stage (see the demo platform [here](https://demo.pylon-network.org/angular/#/access/signin)).
 
-METRON.Plus , Behind the meter – is a behind-the-meter version (in case the meter replacement is not allowed).
-  
+More info about the technical specifications of Pylon Network’s blockchain technology can be found on our [website](https://pylon-network.org/pylon-network-blockchain). Pylon blockchain explorer is available [here](https://chain.pylon-network.org/).
 
-# Pylon Network Blockchain
+## Pylon Token (PYLNT) and Pyloncoin (PYLNC)
 
-First and unique Blockchain dessigned for energy sector needs.
+In Pylon Network there are two asset, the Pylon Token or “PYLNT” and the Pyloncoin or “PYLNC”. Both assets play a particular role within Pylon Network and are related.
 
-![N|](https://pylon-network.org/wp-content/uploads/2018/02/Imagen_layers.png)
+The Pylon Token – **PYLNT** is a digital asset that represents the participation in the Pylon Network platform and with it come the rights associated with the distributed benefits (rewards) in the form of PYLNC.
 
-All blockchain platforms do not work for any application. The energy sector in particular requires a high rate of transaction speed to manage all his data; In addition, it is necessary to have great scalability and versatility, being able to absorb huge amounts of data, store and process them. For the moment, blockchains like Ethereum, could not cover these requirements.
+The Pyloncoin – **PYLNC** is a digital currency, which is created to reward the work done by the nodes, that validate and maintain the neutral database supported by Pylon Network’s blockchain. At the same time, a part of the coins created goes to green energy producers and prosumers (see “Light Nodes”), serving as an incentive/support mechanism for those who invest in renewable energy generation technologies.
 
-The value proposition of Pylon Network is the development of its own blockchain technology specially designed for the energy market needs.
+**Our Token Paper** (released on Feb. 4) contains all information regarding PYLNT and PYLNC – and can be found **[here](https://pylon-network.org/wp-content/uploads/2019/02/TokenPaper_PYLON_ENGLISH.pdf).**
 
-# Pylon Token
+# MORE INFORMATION & CONTRIBUTIONS
 
-- What is PYLON TOKEN?
+If you are interested to know more about Pyloncoin – Pylon Network’s open-source blockchain core – feel free to have a look at the repository.
 
-The Pylon Token or abbreviated “PYLNT” represents the property of the renewable facilities associated with the Pylon Network project.
+You are always welcome to get in touch with the team, if you have any questions or you are interested to contribute your work and time to the development of Pylon Network’s energy-wise blockchain code!
 
-Through this form of ownership, the owners of Pylon Tokens receive the dividends generated by the renewable facilities financed. The dividend allocation process will begin at a later stage (after commercialization – end 2018).
+You can find all relevant information below.
 
-New users who want to join the Pylon Network platform, should acquire a small amount of PYLNT, as a membership fee – which they will need to hold for as long as they are in the platform. If at any time they wish to leave the platform, they will be free to decide on if /when they want to sell their PYLNT to new users who want to join Pylon Network.
-
-More information and a fully detailed explanation will follow shortly – during the development of Pylon Network within the Spanish network / market, in collaboration with GoiEner.First and unique Blockchain dessigned for energy sector needs.
-
-# Pylon Coin
-
-- What is PYLON COIN?
-
-Pylon Coin or abbreviated “PYLNC” is the payment and certification method of green energy used by all the players within Pylon Network – Consumers, Producers, Prosumers, Renewable Energy Cooperatives.
-
-- What does PYLON COIN represent?
-
-It represents an indestructible and inherent certificate of green energy, since Pylon Coin is “generated” through the use of renewable electricity and combined with the transparency of blockchain technology.
-
-- What are the advantages of using PYLON COINS?
-
-By using this payment and trace system, users will be able to:
-
-Know – Who-When-Where – has consumed or produced each kWh of electricity.
-Micro-payments in real time.
-Secure transactions, fast and without intermediaries.
-Traceability and transparency of all operations.
-Accounting processes optimization of the energy cooperatives.
-How you are going to pay less for the energy you consume with Pylon-coins?
-The way to get cheaper energy will be using PPA (Power Purchase Agreements) with green energy producers. A PPA is a long-term power purchase agreement with the producer. The cooperative will close PPAs with producers gradually.
-
-- How does PYLON COIN works?
-
-Pylon Coin is the most sustainable cryptographic currency in the world. The “CORE” of the Pylon Coin is based on the proof of cooperation between all the participants, reducing the energy validation costs of the transactions. It is the first blockchain algorithm developed specifically for the energy sector needs by the Pylon team and its partners, and uses only 100% renewable electricity for its operation.
-
-# Are you a "Prosumer"?
-
-If you have solar panels on your roof and would like to participate as a prosumer on Pylon Network, you can register your installation below.
-
-Fill in the form and you could be one of the few lucky prosumers who participate on the implementation stage of Pylon Network platform.
-
-[Register](https://pylon-network.org/register-installation) 
-
-# LINKS
+### LINKS
 
 - [WEB Pylon Network](http://pylon-network.org/)
-- [Download WhitePaper ENGLISH version](http://pylon-network.org/wp-content/uploads/2017/07/170730_WP-PYLNC_EN.pdf)
-- [Download WhitePaper SPANISH version](http://pylon-network.org/wp-content/uploads/2017/07/170730_WP-PYLNC_ES.pdf)
-- [BitcoinTalk Channel](https://bitcointalk.org/index.php?topic=2054297)
-- [BitcoinTalk Spanish Channel](https://bitcointalk.org/index.php?topic=2055169)
-- [Telegram Official Channel](https://t.me/pylonnetworkofficialtelegram)
-- [Telegram Spanish Channel](https://t.me/pylonnetworkspanishchannel)
-- [Twitter](https://twitter.com/KlenergyTech)
-- [WEB Klenergy Tech](http://klenergy-tech.com/)
-- [METRON](http://metron.es)
-- [Facebook](https://www.facebook.com/KlenergyTechOfficial/s)
-- [LinkdIn]( https://www.linkedin.com/company-beta/10229571/)
-- [Medium](https://medium.com/@KlenergyTech)
+
+- [Pylon Network - WhitePaper]( https://pylon-network.org/wp-content/uploads/2019/02/WhitePaper_PYLON_v2_ENGLISH-1.pdf)
+
+- [Pylon Network - TokenPaper]( https://pylon-network.org/wp-content/uploads/2019/02/TokenPaper_PYLON_ENGLISH-1.pdf)
+
+- [Telegram Official English Channel](https://t.me/pylonnetworkofficialtelegram)
+
+- [Telegram Official Spanish Channel](https://t.me/pylonnetworkspanishchannel)
+
+- [Twitter]( https://twitter.com/pylon_network)
+
+- [Facebook](https://www.facebook.com/pylonnetworkofficial)
+
+- [LinkedIn](https://www.linkedin.com/company/pylonnetwork/)
+
+- [Medium](https://medium.com/@PylonNetwork)
+
 - [Youtube](https://www.youtube.com/channel/UCZY7CDvy69VrsrBniETH9Sw)
-- [Steemit](https://steemit.com/@pylonnetwork)
-
-# License
-
-[MIT License](https://github.com/klenergy/pyloncoin/blob/1.3.0/LICENSE) - Forked from Bitcoin, Litecoin, Creativecoin
